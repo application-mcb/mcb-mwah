@@ -41,12 +41,23 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onSwitchTo
     setError("");
 
     try {
+      // First authenticate with Firebase
+      const { signInWithEmailAndPassword } = await import('firebase/auth');
+      const { auth } = await import('@/lib/firebase');
+      
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      const user = userCredential.user;
+
+      // Then call our API with the user data
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          uid: user.uid,
+          email: user.email
+        }),
       });
 
       const result = await response.json();
@@ -66,8 +77,24 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onSwitchTo
         // User needs to complete profile setup
         window.location.href = '/setup';
       }
-    } catch (err) {
-      if (err instanceof Error) {
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found') {
+        setError('No account found with this email');
+      } else if (err.code === 'auth/wrong-password') {
+        setError('Incorrect password');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address');
+      } else if (err.code === 'auth/user-disabled') {
+        setError('This account has been disabled');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many failed login attempts. Please try again later');
+      } else if (err.code === 'auth/invalid-credential') {
+        setError('Invalid email or password');
+      } else if (err.code === 'auth/network-request-failed') {
+        setError('Network error. Please check your connection');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Email/password accounts are not enabled');
+      } else if (err instanceof Error) {
         setError(err.message);
       } else {
         setError("An error occurred during login");

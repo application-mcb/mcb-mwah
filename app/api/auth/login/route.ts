@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 import { serverTimestamp } from 'firebase/firestore';
-import { auth } from '@/lib/firebase';
 import { StudentDatabase } from '@/lib/firestore-database';
 import { RegistrarDatabase } from '@/lib/registrar-database';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const { uid, email } = await request.json();
 
     // Validate input
-    if (!email || !password) {
+    if (!uid || !email) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'User ID and email are required' },
         { status: 400 }
       );
     }
@@ -26,28 +24,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate password length
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'Password must be at least 6 characters' },
-        { status: 400 }
-      );
-    }
-
-    // Attempt authentication with Firebase
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
     // Sync user with database
     try {
       // Check if student already exists
-      let userData = await StudentDatabase.getStudent(user.uid);
+      let userData = await StudentDatabase.getStudent(uid);
 
       if (!userData) {
         // If student doesn't exist, create a basic entry
         const basicStudentData = {
-          uid: user.uid,
-          email: user.email || '',
+          uid: uid,
+          email: email,
           firstName: '',
           lastName: '',
           middleName: '',
@@ -66,7 +52,7 @@ export async function POST(request: NextRequest) {
           guardianName: '',
           guardianPhone: '',
           guardianRelationship: '',
-          photoURL: user.photoURL || '',
+          photoURL: '',
           provider: 'email' as const,
           academicDataUsageAgreement: false,
           createdAt: serverTimestamp(),
@@ -76,10 +62,10 @@ export async function POST(request: NextRequest) {
 
         await StudentDatabase.createStudent(basicStudentData);
         // Get the created student data (which will be serialized)
-        userData = await StudentDatabase.getStudent(user.uid);
+        userData = await StudentDatabase.getStudent(uid);
       } else {
         // Update last login time
-        await StudentDatabase.updateLastLogin(user.uid);
+        await StudentDatabase.updateLastLogin(uid);
       }
     } catch (syncError) {
       console.error('User sync failed:', syncError);
@@ -89,7 +75,7 @@ export async function POST(request: NextRequest) {
     // Check if user is a registrar first
     let isRegistrar = false;
     try {
-      isRegistrar = await RegistrarDatabase.hasRegistrarRole(user.uid);
+      isRegistrar = await RegistrarDatabase.hasRegistrarRole(uid);
     } catch (registrarError) {
       console.error('Registrar check failed:', registrarError);
       // Continue with login even if registrar check fails
@@ -100,9 +86,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         user: {
-          uid: user.uid,
-          email: user.email,
-          emailVerified: user.emailVerified,
+          uid: uid,
+          email: email,
+          emailVerified: true,
         },
         isRegistrar: true,
         redirectTo: '/registrar',
@@ -112,7 +98,7 @@ export async function POST(request: NextRequest) {
     // Check if user has a complete profile (for students)
     let hasCompleteProfile = false;
     try {
-      const userData = await StudentDatabase.getStudent(user.uid);
+      const userData = await StudentDatabase.getStudent(uid);
       hasCompleteProfile = !!(userData && userData.firstName && userData.lastName);
     } catch (profileError) {
       console.error('Profile check failed:', profileError);
@@ -123,9 +109,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: {
-        uid: user.uid,
-        email: user.email,
-        emailVerified: user.emailVerified,
+        uid: uid,
+        email: email,
+        emailVerified: true,
       },
       hasCompleteProfile,
       isRegistrar: false,
@@ -134,25 +120,16 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     // Log error safely without exposing sensitive details
     console.error('Login failed:', error.code || 'Unknown error');
-
-    // Handle specific Firebase auth errors
-    let errorMessage = 'An error occurred during login';
-
-    if (error.code === 'auth/user-not-found') {
-      errorMessage = 'No account found with this email';
-    } else if (error.code === 'auth/wrong-password') {
-      errorMessage = 'Incorrect password';
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Invalid email address';
-    } else if (error.code === 'auth/user-disabled') {
-      errorMessage = 'This account has been disabled';
-    } else if (error.code === 'auth/too-many-requests') {
-      errorMessage = 'Too many failed login attempts. Please try again later';
-    }
+    console.error('Error details:', error.message);
+    console.error('Full error:', error);
 
     return NextResponse.json(
-      { error: errorMessage },
-      { status: 401 }
+      { 
+        error: 'An error occurred during login',
+        code: error.code,
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
+      { status: 500 }
     );
   }
 }
