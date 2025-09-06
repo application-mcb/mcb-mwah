@@ -60,6 +60,8 @@ Desktop.ini
 .firebase/
 firebase-debug.log
 firebase-debug.*.log
+service.json
+firebase-service-account.json
 
 # Logs
 logs
