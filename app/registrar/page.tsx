@@ -1,0 +1,324 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { 
+  User, 
+  Users, 
+  ChartBar, 
+  Gear, 
+  SignOut,
+  House,
+  IdentificationCard,
+  GraduationCap,
+  Calendar,
+  Bell,
+  MemberOfIcon,
+  Shield,
+  BookOpen,
+  UserList
+} from "@phosphor-icons/react";
+
+interface RegistrarData {
+  uid: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
+
+export default function RegistrarPage() {
+  const [registrar, setRegistrar] = useState<RegistrarData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const router = useRouter();
+  const { user, loading: authLoading, signOut } = useAuth();
+
+  useEffect(() => {
+    if (authLoading) {
+      return; // Wait for auth to load
+    }
+
+    if (!user) {
+      router.push('/');
+      return;
+    }
+
+    const checkRegistrarAccess = async () => {
+      try {
+        // Check registrar role using UID and email
+        const response = await fetch('/api/registrar/check-role', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            uid: user.uid,
+            email: user.email 
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          setRegistrar(data.registrar);
+        } else {
+          setError(data.error || 'Access denied');
+          setTimeout(() => {
+            router.push('/');
+          }, 3000);
+        }
+      } catch (error: any) {
+        setError('Failed to verify access: ' + error.message);
+        setTimeout(() => {
+          router.push('/');
+        }, 3000);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkRegistrarAccess();
+  }, [user, authLoading, router]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push('/');
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  };
+
+  if (loading || authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+            Verifying access...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md p-6 text-center">
+          <h1 className="text-xl font-light text-red-600 mb-4" style={{ fontFamily: 'Poppins' }}>
+            Access Denied
+          </h1>
+          <p className="text-gray-600 mb-4" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+            {error}
+          </p>
+          <div className="space-y-2 mb-4">
+            <p className="text-sm text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+              Make sure you're logged in with the correct registrar account.
+            </p>
+            <p className="text-sm text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+              Check the console for detailed error information.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Button
+              onClick={() => window.location.href = '/auth-debug'}
+              variant="outline"
+              className="w-full"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
+              Debug Authentication
+            </Button>
+            <Button
+              onClick={() => window.location.href = '/'}
+              variant="outline"
+              className="w-full"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
+              Go to Home
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  const getFullName = () => {
+    if (!registrar) return 'Registrar';
+    const { firstName, lastName } = registrar;
+    return `${firstName || ''} ${lastName || ''}`.trim() || 'Registrar';
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <aside className="w-80 bg-white/50 shadow-lg flex flex-col animate-in slide-in-from-left-4 duration-500">
+        {/* Sidebar Header */}
+        <div className="p-6 border-blue-100">
+          <div className="flex flex-col items-center text-center">
+            <div className="flex items-center mb-2">
+              <img 
+                src="/logo.png" 
+                alt="Marian College Logo" 
+                className="w-12 h-12 object-contain aspect-square"
+              />
+              <div className="flex flex-col ml-2">
+                <h1 className="text-xl font-light text-gray-900 text-left">Registrar System</h1>
+                <p className="text-xs text-gray-600 font-bold uppercase font-mono">Marian College of Baliuag, Inc.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Registrar Profile Section */}
+        <div className="p-6 border-gray-200 bg-gray-100">
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-blue-900 flex items-center justify-center">
+              {user?.photoURL ? (
+                <img 
+                  src={user.photoURL} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover rounded-full aspect-square border-2 border-black"
+                />
+              ) : (
+                <Shield size={32} className="text-white" weight="duotone" />
+              )}
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-medium text-gray-900">
+                {getFullName()}
+              </h3>
+              <p className="text-xs text-gray-900 font-mono font-medium">{registrar?.email}</p>
+              <p className="text-xs text-gray-600 font-mono font-medium">Registrar</p>
+            </div>
+          </div>
+          <Button 
+            variant="ghost"
+            className="border-1 border-blue-900 rounded-none w-full text-white bg-blue-900"
+            onClick={() => {/* Add profile edit functionality */}}
+          >
+            <Gear size={20} weight="fill" className="mr-1 transition-transform duration-200 hover:text-blue-900" />
+            Settings
+          </Button>
+        </div>
+
+        {/* Navigation Menu */}
+        <nav className="flex-1 p-6">
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-blue-900 tracking-wider mb-[-2]">Hey {registrar?.firstName}!</h4>
+            <h4 className="text-sm font-light text-blue-900 tracking-wider mb-4">What would you like to do?</h4>
+            
+            <Button 
+              variant="ghost"
+              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+            >
+              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
+                <House className="text-white" weight="fill" />
+              </div>
+              Overview
+            </Button>
+            
+            <Button 
+              variant="ghost"
+              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+            >
+              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
+                <Users className="text-white" weight="fill" />
+              </div>
+              Student Enrollments
+            </Button>
+            
+            <Button 
+              variant="ghost"
+              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+            >
+              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
+                <GraduationCap className="text-white" weight="fill" />
+              </div>
+              Student Management  
+            </Button>
+
+            <Button 
+              variant="ghost"
+              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+            >
+              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
+                <GraduationCap className="text-white" weight="fill" />
+              </div>
+              Teacher Management
+            </Button>
+            
+            <Button 
+              variant="ghost"
+              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+            >
+              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
+                <ChartBar className="text-white" weight="fill" />
+              </div>
+              Reports & Analytics
+            </Button>
+            
+            <Button 
+              variant="ghost"
+              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+            >
+              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
+                <BookOpen className="text-white" weight="fill" />
+              </div>
+              Subject Management
+            </Button>
+
+            <Button 
+              variant="ghost"
+              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+            >
+              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
+              <BookOpen className="text-white" weight="fill" />
+              </div>
+              Course Management
+            </Button>
+            
+            <Button 
+              variant="ghost"
+              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+            >
+              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
+                <MemberOfIcon className="text-white" weight="fill" />
+              </div>
+              Section Management
+            </Button>
+
+            
+
+           
+
+        
+          </div>
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="p-6 border-t border-gray-200">
+          <Button 
+            variant="outline"
+            className="rounded-none border-r-0 border-b-0 font-light border-t-0 w-full justify-start border-l-5 border-red-900 bg-red-50 text-red-900 hover:text-red-900 hover:border-red-900"
+            onClick={handleSignOut}
+          >
+            <div className="flex justify-center items-center bg-red-800 aspect-square w-6 h-6">
+              <SignOut className="text-white" />
+            </div>
+            Sign Out {registrar?.firstName || 'Registrar'}
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+
+      </div>
+    </div>
+  );
+}
