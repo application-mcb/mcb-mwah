@@ -5,11 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { 
-  User, 
-  Users, 
-  ChartBar, 
-  Gear, 
+import CourseManagement from '@/components/course-management';
+import GradeSectionManagement from '@/components/grade-section-management';
+import SubjectManagement from '@/components/subject-management';
+import SubjectSetManagement from '@/components/subject-set-management';
+import {
+  User,
+  Users,
+  ChartBar,
+  Gear,
   SignOut,
   House,
   IdentificationCard,
@@ -30,10 +34,13 @@ interface RegistrarData {
   role: string;
 }
 
+type ViewType = 'overview' | 'course-management' | 'grade-section-management' | 'subject-management' | 'subject-set-management';
+
 export default function RegistrarPage() {
   const [registrar, setRegistrar] = useState<RegistrarData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [currentView, setCurrentView] = useState<ViewType>('overview');
   const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
 
@@ -91,6 +98,10 @@ export default function RegistrarPage() {
     } catch (error) {
       console.error('Sign out failed:', error);
     }
+  };
+
+  const handleNavigation = (view: ViewType) => {
+    setCurrentView(view);
   };
 
   if (loading || authLoading) {
@@ -156,7 +167,7 @@ export default function RegistrarPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <aside className="w-80 bg-white/50 shadow-lg flex flex-col animate-in slide-in-from-left-4 duration-500">
+      <aside className="w-80 bg-white/50 shadow-lg flex flex-col animate-in slide-in-from-left-4 duration-500 max-h-screen sticky top-0">
         {/* Sidebar Header */}
         <div className="p-6 border-blue-100">
           <div className="flex flex-col items-center text-center">
@@ -212,9 +223,12 @@ export default function RegistrarPage() {
             <h4 className="text-sm font-medium text-blue-900 tracking-wider mb-[-2]">Hey {registrar?.firstName}!</h4>
             <h4 className="text-sm font-light text-blue-900 tracking-wider mb-4">What would you like to do?</h4>
             
-            <Button 
+            <Button
               variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+                currentView === 'overview' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
+              }`}
+              onClick={() => handleNavigation('overview')}
             >
               <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
                 <House className="text-white" weight="fill" />
@@ -262,9 +276,12 @@ export default function RegistrarPage() {
               Reports & Analytics
             </Button>
             
-            <Button 
+            <Button
               variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+                currentView === 'subject-management' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
+              }`}
+              onClick={() => handleNavigation('subject-management')}
             >
               <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
                 <BookOpen className="text-white" weight="fill" />
@@ -272,24 +289,43 @@ export default function RegistrarPage() {
               Subject Management
             </Button>
 
-            <Button 
+            <Button
               variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+                currentView === 'subject-set-management' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
+              }`}
+              onClick={() => handleNavigation('subject-set-management')}
             >
               <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
+                <UserList className="text-white" weight="fill" />
+              </div>
+              Subject Sets
+            </Button>
+
+            <Button
+              variant="ghost"
+              className={`rounded-none font-light w-full justify-start h-10 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.01] transform hover:border-blue-900 border-l-5 ${
+                currentView === 'course-management' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
+              }`}
+              onClick={() => handleNavigation('course-management')}
+            >
+              <div className="flex items-center justify-center bg-blue-900 aspect-square w-5 h-5">
               <BookOpen className="text-white" weight="fill" />
               </div>
               Course Management
             </Button>
             
-            <Button 
+            <Button
               variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+                currentView === 'grade-section-management' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
+              }`}
+              onClick={() => handleNavigation('grade-section-management')}
             >
               <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
                 <MemberOfIcon className="text-white" weight="fill" />
               </div>
-              Section Management
+              Grades & Sections
             </Button>
 
             
@@ -318,6 +354,22 @@ export default function RegistrarPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
 
+
+        {currentView === 'course-management' && registrar && (
+          <CourseManagement registrarUid={registrar.uid} />
+        )}
+
+        {currentView === 'grade-section-management' && registrar && (
+          <GradeSectionManagement registrarUid={registrar.uid} />
+        )}
+
+        {currentView === 'subject-management' && registrar && (
+          <SubjectManagement registrarUid={registrar.uid} />
+        )}
+
+        {currentView === 'subject-set-management' && registrar && (
+          <SubjectSetManagement registrarUid={registrar.uid} />
+        )}
       </div>
     </div>
   );
