@@ -6,13 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { ProfileForm } from "@/components/profile-form";
-import { 
-  User, 
-  Calendar, 
-  BookOpen, 
-  GraduationCap, 
-  Gear, 
-  Bell, 
+import EnrollmentForm from "@/components/enrollment-form";
+import DocumentsManager from "@/components/documents-manager";
+import {
+  User,
+  Calendar,
+  BookOpen,
+  GraduationCap,
+  Gear,
+  Bell,
   SignOut,
   House,
   Phone,
@@ -20,18 +22,22 @@ import {
   Shield,
   IdentificationCard,
   Pencil,
-  ChartBar
+  ChartBar,
+  FileText
 } from "@phosphor-icons/react";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { UserProfile } from "@/lib/user-sync";
 import { getProfileAction } from "@/app/actions/profile";
 
+type ViewType = 'dashboard' | 'enrollment' | 'documents' | 'subjects' | 'schedule' | 'performance' | 'records';
+
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const router = useRouter();
 
   useEffect(() => {
@@ -230,7 +236,8 @@ export default function Dashboard() {
             
             <Button 
               variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'dashboard' ? 'bg-blue-50 border-blue-900' : ''}`}
+              onClick={() => setCurrentView('dashboard')}
             >
                 <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
               <User className="text-white" weight="fill" />
@@ -238,12 +245,37 @@ export default function Dashboard() {
            
               Dashboard
             </Button>
-            
-            
+
+            <Button
+              variant="ghost"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'enrollment' ? 'bg-blue-50 border-blue-900' : ''}`}
+              onClick={() => setCurrentView('enrollment')}
+            >
+                <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
+              <GraduationCap className="text-white" weight="fill" />
+            </div>
+
+              Enrollment
+            </Button>
+
+            <Button
+              variant="ghost"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'documents' ? 'bg-blue-50 border-blue-900' : ''}`}
+              onClick={() => setCurrentView('documents')}
+            >
+                <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
+              <FileText className="text-white" weight="fill" />
+            </div>
+
+              Documents
+            </Button>
+
+
             
             <Button 
               variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'subjects' ? 'bg-blue-50 border-blue-900' : ''}`}
+              onClick={() => setCurrentView('subjects')}
             >
                 <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
               <BookOpen className="text-white" weight="fill" />
@@ -254,7 +286,8 @@ export default function Dashboard() {
             
             <Button 
               variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'schedule' ? 'bg-blue-50 border-blue-900' : ''}`}
+              onClick={() => setCurrentView('schedule')}
             >
               <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
               <Calendar className="text-white" weight="fill" />
@@ -265,7 +298,8 @@ export default function Dashboard() {
             
             <Button 
               variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'performance' ? 'bg-blue-50 border-blue-900' : ''}`}
+              onClick={() => setCurrentView('performance')}
             >
               <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
               <ChartBar className="text-white" weight="fill" />
@@ -276,7 +310,8 @@ export default function Dashboard() {
             
             <Button 
               variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'records' ? 'bg-blue-50 border-blue-900' : ''}`}
+              onClick={() => setCurrentView('records')}
             >
               <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
               <IdentificationCard className="text-white" weight="fill" />
@@ -306,7 +341,308 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-              
+        <div className="p-6">
+          {currentView === 'dashboard' && (
+            <div className="space-y-6">
+              {/* Welcome Section */}
+              <div className="bg-white p-6 border border-gray-200">
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-blue-900 flex items-center justify-center">
+                    <User size={32} className="text-white" weight="fill" />
+                  </div>
+                  <div>
+                    <h1
+                      className="text-2xl font-medium text-gray-900"
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    >
+                      Welcome back, {userProfile?.firstName}!
+                    </h1>
+                    <p
+                      className="text-gray-600"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      Here's your academic dashboard overview
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
+                      <GraduationCap size={24} className="text-white" weight="fill" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                        Current Grade
+                      </p>
+                      <p className="text-lg font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                        Not Enrolled
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
+                      <BookOpen size={24} className="text-white" weight="fill" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                        Subjects
+                      </p>
+                      <p className="text-lg font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                        0
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
+                      <Calendar size={24} className="text-white" weight="fill" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                        Schedule
+                      </p>
+                      <p className="text-lg font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                        Not Set
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
+                      <ChartBar size={24} className="text-white" weight="fill" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                        Performance
+                      </p>
+                      <p className="text-lg font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                        N/A
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-white p-6 border border-gray-200">
+                <h2
+                  className="text-xl font-medium text-gray-900 mb-4"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Quick Actions
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button
+                    onClick={() => setCurrentView('enrollment')}
+                    className="bg-blue-900 hover:bg-blue-800 justify-start h-12"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    <GraduationCap size={20} className="mr-2" />
+                    Start Enrollment Process
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-blue-900 text-blue-900 hover:bg-blue-50 justify-start h-12"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    <BookOpen size={20} className="mr-2" />
+                    View My Subjects
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentView === 'enrollment' && user && userProfile && (
+            <EnrollmentForm
+              userId={user.uid}
+              userProfile={userProfile}
+            />
+          )}
+
+          {currentView === 'documents' && user && (
+            <DocumentsManager userId={user.uid} />
+          )}
+
+          {currentView === 'subjects' && (
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                  <BookOpen size={20} className="text-white" weight="fill" />
+                </div>
+                <div>
+                  <h1
+                    className="text-2xl font-medium text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    My Subjects
+                  </h1>
+                  <p
+                    className="text-sm text-gray-600"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    View your enrolled subjects and curriculum
+                  </p>
+                </div>
+              </div>
+
+              <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+                <BookOpen size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+                <h3
+                  className="text-lg font-medium text-gray-900 mb-2"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  No subjects enrolled yet
+                </h3>
+                <p
+                  className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  You haven't been enrolled in any subjects yet. Complete your enrollment process to get access to your subjects and curriculum.
+                </p>
+                <Button
+                  onClick={() => setCurrentView('enrollment')}
+                  className="bg-blue-900 hover:bg-blue-800 mt-4"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <GraduationCap size={20} className="mr-2" />
+                  Start Enrollment
+                </Button>
+              </Card>
+            </div>
+          )}
+
+          {currentView === 'schedule' && (
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                  <Calendar size={20} className="text-white" weight="fill" />
+                </div>
+                <div>
+                  <h1
+                    className="text-2xl font-medium text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Class Schedule
+                  </h1>
+                  <p
+                    className="text-sm text-gray-600"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    View your weekly class schedule
+                  </p>
+                </div>
+              </div>
+
+              <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+                <Calendar size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+                <h3
+                  className="text-lg font-medium text-gray-900 mb-2"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Schedule not available
+                </h3>
+                <p
+                  className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  Your class schedule will be available once you're enrolled and your subjects are assigned.
+                </p>
+              </Card>
+            </div>
+          )}
+
+          {currentView === 'performance' && (
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                  <ChartBar size={20} className="text-white" weight="fill" />
+                </div>
+                <div>
+                  <h1
+                    className="text-2xl font-medium text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Academic Performance
+                  </h1>
+                  <p
+                    className="text-sm text-gray-600"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    Track your grades and academic progress
+                  </p>
+                </div>
+              </div>
+
+              <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+                <ChartBar size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+                <h3
+                  className="text-lg font-medium text-gray-900 mb-2"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Performance data not available
+                </h3>
+                <p
+                  className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  Your academic performance data will be available once you have completed assessments and grades have been recorded.
+                </p>
+              </Card>
+            </div>
+          )}
+
+          {currentView === 'records' && (
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                  <IdentificationCard size={20} className="text-white" weight="fill" />
+                </div>
+                <div>
+                  <h1
+                    className="text-2xl font-medium text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Academic Records
+                  </h1>
+                  <p
+                    className="text-sm text-gray-600"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    View your complete academic history and records
+                  </p>
+                </div>
+              </div>
+
+              <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+                <IdentificationCard size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+                <h3
+                  className="text-lg font-medium text-gray-900 mb-2"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Academic records not available
+                </h3>
+                <p
+                  className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  Your academic records will be available once you have completed your enrollment and academic activities.
+                </p>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Edit Profile Modal */}

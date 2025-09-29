@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { SubjectData } from '@/lib/subject-database';
 import { GradeData } from '@/lib/grade-section-database';
-import { Plus, MagnifyingGlass, BookOpen, Eye, Pencil, Trash, Calculator, Gear,   } from '@phosphor-icons/react';
+import { Plus, MagnifyingGlass, BookOpen, Eye, Pencil, Trash, Calculator, Gear, Atom, Globe, Monitor, Palette, MusicNote, Book, Books } from '@phosphor-icons/react';
 
 interface SubjectListProps {
   subjects: SubjectData[];
@@ -93,6 +93,64 @@ const formatGradeLevel = (grade: GradeData): string => {
     return `G${grade.gradeLevel}`;
   }
   return `Grade ${grade.gradeLevel}`;
+};
+
+// Function to get appropriate icon based on subject content
+const getSubjectIcon = (subject: SubjectData) => {
+  const subjectName = subject.name.toLowerCase();
+  const subjectCode = subject.code.toLowerCase();
+
+  // Math-related subjects
+  if (subjectName.includes('math') || subjectName.includes('calculus') || subjectName.includes('algebra') ||
+      subjectName.includes('geometry') || subjectName.includes('trigonometry') || subjectName.includes('statistics') ||
+      subjectCode.includes('math') || subjectCode.includes('calc')) {
+    return Calculator;
+  }
+
+  // Science-related subjects
+  if (subjectName.includes('science') || subjectName.includes('physics') || subjectName.includes('chemistry') ||
+      subjectName.includes('biology') || subjectName.includes('geology') || subjectName.includes('astronomy') ||
+      subjectCode.includes('sci') || subjectCode.includes('phy') || subjectCode.includes('chem') ||
+      subjectCode.includes('bio')) {
+    return Atom;
+  }
+
+  // Language/English subjects
+  if (subjectName.includes('english') || subjectName.includes('language') || subjectName.includes('literature') ||
+      subjectName.includes('grammar') || subjectName.includes('reading') || subjectName.includes('writing') ||
+      subjectCode.includes('eng') || subjectCode.includes('lang')) {
+    return Book;
+  }
+
+  // Social Studies/History subjects
+  if (subjectName.includes('history') || subjectName.includes('social') || subjectName.includes('geography') ||
+      subjectName.includes('civics') || subjectName.includes('economics') || subjectName.includes('government') ||
+      subjectCode.includes('hist') || subjectCode.includes('soc') || subjectCode.includes('geo')) {
+    return Globe;
+  }
+
+  // Computer/Technology subjects
+  if (subjectName.includes('computer') || subjectName.includes('technology') || subjectName.includes('programming') ||
+      subjectName.includes('coding') || subjectName.includes('ict') || subjectName.includes('digital') ||
+      subjectCode.includes('comp') || subjectCode.includes('tech') || subjectCode.includes('prog')) {
+    return Monitor;
+  }
+
+  // Art subjects
+  if (subjectName.includes('art') || subjectName.includes('drawing') || subjectName.includes('painting') ||
+      subjectName.includes('visual') || subjectName.includes('design') ||
+      subjectCode.includes('art') || subjectCode.includes('draw')) {
+    return Palette;
+  }
+
+  // Music subjects
+  if (subjectName.includes('music') || subjectName.includes('choir') || subjectName.includes('band') ||
+      subjectName.includes('orchestra') || subjectCode.includes('music')) {
+    return MusicNote;
+  }
+
+  // Default icon for other subjects
+  return BookOpen;
 };
 
 export default function SubjectList({
@@ -208,35 +266,6 @@ export default function SubjectList({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <BookOpen size={20} className="text-white" weight="fill" />
-          </div>
-          <div>
-            <h1
-              className="text-2xl font-medium text-gray-900"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-            >
-              Subject Management
-            </h1>
-            <p
-              className="text-sm text-gray-600"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              Manage subjects and organize them by grade level and curriculum
-            </p>
-          </div>
-        </div>
-        <Button
-          onClick={onCreateNew}
-          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-        >
-          <Plus size={16} className="mr-2" />
-          Create Subject
-        </Button>
-      </div>
 
       {/* Search and Grade Filter */}
       <div className="bg-white p-6 border border-gray-200">
@@ -328,7 +357,7 @@ export default function SubjectList({
       {/* Subject Grid */}
       {filteredSubjects.length === 0 ? (
         <Card className="w-full max-w-md mx-auto p-8 border-none text-center bg-gray-50 border-l-5 border-blue-900">
-          <BookOpen size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+          <BookOpen size={64} className="mx-auto text-gray-400 mb-4" weight="duotone" />
           <h3
             className="text-lg font-medium text-gray-900 mb-2"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
@@ -409,13 +438,17 @@ export default function SubjectList({
               {/* Card Header */}
               <div className="flex items-start justify-between">
                 <div className="flex items-center justify-center gap-4">
-                <div className="w-12 h-12 bg-white flex items-center justify-center flex-shrink-0">
-                  <BookOpen
-                    size={24}
-                    style={{ color: getIconColor(subject.color) }}
-                    weight="fill"
-                  />
-                  
+                <div className="w-16 h-16 bg-white flex items-center justify-center flex-shrink-0">
+                  {(() => {
+                    const IconComponent = getSubjectIcon(subject);
+                    return (
+                      <IconComponent
+                        size={32}
+                        style={{ color: getIconColor(subject.color) }}
+                        weight="fill"
+                      />
+                    );
+                  })()}
                 </div>
                 <div>
                 <div className="flex items-center gap-3">

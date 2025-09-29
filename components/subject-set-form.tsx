@@ -275,7 +275,7 @@ function SubjectSelectionModal({
                         <button
                           type="button"
                           onClick={() => handleSubjectToggle(subject.id)}
-                          className="text-blue-900 hover:text-blue-900"
+                          className="text-blue-900 hover:text-blue-900  "
                           disabled={loading}
                         >
                           <X size={12} />

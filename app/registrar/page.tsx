@@ -8,7 +8,8 @@ import { Card } from '@/components/ui/card';
 import CourseManagement from '@/components/course-management';
 import GradeSectionManagement from '@/components/grade-section-management';
 import SubjectManagement from '@/components/subject-management';
-import SubjectSetManagement from '@/components/subject-set-management';
+import EnrollmentManagement from '@/components/enrollment-management';
+import TeacherManagement from '@/components/teacher-management';
 import {
   User,
   Users,
@@ -34,7 +35,7 @@ interface RegistrarData {
   role: string;
 }
 
-type ViewType = 'overview' | 'course-management' | 'grade-section-management' | 'subject-management' | 'subject-set-management';
+type ViewType = 'overview' | 'student-enrollments' | 'course-management' | 'grade-section-management' | 'subject-management' | 'teacher-management';
 
 export default function RegistrarPage() {
   const [registrar, setRegistrar] = useState<RegistrarData | null>(null);
@@ -62,9 +63,9 @@ export default function RegistrarPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             uid: user.uid,
-            email: user.email 
+            email: user.email
           }),
         });
 
@@ -108,8 +109,12 @@ export default function RegistrarPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+          <div className="flex justify-center space-x-2 mb-4">
+            <div className="w-3 h-3 bg-blue-900 animate-pulse"></div>
+            <div className="w-3 h-3 bg-blue-900 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-3 h-3 bg-blue-900 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+          <p className="text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
             Verifying access...
           </p>
         </div>
@@ -236,9 +241,12 @@ export default function RegistrarPage() {
               Overview
             </Button>
             
-            <Button 
+            <Button
               variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+                currentView === 'student-enrollments' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
+              }`}
+              onClick={() => handleNavigation('student-enrollments')}
             >
               <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
                 <Users className="text-white" weight="fill" />
@@ -256,9 +264,12 @@ export default function RegistrarPage() {
               Student Management  
             </Button>
 
-            <Button 
+            <Button
               variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+                currentView === 'teacher-management' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
+              }`}
+              onClick={() => handleNavigation('teacher-management')}
             >
               <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
                 <GraduationCap className="text-white" weight="fill" />
@@ -289,18 +300,6 @@ export default function RegistrarPage() {
               Subject Management
             </Button>
 
-            <Button
-              variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
-                currentView === 'subject-set-management' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
-              }`}
-              onClick={() => handleNavigation('subject-set-management')}
-            >
-              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
-                <UserList className="text-white" weight="fill" />
-              </div>
-              Subject Sets
-            </Button>
 
             <Button
               variant="ghost"
@@ -353,7 +352,59 @@ export default function RegistrarPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
+        {currentView === 'overview' && (
+          <div className="p-6">
+            <Card className="p-8 text-center">
+              <h2 className="text-2xl font-light text-gray-900 mb-4" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                Welcome to the Registrar Dashboard
+              </h2>
+              <p className="text-gray-600 mb-6" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                Select an option from the sidebar to manage student enrollments, courses, grades, and subjects.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+                <Button
+                  onClick={() => handleNavigation('student-enrollments')}
+                  className="h-24 flex flex-col items-center justify-center bg-blue-900 hover:bg-blue-800 text-white rounded-lg"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <Users size={32} className="mb-2" />
+                  Student Enrollments
+                </Button>
+                <Button
+                  onClick={() => handleNavigation('course-management')}
+                  className="h-24 flex flex-col items-center justify-center bg-blue-900 hover:bg-blue-800 text-white rounded-lg"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <GraduationCap size={32} className="mb-2" />
+                  Course Management
+                </Button>
+                <Button
+                  onClick={() => handleNavigation('grade-section-management')}
+                  className="h-24 flex flex-col items-center justify-center bg-blue-900 hover:bg-blue-800 text-white rounded-lg"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <MemberOfIcon size={32} className="mb-2" />
+                  Grades & Sections
+                </Button>
+                <Button
+                  onClick={() => handleNavigation('subject-management')}
+                  className="h-24 flex flex-col items-center justify-center bg-blue-900 hover:bg-blue-800 text-white rounded-lg"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <BookOpen size={32} className="mb-2" />
+                  Subject Management
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
 
+        {currentView === 'student-enrollments' && registrar && (
+          <EnrollmentManagement 
+            registrarUid={registrar.uid} 
+            registrarName={`${registrar.firstName} ${registrar.lastName}`}
+          />
+        )}
 
         {currentView === 'course-management' && registrar && (
           <CourseManagement registrarUid={registrar.uid} />
@@ -367,9 +418,10 @@ export default function RegistrarPage() {
           <SubjectManagement registrarUid={registrar.uid} />
         )}
 
-        {currentView === 'subject-set-management' && registrar && (
-          <SubjectSetManagement registrarUid={registrar.uid} />
+        {currentView === 'teacher-management' && registrar && (
+          <TeacherManagement registrarUid={registrar.uid} />
         )}
+
       </div>
     </div>
   );

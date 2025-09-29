@@ -7,6 +7,7 @@ import {
   setDoc,
   getDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   getDocs,
@@ -214,6 +215,141 @@ export class StudentDatabase {
     } catch (error) {
       console.error('Error getting all students:', error);
       throw new Error('Failed to get all students');
+    }
+  }
+}
+
+// Teacher data structure for Firestore
+export interface TeacherData {
+  id: string;
+  uid: string;
+  email: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  extension?: string;
+  phone: string;
+  createdBy: string;
+  assignments: TeacherAssignment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeacherAssignment {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  sectionId: string;
+  sectionName: string;
+  gradeLevel: number;
+}
+
+// Input type for creating teachers (allows FieldValue for timestamps)
+export interface CreateTeacherData extends Omit<TeacherData, 'createdAt' | 'updatedAt'> {
+}
+
+// Firestore database class for teachers
+export class TeacherDatabase {
+  private static collectionName = 'teachers';
+
+  // Create a new teacher document
+  static async createTeacher(teacherData: CreateTeacherData): Promise<TeacherData> {
+    try {
+      const teacherRef = doc(collection(db, this.collectionName), teacherData.uid);
+
+      // Generate teacher ID (format: TEA-YYYY-XXXXXX)
+      const year = new Date().getFullYear();
+      const randomNum = Math.floor(100000 + Math.random() * 900000);
+      const teacherId = `TEA-${year}-${randomNum}`;
+
+      const teacher: any = {
+        ...teacherData,
+        teacherId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      await setDoc(teacherRef, teacher);
+
+      // Return the serialized teacher data
+      const createdTeacher = await this.getTeacher(teacherData.uid);
+      return createdTeacher!;
+    } catch (error) {
+      console.error('Error creating teacher:', error);
+      throw new Error('Failed to create teacher account');
+    }
+  }
+
+  // Get teacher by UID
+  static async getTeacher(uid: string): Promise<TeacherData | null> {
+    try {
+      const teacherRef = doc(db, this.collectionName, uid);
+      const teacherSnap = await getDoc(teacherRef);
+
+      if (teacherSnap.exists()) {
+        const data = teacherSnap.data();
+        // Serialize Firestore Timestamps to ISO strings for client components
+        return {
+          ...serializeFirestoreData(data),
+          id: teacherSnap.id
+        } as TeacherData;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting teacher:', error);
+      throw new Error('Failed to get teacher');
+    }
+  }
+
+  // Get all teachers
+  static async getAllTeachers(): Promise<TeacherData[]> {
+    try {
+      const teachersRef = collection(db, this.collectionName);
+      const querySnapshot = await getDocs(teachersRef);
+
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        // Serialize Firestore Timestamps to ISO strings for client components
+        return {
+          ...serializeFirestoreData(data),
+          id: doc.id
+        } as TeacherData;
+      });
+    } catch (error) {
+      console.error('Error getting all teachers:', error);
+      throw new Error('Failed to get all teachers');
+    }
+  }
+
+  static async updateTeacher(teacherId: string, updateData: Partial<CreateTeacherData>): Promise<TeacherData> {
+    try {
+      const teacherRef = doc(db, this.collectionName, teacherId);
+
+      // Update the document
+      await updateDoc(teacherRef, {
+        ...updateData,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Return the updated teacher
+      const updatedTeacher = await this.getTeacher(teacherId);
+      if (!updatedTeacher) {
+        throw new Error('Teacher not found after update');
+      }
+      return updatedTeacher;
+    } catch (error) {
+      console.error('Error updating teacher:', error);
+      throw new Error('Failed to update teacher');
+    }
+  }
+
+  static async deleteTeacher(teacherId: string): Promise<void> {
+    try {
+      const teacherRef = doc(db, this.collectionName, teacherId);
+      await deleteDoc(teacherRef);
+    } catch (error) {
+      console.error('Error deleting teacher:', error);
+      throw new Error('Failed to delete teacher');
     }
   }
 }

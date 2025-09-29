@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { X } from "@phosphor-icons/react";
+import { GraduationCap, X } from "@phosphor-icons/react";
 
 interface ModalProps {
   isOpen: boolean;
@@ -52,7 +52,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = "lg" }: ModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-blue-900/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-blue-black/80 backdrop-blur-sm">
       {/* Backdrop */}
       <div 
         className={`absolute inset-0 bg-black transition-opacity duration-300 ease-in-out ${
@@ -68,8 +68,16 @@ export const Modal = ({ isOpen, onClose, title, children, size = "lg" }: ModalPr
           : 'scale-95 opacity-0 translate-y-4'
       }`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-light text-gray-900">{title}</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-blue-900">
+
+          <div className="flex gap-4 items-center">
+          <div className="flex items-center justify-center aspect-square bg-white p-3 text-blue-900" > 
+            <GraduationCap size={24} weight="fill" />
+            
+             </div>
+             <h2 className="text-xl font-light text-white">{title}</h2>
+          </div>
+          
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors duration-200 hover:scale-110 transform"

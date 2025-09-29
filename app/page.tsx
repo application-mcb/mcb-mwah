@@ -30,16 +30,35 @@ export default function Home() {
 
 
   return (
+    
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-      {/* Left Panel - Hero Section */}
-      <div className="hidden lg:block">
+   
+      <div className="fixed w-1/2 h-full z-0 bg-[#05217b]">
         <AuthHero />
       </div>
-
-
+  
+      <div className="w-1/2 h-full z-0">
+      
+        <div className="bg-blue-900 to-blue-100 absolute bottom-0 left-0 w-1/2 h-20 p-4">
+        <div className="flex items-center gap-2">
+        <img src="/logo.png" alt="Marian College Logo" className="w-12 h-12 object-contain aspect-square" />
+        <div className="flex flex-col">
+          <p className="text-sm font-bold text-white">
+            MARIAN COLLEGE OF BALIUAG, INC.
+          </p>
+          <p className="text-sm font-light text-white">
+            #TATAKMARIAN
+          </p>
+          </div>
+          </div>
+        </div>
+          
+      </div>
+     
       {/* Right Panel - Auth Forms */}
-      <div className="flex items-center justify-center bg-gray-50 p-4 lg:p-8 min-h-screen">
-        <div className="w-full max-w-lg space-y-4">
+      <div className="flex items-center justify-center p-4 lg:p-8 min-h-screen z-10 shadow-xl relative">
+      <div className="z-0 absolute inset-0 opacity-50 bg-[linear-gradient(rgba(30,58,138,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(30,58,138,0.1)_1px,transparent_1px)] bg-[length:20px_20px]"></div>
+        <div className="w-full max-w-lg space-y-4 z-10">
           {isLogin ? (
             <LoginForm
               onLoginSuccess={handleLoginSuccess}

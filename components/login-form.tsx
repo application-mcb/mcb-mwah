@@ -231,7 +231,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onSwitchTo
             }`}
           >
             <div className="flex items-center justify-center gap-2">
-              <MagicWand size={16} className={`transition-colors duration-200 ${loginMethod === 'magic-link' ? 'text-purple-600' : ''}`} />
+              <MagicWand size={16} className={`transition-colors duration-200 ${loginMethod === 'magic-link' ? 'text-blue-900' : ''}`} />
               Magic Link
             </div>
           </button>

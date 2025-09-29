@@ -31,17 +31,18 @@ export default function RootLayout({
           <ToastContainer
             position="top-right"
             autoClose={5000}
-            hideProgressBar={true}
-            newestOnTop={false}
+            hideProgressBar={false}
+            newestOnTop={true}
             closeOnClick
             rtl={false}
             pauseOnFocusLoss
             draggable
             pauseOnHover
             theme="light"
-            toastClassName="!font-poppins !text-sm !font-light"
+            toastClassName="!font-poppins !text-xs !font-medium !shadow-lg !border-l-4"
             progressClassName="!bg-blue-900"
             className="!font-poppins"
+            style={{ fontFamily: 'Poppins', fontSize: '12px' }}
           />
         </AuthProvider>
       </body>

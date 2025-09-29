@@ -735,7 +735,7 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-4xl w-full p-6">
+            <div className="bg-white shadow-xl max-w-4xl h-[80vh] overflow-auto w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className={`w-10 h-10 ${colorMap[viewingSubjectSet.color]?.bg || 'bg-gray-400'} flex items-center justify-center`}>
