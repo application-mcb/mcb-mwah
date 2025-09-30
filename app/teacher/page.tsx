@@ -5,12 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import CourseManagement from '@/components/course-management';
-import GradeSectionManagement from '@/components/grade-section-management';
-import SubjectManagement from '@/components/subject-management';
-import EnrollmentManagement from '@/components/enrollment-management';
-import StudentManagement from '@/components/student-management';
-import TeacherManagement from '@/components/teacher-management';
+import TeacherClassesView from '@/components/teacher-classes-view';
+import TeacherStudentsView from '@/components/teacher-students-view';
+import TeacherGradesView from '@/components/teacher-grades-view';
+import TeacherScheduleView from '@/components/teacher-schedule-view';
 import {
   User,
   Users,
@@ -18,28 +16,31 @@ import {
   Gear,
   SignOut,
   House,
-  IdentificationCard,
   GraduationCap,
   Calendar,
   Bell,
-  MemberOfIcon,
   Shield,
   BookOpen,
-  UserList
+  UserList,
+  ClipboardText
 } from "@phosphor-icons/react";
 
-interface RegistrarData {
+interface TeacherData {
+  id: string;
   uid: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
+  middleName?: string;
+  extension?: string;
+  phone: string;
+  status?: 'active' | 'inactive';
 }
 
-type ViewType = 'overview' | 'student-enrollments' | 'student-management' | 'course-management' | 'grade-section-management' | 'subject-management' | 'teacher-management';
+type ViewType = 'overview' | 'my-classes' | 'students' | 'grades' | 'schedule';
 
-export default function RegistrarPage() {
-  const [registrar, setRegistrar] = useState<RegistrarData | null>(null);
+export default function TeacherPage() {
+  const [teacher, setTeacher] = useState<TeacherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentView, setCurrentView] = useState<ViewType>('overview');
@@ -56,10 +57,10 @@ export default function RegistrarPage() {
       return;
     }
 
-    const checkRegistrarAccess = async () => {
+    const checkTeacherAccess = async () => {
       try {
-        // Check registrar role using UID and email
-        const response = await fetch('/api/registrar/check-role', {
+        // Check teacher role using UID and email
+        const response = await fetch('/api/teachers/check-role', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -73,7 +74,7 @@ export default function RegistrarPage() {
         const data = await response.json();
 
         if (response.ok) {
-          setRegistrar(data.registrar);
+          setTeacher(data.teacher);
         } else {
           setError(data.error || 'Access denied');
           setTimeout(() => {
@@ -90,7 +91,7 @@ export default function RegistrarPage() {
       }
     };
 
-    checkRegistrarAccess();
+    checkTeacherAccess();
   }, [user, authLoading, router]);
 
   const handleSignOut = async () => {
@@ -135,7 +136,7 @@ export default function RegistrarPage() {
           </p>
           <div className="space-y-2 mb-4">
             <p className="text-sm text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-              Make sure you're logged in with the correct registrar account.
+              Make sure you're logged in with the correct teacher account.
             </p>
             <p className="text-sm text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
               Check the console for detailed error information.
@@ -165,9 +166,24 @@ export default function RegistrarPage() {
   }
 
   const getFullName = () => {
-    if (!registrar) return 'Registrar';
-    const { firstName, lastName } = registrar;
-    return `${firstName || ''} ${lastName || ''}`.trim() || 'Registrar';
+    if (!teacher) return 'Teacher';
+    const { firstName, middleName, lastName, extension } = teacher;
+    let fullName = firstName || '';
+
+    if (middleName) {
+      // Add middle name initial (first letter only)
+      fullName += ` ${middleName.charAt(0).toUpperCase()}.`;
+    }
+
+    if (lastName) {
+      fullName += ` ${lastName}`;
+    }
+
+    if (extension) {
+      fullName += ` ${extension}`;
+    }
+
+    return fullName || 'Teacher';
   };
 
   return (
@@ -178,42 +194,42 @@ export default function RegistrarPage() {
         <div className="p-6 border-blue-100">
           <div className="flex flex-col items-center text-center">
             <div className="flex items-center mb-2">
-              <img 
-                src="/logo.png" 
-                alt="Marian College Logo" 
+              <img
+                src="/logo.png"
+                alt="Marian College Logo"
                 className="w-12 h-12 object-contain aspect-square"
               />
               <div className="flex flex-col ml-2">
-                <h1 className="text-xl font-light text-gray-900 text-left">Registrar System</h1>
+                <h1 className="text-xl font-light text-gray-900 text-left">Teacher Portal</h1>
                 <p className="text-xs text-gray-600 font-bold uppercase font-mono">Marian College of Baliuag, Inc.</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Registrar Profile Section */}
+        {/* Teacher Profile Section */}
         <div className="p-6 border-gray-200 bg-gray-100">
           <div className="flex items-center space-x-4 mb-4">
             <div className="w-16 h-16 rounded-full overflow-hidden bg-blue-900 flex items-center justify-center">
               {user?.photoURL ? (
-                <img 
-                  src={user.photoURL} 
-                  alt="Profile" 
+                <img
+                  src={user.photoURL}
+                  alt="Profile"
                   className="w-full h-full object-cover rounded-full aspect-square border-2 border-black"
                 />
               ) : (
-                <Shield size={32} className="text-white" weight="duotone" />
+                <GraduationCap size={32} className="text-white" weight="duotone" />
               )}
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-medium text-gray-900">
                 {getFullName()}
               </h3>
-              <p className="text-xs text-gray-900 font-mono font-medium">{registrar?.email}</p>
-              <p className="text-xs text-gray-600 font-mono font-medium">Registrar</p>
+              <p className="text-xs text-gray-900 font-mono font-medium">{teacher?.email}</p>
+              <p className="text-xs text-gray-600 font-mono font-medium">Teacher</p>
             </div>
           </div>
-          <Button 
+          <Button
             variant="ghost"
             className="border-1 border-blue-900 rounded-none w-full text-white bg-blue-900"
             onClick={() => {/* Add profile edit functionality */}}
@@ -226,9 +242,10 @@ export default function RegistrarPage() {
         {/* Navigation Menu */}
         <nav className="flex-1 p-6">
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-blue-900 tracking-wider mb-[-2]">Hey {registrar?.firstName}!</h4>
+
+            <h4 className="text-sm font-medium text-blue-900 tracking-wider mb-[-2]">Hello {teacher?.firstName}!</h4>
             <h4 className="text-sm font-light text-blue-900 tracking-wider mb-4">What would you like to do?</h4>
-            
+
             <Button
               variant="ghost"
               className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
@@ -241,107 +258,64 @@ export default function RegistrarPage() {
               </div>
               Overview
             </Button>
-            
-            <Button
-              variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
-                currentView === 'student-enrollments' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
-              }`}
-              onClick={() => handleNavigation('student-enrollments')}
-            >
-              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
-                <Users className="text-white" weight="fill" />
-              </div>
-              Student Enrollments
-            </Button>
-            
-            <Button
-              variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
-                currentView === 'student-management' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
-              }`}
-              onClick={() => handleNavigation('student-management')}
-            >
-              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
-                <GraduationCap className="text-white" weight="fill" />
-              </div>
-              Student Management
-            </Button>
 
             <Button
               variant="ghost"
               className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
-                currentView === 'teacher-management' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
+                currentView === 'my-classes' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
               }`}
-              onClick={() => handleNavigation('teacher-management')}
-            >
-              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
-                <GraduationCap className="text-white" weight="fill" />
-              </div>
-              Teacher Management
-            </Button>
-            
-            <Button 
-              variant="ghost"
-              className="rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5"
-            >
-              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
-                <ChartBar className="text-white" weight="fill" />
-              </div>
-              Reports & Analytics
-            </Button>
-            
-            <Button
-              variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
-                currentView === 'subject-management' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
-              }`}
-              onClick={() => handleNavigation('subject-management')}
+              onClick={() => handleNavigation('my-classes')}
             >
               <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
                 <BookOpen className="text-white" weight="fill" />
               </div>
-              Subject Management
+              My Classes
             </Button>
 
-
-            <Button
-              variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-10 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.01] transform hover:border-blue-900 border-l-5 ${
-                currentView === 'course-management' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
-              }`}
-              onClick={() => handleNavigation('course-management')}
-            >
-              <div className="flex items-center justify-center bg-blue-900 aspect-square w-5 h-5">
-              <BookOpen className="text-white" weight="fill" />
-              </div>
-              Course Management
-            </Button>
-            
             <Button
               variant="ghost"
               className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
-                currentView === 'grade-section-management' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
+                currentView === 'students' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
               }`}
-              onClick={() => handleNavigation('grade-section-management')}
+              onClick={() => handleNavigation('students')}
             >
               <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
-                <MemberOfIcon className="text-white" weight="fill" />
+                <Users className="text-white" weight="fill" />
               </div>
-              Grades & Sections
+              My Students
             </Button>
 
-            
+            <Button
+              variant="ghost"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+                currentView === 'grades' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
+              }`}
+              onClick={() => handleNavigation('grades')}
+            >
+              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
+                <ClipboardText className="text-white" weight="fill" />
+              </div>
+              Student Grades
+            </Button>
 
-           
-
-        
+            <Button
+              variant="ghost"
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+                currentView === 'schedule' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
+              }`}
+              onClick={() => handleNavigation('schedule')}
+            >
+              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
+                <Calendar className="text-white" weight="fill" />
+              </div>
+              Schedule
+            </Button>
           </div>
         </nav>
 
         {/* Sidebar Footer */}
         <div className="p-6 border-t border-gray-200">
-          <Button 
+          <Button
             variant="outline"
             className="rounded-none border-r-0 border-b-0 font-light border-t-0 w-full justify-start border-l-5 border-red-900 bg-red-50 text-red-900 hover:text-red-900 hover:border-red-900"
             onClick={handleSignOut}
@@ -349,7 +323,7 @@ export default function RegistrarPage() {
             <div className="flex justify-center items-center bg-red-800 aspect-square w-6 h-6">
               <SignOut className="text-white" />
             </div>
-            Sign Out {registrar?.firstName || 'Registrar'}
+            Sign Out {teacher?.firstName || 'Teacher'}
           </Button>
         </div>
       </aside>
@@ -360,87 +334,73 @@ export default function RegistrarPage() {
           <div className="p-6">
             <Card className="p-8 text-center">
               <h2 className="text-2xl font-light text-gray-900 mb-4" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-                Welcome to the Registrar Dashboard
+                Welcome to the Teacher Dashboard
               </h2>
               <p className="text-gray-600 mb-6" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-                Select an option from the sidebar to manage student enrollments, courses, grades, and subjects.
+                Select an option from the sidebar to manage your classes, view students, and track grades.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
                 <Button
-                  onClick={() => handleNavigation('student-enrollments')}
+                  onClick={() => handleNavigation('my-classes')}
+                  className="h-24 flex flex-col items-center justify-center bg-blue-900 hover:bg-blue-800 text-white rounded-lg"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <BookOpen size={32} className="mb-2" />
+                  My Classes
+                </Button>
+                <Button
+                  onClick={() => handleNavigation('students')}
                   className="h-24 flex flex-col items-center justify-center bg-blue-900 hover:bg-blue-800 text-white rounded-lg"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
                   <Users size={32} className="mb-2" />
-                  Student Enrollments
+                  My Students
                 </Button>
                 <Button
-                  onClick={() => handleNavigation('student-management')}
+                  onClick={() => handleNavigation('grades')}
                   className="h-24 flex flex-col items-center justify-center bg-blue-900 hover:bg-blue-800 text-white rounded-lg"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
-                  <GraduationCap size={32} className="mb-2" />
-                  Student Management
+                  <ClipboardText size={32} className="mb-2" />
+                  Student Grades
                 </Button>
                 <Button
-                  onClick={() => handleNavigation('course-management')}
+                  onClick={() => handleNavigation('schedule')}
                   className="h-24 flex flex-col items-center justify-center bg-blue-900 hover:bg-blue-800 text-white rounded-lg"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
-                  <BookOpen size={32} className="mb-2" />
-                  Course Management
-                </Button>
-                <Button
-                  onClick={() => handleNavigation('grade-section-management')}
-                  className="h-24 flex flex-col items-center justify-center bg-blue-900 hover:bg-blue-800 text-white rounded-lg"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                >
-                  <MemberOfIcon size={32} className="mb-2" />
-                  Grades & Sections
-                </Button>
-                <Button
-                  onClick={() => handleNavigation('subject-management')}
-                  className="h-24 flex flex-col items-center justify-center bg-blue-900 hover:bg-blue-800 text-white rounded-lg"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                >
-                  <BookOpen size={32} className="mb-2" />
-                  Subject Management
+                  <Calendar size={32} className="mb-2" />
+                  Schedule
                 </Button>
               </div>
             </Card>
           </div>
         )}
 
-        {currentView === 'student-enrollments' && registrar && (
-          <EnrollmentManagement
-            registrarUid={registrar.uid}
-            registrarName={`${registrar.firstName} ${registrar.lastName}`}
-          />
+        {/* Placeholder content for other views - will be implemented with components */}
+        {currentView === 'my-classes' && teacher && (
+          <div className="p-6">
+            <TeacherClassesView teacherId={teacher.id} />
+          </div>
         )}
 
-        {currentView === 'student-management' && registrar && (
-          <StudentManagement
-            registrarUid={registrar.uid}
-            registrarName={`${registrar.firstName} ${registrar.lastName}`}
-          />
+        {currentView === 'students' && teacher && (
+          <div className="p-6">
+            <TeacherStudentsView teacherId={teacher.id} />
+          </div>
         )}
 
-        {currentView === 'course-management' && registrar && (
-          <CourseManagement registrarUid={registrar.uid} />
+        {currentView === 'grades' && teacher && (
+          <div className="p-6">
+            <TeacherGradesView teacherId={teacher.id} />
+          </div>
         )}
 
-        {currentView === 'grade-section-management' && registrar && (
-          <GradeSectionManagement registrarUid={registrar.uid} />
+        {currentView === 'schedule' && teacher && (
+          <div className="p-6">
+            <TeacherScheduleView teacherId={teacher.id} />
+          </div>
         )}
-
-        {currentView === 'subject-management' && registrar && (
-          <SubjectManagement registrarUid={registrar.uid} />
-        )}
-
-        {currentView === 'teacher-management' && registrar && (
-          <TeacherManagement registrarUid={registrar.uid} />
-        )}
-
       </div>
     </div>
   );

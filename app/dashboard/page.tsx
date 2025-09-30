@@ -8,6 +8,8 @@ import { Modal } from "@/components/ui/modal";
 import { ProfileForm } from "@/components/profile-form";
 import EnrollmentForm from "@/components/enrollment-form";
 import DocumentsManager from "@/components/documents-manager";
+import MySubjectsView from "../../components/my-subjects-view";
+import AcademicRecords from "@/components/academic-records";
 import {
   User,
   Calendar,
@@ -35,6 +37,9 @@ type ViewType = 'dashboard' | 'enrollment' | 'documents' | 'subjects' | 'schedul
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [enrollmentData, setEnrollmentData] = useState<any>(null);
+  const [sections, setSections] = useState<any[]>([]);
+  const [grades, setGrades] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
@@ -65,6 +70,55 @@ export default function Dashboard() {
               router.push('/setup');
               return;
             }
+
+            // Fetch enrollment data and sections after profile is loaded
+            try {
+              const enrollmentResponse = await fetch(`/api/enrollment?userId=${user.uid}`);
+              const enrollmentResult = await enrollmentResponse.json();
+
+              if (enrollmentResponse.ok && enrollmentResult.success) {
+                setEnrollmentData(enrollmentResult.data);
+              } else {
+                console.log('No enrollment data found, student may not be enrolled yet');
+                setEnrollmentData(null);
+              }
+            } catch (error) {
+              console.log('Error fetching enrollment data:', error);
+              setEnrollmentData(null);
+            }
+
+            // Fetch sections data
+            try {
+              const sectionsResponse = await fetch('/api/sections');
+              const sectionsResult = await sectionsResponse.json();
+
+              if (sectionsResponse.ok && sectionsResult.sections) {
+                setSections(sectionsResult.sections);
+              } else {
+                console.log('No sections data found');
+                setSections([]);
+              }
+            } catch (error) {
+              console.log('Error fetching sections data:', error);
+              setSections([]);
+            }
+
+            // Fetch grades data
+            try {
+              const gradesResponse = await fetch('/api/grades');
+              const gradesResult = await gradesResponse.json();
+
+              if (gradesResponse.ok && gradesResult.grades) {
+                setGrades(gradesResult.grades);
+              } else {
+                console.log('No grades data found');
+                setGrades([]);
+              }
+            } catch (error) {
+              console.log('Error fetching grades data:', error);
+              setGrades([]);
+            }
+
           } else {
             router.push('/');
           }
@@ -101,6 +155,52 @@ export default function Dashboard() {
         if (profile) {
           setUserProfile(profile);
         }
+
+        // Also refresh enrollment data
+        try {
+          const enrollmentResponse = await fetch(`/api/enrollment?userId=${user.uid}`);
+          const enrollmentResult = await enrollmentResponse.json();
+
+          if (enrollmentResponse.ok && enrollmentResult.success) {
+            setEnrollmentData(enrollmentResult.data);
+          } else {
+            setEnrollmentData(null);
+          }
+        } catch (error) {
+          console.error('Error refreshing enrollment data:', error);
+          setEnrollmentData(null);
+        }
+
+        // Also refresh sections data
+        try {
+          const sectionsResponse = await fetch('/api/sections');
+          const sectionsResult = await sectionsResponse.json();
+
+          if (sectionsResponse.ok && sectionsResult.sections) {
+            setSections(sectionsResult.sections);
+          } else {
+            setSections([]);
+          }
+        } catch (error) {
+          console.error('Error refreshing sections data:', error);
+          setSections([]);
+        }
+
+        // Also refresh grades data
+        try {
+          const gradesResponse = await fetch('/api/grades');
+          const gradesResult = await gradesResponse.json();
+
+          if (gradesResponse.ok && gradesResult.grades) {
+            setGrades(gradesResult.grades);
+          } else {
+            setGrades([]);
+          }
+        } catch (error) {
+          console.error('Error refreshing grades data:', error);
+          setGrades([]);
+        }
+
       } catch (error) {
         console.error('Error refreshing profile:', error);
       }
@@ -143,6 +243,36 @@ export default function Dashboard() {
     const { streetName, province, municipality, barangay, zipCode } = userProfile;
     const parts = [streetName, municipality, province, zipCode].filter(Boolean);
     return parts.length > 0 ? parts.join(', ') : 'Not provided';
+  };
+
+  const getSectionDisplay = (sectionId: string) => {
+    if (!sectionId) return 'Not Assigned';
+
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return sectionId;
+
+    // Find the grade information for this section
+    const grade = grades.find(g => g.id === section.gradeId);
+    if (!grade) return section.sectionName;
+
+    return {
+      sectionName: section.sectionName,
+      gradeLevel: grade.gradeLevel,
+      gradeColor: grade.color
+    };
+  };
+
+  const getGradeColor = (color: string): string => {
+    const colorMap: { [key: string]: string } = {
+      'blue-800': '#1e40af',
+      'red-800': '#991b1b',
+      'emerald-800': '#064e3b',
+      'yellow-800': '#92400e',
+      'orange-800': '#9a3412',
+      'violet-800': '#5b21b6',
+      'purple-800': '#581c87'
+    };
+    return colorMap[color] || '#1e40af';
   };
 
   if (isLoading) {
@@ -211,8 +341,24 @@ export default function Dashboard() {
               <h3 className="text-lg font-medium text-gray-900">
                 {userProfile ? getFullName() : user.displayName || user.email?.split('@')[0] || 'Student'}
               </h3>
-              <p className="text-xs text-gray-900 font-mono font-medium">{user.email}</p>
-              <p className="text-xs text-gray-00 font-mono font-medium">ID: {user.studentId || 'Not Enrolled'}</p>
+              <div className="text-xs text-gray-900 font-mono font-medium">
+                {(() => {
+                  const sectionDisplay = getSectionDisplay(enrollmentData?.enrollmentInfo?.sectionId);
+                  if (typeof sectionDisplay === 'string') {
+                    return <span>Section: {sectionDisplay}</span>;
+                  }
+                  return (
+                    <div className="flex items-center">
+                      <div
+                        className="w-3 h-3 mr-2 flex-shrink-0"
+                        style={{ backgroundColor: getGradeColor(sectionDisplay.gradeColor) }}
+                      ></div>
+                      <span>{sectionDisplay.gradeLevel} - {sectionDisplay.sectionName}</span>
+                    </div>
+                  );
+                })()}
+              </div>
+              <p className="text-xs text-gray-900 font-mono font-medium">ID: {enrollmentData?.enrollmentInfo?.studentId || 'Not Enrolled'}</p>
             </div>
 
             
@@ -475,52 +621,8 @@ export default function Dashboard() {
             <DocumentsManager userId={user.uid} />
           )}
 
-          {currentView === 'subjects' && (
-            <div className="space-y-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-                  <BookOpen size={20} className="text-white" weight="fill" />
-                </div>
-                <div>
-                  <h1
-                    className="text-2xl font-medium text-gray-900"
-                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                  >
-                    My Subjects
-                  </h1>
-                  <p
-                    className="text-sm text-gray-600"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    View your enrolled subjects and curriculum
-                  </p>
-                </div>
-              </div>
-
-              <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
-                <BookOpen size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
-                <h3
-                  className="text-lg font-medium text-gray-900 mb-2"
-                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                >
-                  No subjects enrolled yet
-                </h3>
-                <p
-                  className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                >
-                  You haven't been enrolled in any subjects yet. Complete your enrollment process to get access to your subjects and curriculum.
-                </p>
-                <Button
-                  onClick={() => setCurrentView('enrollment')}
-                  className="bg-blue-900 hover:bg-blue-800 mt-4"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                >
-                  <GraduationCap size={20} className="mr-2" />
-                  Start Enrollment
-                </Button>
-              </Card>
-            </div>
+          {currentView === 'subjects' && user && (
+            <MySubjectsView userId={user.uid} />
           )}
 
           {currentView === 'schedule' && (
@@ -604,43 +706,10 @@ export default function Dashboard() {
           )}
 
           {currentView === 'records' && (
-            <div className="space-y-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-                  <IdentificationCard size={20} className="text-white" weight="fill" />
-                </div>
-                <div>
-                  <h1
-                    className="text-2xl font-medium text-gray-900"
-                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                  >
-                    Academic Records
-                  </h1>
-                  <p
-                    className="text-sm text-gray-600"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    View your complete academic history and records
-                  </p>
-                </div>
-              </div>
-
-              <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
-                <IdentificationCard size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
-                <h3
-                  className="text-lg font-medium text-gray-900 mb-2"
-                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                >
-                  Academic records not available
-                </h3>
-                <p
-                  className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                >
-                  Your academic records will be available once you have completed your enrollment and academic activities.
-                </p>
-              </Card>
-            </div>
+            <AcademicRecords
+              userId={user?.uid || ''}
+              studentName={`${userProfile?.firstName} ${userProfile?.lastName}`}
+            />
           )}
         </div>
       </div>

@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
 import { toast } from 'react-toastify';
 import { GraduationCap, Plus, User, Envelope, Phone, MapPin, BookOpen, Users, Eye, EyeSlash, Calendar, Gear, MagnifyingGlass, ArrowUp, ArrowDown, Pencil, Trash, Circle, UserPlus } from '@phosphor-icons/react';
+import TeacherAssignmentModal from './teacher-assignment-modal';
 
 interface TeacherManagementProps {
   registrarUid: string;
@@ -66,10 +67,13 @@ const changePassword = (teacher: Teacher): void => {
 export default function TeacherManagement({ registrarUid }: TeacherManagementProps) {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
+  const [assignmentCounts, setAssignmentCounts] = useState<Record<string, { subjects: number; sections: number }>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [passwordTeacher, setPasswordTeacher] = useState<Teacher | null>(null);
+  const [assignmentTeacher, setAssignmentTeacher] = useState<Teacher | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState<string>('a-z');
 
@@ -118,6 +122,40 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
   useEffect(() => {
     loadTeachers();
   }, []);
+
+  // Load assignment counts per teacher when teachers list updates
+  useEffect(() => {
+    const loadCounts = async () => {
+      try {
+        const entries = await Promise.all(
+          teachers.map(async (t) => {
+            try {
+              const res = await fetch(`/api/teacher-assignments?teacherId=${encodeURIComponent(t.id)}`);
+              if (!res.ok) return [t.id, { subjects: 0, sections: 0 }] as const;
+              const data = await res.json();
+              const assignments: Record<string, string[]> = data.assignments || {};
+              const subjects = Object.keys(assignments).length;
+              const sectionSet = new Set<string>();
+              Object.values(assignments).forEach((arr: string[]) => {
+                if (Array.isArray(arr)) arr.forEach(id => sectionSet.add(id));
+              });
+              const sections = sectionSet.size;
+              return [t.id, { subjects, sections }] as const;
+            } catch {
+              return [t.id, { subjects: 0, sections: 0 }] as const;
+            }
+          })
+        );
+        const map: Record<string, { subjects: number; sections: number }> = {};
+        for (const [id, counts] of entries) map[id] = counts;
+        setAssignmentCounts(map);
+      } catch {
+        // ignore
+      }
+    };
+    if (teachers.length > 0) loadCounts();
+    else setAssignmentCounts({});
+  }, [teachers]);
 
   const loadTeachers = async () => {
     try {
@@ -173,11 +211,21 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
     setShowCreateModal(true);
   };
 
+  const handleAssignTeacher = (teacher: Teacher) => {
+    setAssignmentTeacher(teacher);
+    setShowAssignmentModal(true);
+  };
+
 
 
   const handleCancel = () => {
     setShowCreateModal(false);
     setEditingTeacher(null);
+  };
+
+  const handleAssignmentModalClose = () => {
+    setShowAssignmentModal(false);
+    setAssignmentTeacher(null);
   };
 
   const handlePasswordModalCancel = () => {
@@ -398,6 +446,15 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
                      >
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
+                      <Users size={12} weight="bold" className="text-white" />
+                    </div>
+                    Assignments
+                  </div>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                     >
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
                       <Envelope size={12} weight="bold" className="text-white" />
                     </div>
                     Contact
@@ -410,15 +467,6 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
                       <Calendar size={12} weight="bold" className="text-white" />
                     </div>
                     Created
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                     >
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-                      <Circle size={12} weight="bold" className="text-white" />
-                    </div>
-                    Status
                   </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -506,12 +554,18 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
                   <tr key={teacher.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
+                        <div className="relative flex-shrink-0 h-10 w-10">
                           <div className="h-10 w-10 rounded-full bg-blue-900 flex items-center justify-center">
                             <span className="text-white text-xs font-medium" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                               {teacher.firstName.charAt(0)}{teacher.lastName.charAt(0)}
                             </span>
                           </div>
+                          <span
+                            className={`absolute -bottom-0 -right-0 w-3 h-3 border-2 border-white ${
+                              teacher.status === 'active' ? 'bg-emerald-700' : 'bg-red-600'
+                            }`}
+                            aria-label={teacher.status === 'active' ? 'Enabled' : 'Disabled'}
+                          ></span>
                         </div>
                         <div className="ml-4">
                           <div className="text-xs font-medium text-gray-900"
@@ -519,6 +573,14 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
                             {teacher.firstName} {teacher.middleName && `${teacher.middleName} `}{teacher.lastName}{teacher.extension && ` ${teacher.extension}`}
                           </div>
                         </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
+                      <div className="text-xs text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                        {assignmentCounts[teacher.id]?.subjects || 0} Subject{(assignmentCounts[teacher.id]?.subjects || 0) !== 1 ? 's' : ''}
+                      </div>
+                      <div className="text-xs text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                        {assignmentCounts[teacher.id]?.sections || 0} Section{(assignmentCounts[teacher.id]?.sections || 0) !== 1 ? 's' : ''}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
@@ -541,20 +603,7 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
                         year: 'numeric'
                       })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-3 h-3 flex-shrink-0 ${
-                            teacher.status === 'active' ? 'bg-emerald-800' : 'bg-red-500'
-                          }`}
-                        ></div>
-                        <span className={`text-xs font-medium font-mono ${
-                          teacher.status === 'active' ? 'text-green-800' : 'text-red-800'
-                        }`}  >
-                          {teacher.status === 'active' ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    </td>
+                  
                     <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
                       <div className="flex gap-2">
                         <Button
@@ -568,7 +617,7 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
                         <Button
                           size="sm"
                           className="bg-blue-900 hover:bg-blue-800 text-white border"
-
+                          onClick={() => handleAssignTeacher(teacher)}
                         >
                           <UserPlus size={14} className="mr-1" />
                           Assign
@@ -622,6 +671,14 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
           teacher={passwordTeacher}
         />
       </Modal>
+
+      {/* Teacher Assignment Modal */}
+      <TeacherAssignmentModal
+        isOpen={showAssignmentModal}
+        onClose={handleAssignmentModalClose}
+        teacher={assignmentTeacher}
+        registrarUid={registrarUid}
+      />
     </div>
   );
 }

@@ -93,10 +93,81 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT /api/enrollment - Process student enrollment
+// PUT /api/enrollment - Process student enrollment or update latest ID or assign/unassign section
 export async function PUT(request: NextRequest) {
   try {
-    const { userId, selectedSubjects, orNumber, scholarship, studentId } = await request.json();
+    const { userId, selectedSubjects, orNumber, scholarship, studentId, updateLatestId, sectionId, unassignSection } = await request.json();
+
+    // If updating latest student ID
+    if (updateLatestId) {
+      const result = await EnrollmentDatabase.updateLatestStudentId(updateLatestId);
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.error || 'Failed to update latest student ID' },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        message: 'Latest student ID updated successfully'
+      });
+    }
+
+    // If assigning section to student
+    if (userId && sectionId) {
+      // Validate required fields
+      if (!userId || !sectionId) {
+        return NextResponse.json(
+          { error: 'Missing required fields: userId and sectionId' },
+          { status: 400 }
+        );
+      }
+
+      // Assign section using the database class
+      const result = await EnrollmentDatabase.assignSection(userId, sectionId);
+
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.error || 'Failed to assign section' },
+          { status: 500 }
+        );
+      }
+
+      console.log('✅ Section assigned successfully for user:', userId);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Section assigned successfully'
+      });
+    }
+
+    // If unassigning section from student
+    if (userId && sectionId && unassignSection === true) {
+      // Validate required fields
+      if (!userId || !sectionId) {
+        return NextResponse.json(
+          { error: 'Missing required fields: userId and sectionId' },
+          { status: 400 }
+        );
+      }
+
+      // Unassign section using the database class
+      const result = await EnrollmentDatabase.unassignSection(userId, sectionId);
+
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.error || 'Failed to unassign section' },
+          { status: 500 }
+        );
+      }
+
+      console.log('✅ Section unassigned successfully for user:', userId);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Section unassigned successfully'
+      });
+    }
 
     // Validate required fields
     if (!userId || !selectedSubjects || !Array.isArray(selectedSubjects)) {
@@ -181,6 +252,7 @@ export async function GET(request: NextRequest) {
   const healthCheck = searchParams.get('healthCheck');
   const userId = searchParams.get('userId');
   const getAll = searchParams.get('getAll');
+  const getLatestId = searchParams.get('getLatestId');
 
   // Simple health check endpoint
   if (healthCheck === 'true') {
@@ -217,6 +289,29 @@ export async function GET(request: NextRequest) {
       console.error('Error loading system configuration:', error);
       return NextResponse.json(
         { error: 'Failed to load system configuration', ayCode: 'AY2526' },
+        { status: 500 }
+      );
+    }
+  }
+
+  // If requesting latest student ID
+  if (getLatestId === 'true') {
+    try {
+      const latestIdResult = await EnrollmentDatabase.getLatestStudentId();
+      if (!latestIdResult.success) {
+        return NextResponse.json(
+          { error: latestIdResult.error || 'Failed to get latest student ID' },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        latestId: latestIdResult.latestId
+      });
+    } catch (error) {
+      console.error('Error fetching latest student ID:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch latest student ID', details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }
       );
     }

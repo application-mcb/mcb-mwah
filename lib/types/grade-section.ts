@@ -50,6 +50,7 @@ export interface SectionData {
   department: Department; // JHS, SHS
   rank: SectionRank; // A, B, C, D, E, F, G, H
   description: string; // Detailed description
+  students?: string[]; // Array of student userIds assigned to this section
   createdAt: string; // ISO string (serialized from Firestore timestamp)
   updatedAt: string; // ISO string (serialized from Firestore timestamp)
   createdBy: string; // UID of the registrar who created it

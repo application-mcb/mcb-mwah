@@ -9,10 +9,13 @@ import {
   serverTimestamp,
   query,
   where,
-  getDocs
+  getDocs,
+  arrayUnion,
+  arrayRemove
 } from 'firebase/firestore';
 import { db } from './firebase-server';
 import { SubjectDatabase } from './subject-database';
+import { SectionDatabase } from './grade-section-database';
 
 export interface EnrollmentData {
   id?: string; // Document ID from Firestore
@@ -40,7 +43,10 @@ export interface EnrollmentData {
     status: string;
     orNumber?: string;
     scholarship?: string;
+    studentId?: string;
+    sectionId?: string;
   };
+  selectedSubjects?: string[];
   documents: {
     [key: string]: {
       name: string;
@@ -280,6 +286,7 @@ export class EnrollmentDatabase {
             scholarship: scholarship || '',
             studentId: studentId || ''
           },
+          selectedSubjects,
           documents: {},
           submittedAt: serverTimestamp(),
           updatedAt: serverTimestamp()
@@ -307,6 +314,7 @@ export class EnrollmentDatabase {
           'enrollmentInfo.enrollmentDate': new Date().toISOString(),
           'enrollmentInfo.orNumber': orNumber || '',
           'enrollmentInfo.scholarship': scholarship || '',
+          selectedSubjects: selectedSubjects,
           updatedAt: serverTimestamp()
         };
 
@@ -458,6 +466,166 @@ export class EnrollmentDatabase {
       return { success: true };
     } catch (error) {
       console.error('Error revoking enrollment:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // Assign section to student enrollment
+  static async assignSection(userId: string, sectionId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Get system config for current AY code
+      const systemConfig = await this.getSystemConfig();
+      const ayCode = systemConfig.ayCode;
+
+      // Get current enrollment to check if student is already assigned to a different section
+      const currentEnrollment = await this.getEnrollment(userId, ayCode);
+      const currentSectionId = currentEnrollment.success && currentEnrollment.data?.enrollmentInfo?.sectionId;
+
+      // If student is currently assigned to a different section, remove them from that section's students array
+      if (currentSectionId && currentSectionId !== sectionId) {
+        const oldSectionRef = doc(db, 'sections', currentSectionId);
+        const oldSectionUpdate = {
+          students: arrayRemove(userId),
+          updatedAt: serverTimestamp()
+        };
+        await updateDoc(oldSectionRef, oldSectionUpdate);
+        console.log(`✅ Removed student ${userId} from old section ${currentSectionId}`);
+      }
+
+      // Update the enrollment document with section assignment
+      const enrollmentRef = doc(db, 'students', userId, 'enrollment', ayCode);
+      const enrollmentUpdate = {
+        'enrollmentInfo.sectionId': sectionId,
+        updatedAt: serverTimestamp()
+      };
+
+      await updateDoc(enrollmentRef, enrollmentUpdate);
+
+      // Also update the top-level enrollments collection
+      const topLevelEnrollmentRef = doc(db, 'enrollments', `${userId}_${ayCode}`);
+      const topLevelUpdate = {
+        'enrollmentData.enrollmentInfo.sectionId': sectionId,
+        updatedAt: serverTimestamp()
+      };
+
+      await updateDoc(topLevelEnrollmentRef, topLevelUpdate);
+
+      // Add student to new section's students array
+      const sectionRef = doc(db, 'sections', sectionId);
+      const sectionUpdate = {
+        students: arrayUnion(userId),
+        updatedAt: serverTimestamp()
+      };
+
+      await updateDoc(sectionRef, sectionUpdate);
+
+      console.log(`✅ Section ${sectionId} assigned to student ${userId} in ${ayCode}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error assigning section:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // Unassign section from student enrollment
+  static async unassignSection(userId: string, sectionId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Get system config for current AY code
+      const systemConfig = await this.getSystemConfig();
+      const ayCode = systemConfig.ayCode;
+
+      // Update the enrollment document to remove section assignment
+      const enrollmentRef = doc(db, 'students', userId, 'enrollment', ayCode);
+      const enrollmentUpdate = {
+        'enrollmentInfo.sectionId': deleteField(),
+        updatedAt: serverTimestamp()
+      };
+
+      await updateDoc(enrollmentRef, enrollmentUpdate);
+
+      // Also update the top-level enrollments collection
+      const topLevelEnrollmentRef = doc(db, 'enrollments', `${userId}_${ayCode}`);
+      const topLevelUpdate = {
+        'enrollmentData.enrollmentInfo.sectionId': deleteField(),
+        updatedAt: serverTimestamp()
+      };
+
+      await updateDoc(topLevelEnrollmentRef, topLevelUpdate);
+
+      // Remove student from section's students array
+      const sectionRef = doc(db, 'sections', sectionId);
+      const sectionUpdate = {
+        students: arrayRemove(userId),
+        updatedAt: serverTimestamp()
+      };
+
+      await updateDoc(sectionRef, sectionUpdate);
+
+      console.log(`✅ Section ${sectionId} unassigned from student ${userId} in ${ayCode}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error unassigning section:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // Get the latest student ID from config
+  static async getLatestStudentId(): Promise<{ success: boolean; latestId?: string; error?: string }> {
+    try {
+      const configDoc = await getDoc(doc(db, 'config', 'system'));
+
+      if (!configDoc.exists()) {
+        return {
+          success: false,
+          error: 'System configuration not found'
+        };
+      }
+
+      const configData = configDoc.data() || {};
+      const latestId = configData.latestId;
+
+      if (!latestId) {
+        return {
+          success: false,
+          error: 'latestId field not found in system configuration'
+        };
+      }
+
+      return {
+        success: true,
+        latestId: latestId as string
+      };
+    } catch (error) {
+      console.error('Error fetching latest student ID:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // Update the latest student ID in config
+  static async updateLatestStudentId(newLatestId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const configRef = doc(db, 'config', 'system');
+      await updateDoc(configRef, {
+        latestId: newLatestId,
+        updatedAt: serverTimestamp()
+      });
+
+      console.log(`✅ Latest student ID updated to: ${newLatestId}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating latest student ID:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'

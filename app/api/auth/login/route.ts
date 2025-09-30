@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverTimestamp } from 'firebase/firestore';
-import { StudentDatabase } from '@/lib/firestore-database';
+import { StudentDatabase, TeacherDatabase } from '@/lib/firestore-database';
 import { RegistrarDatabase } from '@/lib/registrar-database';
 
 export async function POST(request: NextRequest) {
@@ -95,6 +95,30 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Check if user is a teacher
+    let isTeacher = false;
+    try {
+      const teacher = await TeacherDatabase.getTeacher(uid);
+      isTeacher = !!teacher;
+    } catch (teacherError) {
+      console.error('Teacher check failed:', teacherError);
+      // Continue with login even if teacher check fails
+    }
+
+    // If user is a teacher, redirect to teacher dashboard
+    if (isTeacher) {
+      return NextResponse.json({
+        success: true,
+        user: {
+          uid: uid,
+          email: email,
+          emailVerified: true,
+        },
+        isTeacher: true,
+        redirectTo: '/teacher',
+      });
+    }
+
     // Check if user has a complete profile (for students)
     let hasCompleteProfile = false;
     try {
@@ -115,6 +139,7 @@ export async function POST(request: NextRequest) {
       },
       hasCompleteProfile,
       isRegistrar: false,
+      isTeacher: false,
     });
 
   } catch (error: any) {

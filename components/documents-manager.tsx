@@ -368,8 +368,50 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-900/30 border-t-blue-900"></div>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="bg-white p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="h-6 bg-gray-200 rounded w-64 animate-pulse mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-96 animate-pulse"></div>
+            </div>
+            <div className="h-8 bg-gray-200 rounded-full w-48 animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Documents Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 7 }).map((_, index) => (
+            <div key={index} className="border border-gray-200 border-dashed rounded-lg p-5 bg-white">
+              <div className="flex items-start gap-4">
+                {/* Icon Skeleton */}
+                <div className="w-12 h-12 bg-gray-200 rounded animate-pulse"></div>
+
+                <div className="flex-1 space-y-3">
+                  {/* Title Skeleton */}
+                  <div className="h-5 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+
+                  {/* Description Skeleton */}
+                  <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+
+                  {/* Status Badge Skeleton */}
+                  <div className="h-6 bg-gray-200 rounded w-24 animate-pulse"></div>
+
+                  {/* Action Buttons Skeleton */}
+                  <div className="flex gap-3">
+                    <div className="h-8 bg-gray-200 rounded w-20 animate-pulse"></div>
+                    <div className="h-8 bg-gray-200 rounded w-20 animate-pulse"></div>
+                    {index % 2 === 0 && (
+                      <div className="h-8 bg-gray-200 rounded w-16 animate-pulse"></div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

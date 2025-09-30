@@ -75,6 +75,7 @@ export interface SubjectData {
   lectureUnits: number; // Number of lecture units for this subject
   labUnits: number; // Number of lab units for this subject
   totalUnits: number; // Total units (lecture + lab)
+  teacherAssignments?: Record<string, string[]>; // { [sectionId]: teacherId[] } - Multiple teachers per section
   createdAt: string; // ISO string (serialized from Firestore timestamp)
   updatedAt: string; // ISO string (serialized from Firestore timestamp)
   createdBy: string; // UID of the registrar who created it
@@ -464,17 +465,31 @@ export class SubjectSetDatabase {
   // Get subject sets by grade level
   static async getSubjectSetsByGradeLevel(gradeLevel: number): Promise<SubjectSetData[]> {
     try {
-      const q = query(
-        collection(db, this.collectionName),
-        where('gradeLevel', '==', gradeLevel),
-        orderBy('name', 'asc')
-      );
-      const querySnapshot = await getDocs(q);
+      // First try with composite index (where + orderBy)
+      try {
+        const q = query(
+          collection(db, this.collectionName),
+          where('gradeLevel', '==', gradeLevel),
+          orderBy('createdAt', 'desc')
+        );
+        const querySnapshot = await getDocs(q);
 
-      return querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return serializeFirestoreData(data) as SubjectSetData;
-      });
+        const subjectSets = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return serializeFirestoreData(data) as SubjectSetData;
+        });
+
+        // Sort by name after fetching (client-side sort)
+        return subjectSets.sort((a, b) => a.name.localeCompare(b.name));
+      } catch (indexError) {
+        console.warn('Composite index not available for subject sets, falling back to client-side filtering');
+
+        // Fallback: Get all subject sets and filter client-side
+        const allSubjectSets = await this.getAllSubjectSets();
+        return allSubjectSets
+          .filter(subjectSet => subjectSet.gradeLevel === gradeLevel)
+          .sort((a, b) => a.name.localeCompare(b.name));
+      }
     } catch (error) {
       console.error('Error getting subject sets by grade level:', error);
       throw new Error('Failed to get subject sets by grade level');

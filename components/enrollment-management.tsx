@@ -496,7 +496,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     }, 100); // Small delay to ensure subject sets are loaded
   };
 
-  const handleQuickEnroll = (enrollment: EnrollmentData) => {
+  const handleQuickEnroll = async (enrollment: EnrollmentData) => {
     if (!enrollment || enrollment.enrollmentInfo?.status === 'enrolled') {
       return; // Already enrolled
     }
@@ -515,6 +515,23 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     if (uniqueSubjectIds.length === 0) {
       toast.error('No subjects available for this grade level.');
       return;
+    }
+
+    // Fetch the latest student ID and increment it
+    try {
+      const response = await fetch('/api/enrollment?getLatestId=true');
+      const data = await response.json();
+
+      if (response.ok && data.success && data.latestId) {
+        const nextStudentId = incrementStudentId(data.latestId);
+        setQuickEnrollStudentId(nextStudentId);
+      } else {
+        console.warn('Failed to fetch latest student ID, using fallback');
+        setQuickEnrollStudentId('001-001'); // Fallback
+      }
+    } catch (error) {
+      console.error('Error fetching latest student ID:', error);
+      setQuickEnrollStudentId('001-001'); // Fallback
     }
 
     // Set up preview data and show modal
@@ -562,6 +579,22 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
       const data = await response.json();
 
       if (response.ok && data.success) {
+        // Update the latest student ID in the system
+        try {
+          await fetch('/api/enrollment', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              updateLatestId: quickEnrollStudentId,
+            }),
+          });
+          console.log('✅ Latest student ID updated to:', quickEnrollStudentId);
+        } catch (updateError) {
+          console.warn('⚠️ Failed to update latest student ID, but enrollment was successful:', updateError);
+        }
+
         toast.success(`Quick enrolled ${quickEnrollData.enrollment.personalInfo?.firstName} ${quickEnrollData.enrollment.personalInfo?.lastName} with ${quickEnrollData.subjects.length} subjects.`, {
           autoClose: 6000,
         });
@@ -594,11 +627,27 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     setQuickEnrollStudentId('');
   };
 
-  const handleOpenEnrollModal = () => {
+  const handleOpenEnrollModal = async () => {
+    // Fetch the latest student ID and increment it
+    try {
+      const response = await fetch('/api/enrollment?getLatestId=true');
+      const data = await response.json();
+
+      if (response.ok && data.success && data.latestId) {
+        const nextStudentId = incrementStudentId(data.latestId);
+        setEnrollStudentId(nextStudentId);
+      } else {
+        console.warn('Failed to fetch latest student ID, using fallback');
+        setEnrollStudentId('001-001'); // Fallback
+      }
+    } catch (error) {
+      console.error('Error fetching latest student ID:', error);
+      setEnrollStudentId('001-001'); // Fallback
+    }
+
     setShowEnrollModal(true);
     setEnrollOrNumber('');
     setEnrollScholarship('');
-    setEnrollStudentId('');
   };
 
   const handleConfirmEnroll = async () => {
@@ -643,6 +692,22 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
       const data = await response.json();
 
       if (response.ok && data.success) {
+        // Update the latest student ID in the system
+        try {
+          await fetch('/api/enrollment', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              updateLatestId: enrollStudentId,
+            }),
+          });
+          console.log('✅ Latest student ID updated to:', enrollStudentId);
+        } catch (updateError) {
+          console.warn('⚠️ Failed to update latest student ID, but enrollment was successful:', updateError);
+        }
+
         toast.success(`Student ${viewingEnrollment?.personalInfo?.firstName} ${viewingEnrollment?.personalInfo?.lastName} enrolled with ${selectedSubjects.length} subject(s).`, {
           autoClose: 6000,
         });
@@ -894,6 +959,35 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     }
   };
 
+  const formatFullName = (firstName?: string, middleName?: string, lastName?: string, nameExtension?: string) => {
+    if (!lastName && !firstName) return 'N/A';
+
+    const parts: string[] = [];
+
+    // Last name first
+    if (lastName) {
+      parts.push(lastName);
+    }
+
+    // First name
+    if (firstName) {
+      parts.push(firstName);
+    }
+
+    // Middle name (if exists, show as initial with period)
+    if (middleName && middleName.trim()) {
+      const middleInitial = middleName.charAt(0).toUpperCase();
+      parts.push(`${middleInitial}.`);
+    }
+
+    // Extension (if exists)
+    if (nameExtension && nameExtension.trim()) {
+      parts.push(nameExtension);
+    }
+
+    return parts.join(', ');
+  };
+
   // Filter and sort enrollments
   const filteredAndSortedEnrollments = (() => {
     let filtered = enrollments;
@@ -1061,33 +1155,32 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     return first;
   };
 
-  const formatFullName = (firstName?: string, middleName?: string, lastName?: string, nameExtension?: string) => {
-    if (!lastName && !firstName) return 'N/A';
 
-    const parts: string[] = [];
+  // Helper function to increment student ID (YYY-XXX format)
+  const incrementStudentId = (currentId: string): string => {
+    try {
+      const parts = currentId.split('-');
+      if (parts.length !== 2) {
+        throw new Error('Invalid ID format');
+      }
 
-    // Last name first
-    if (lastName) {
-      parts.push(lastName);
+      const prefix = parts[0]; // YYY part
+      const numberPart = parseInt(parts[1]); // XXX part
+
+      if (isNaN(numberPart)) {
+        throw new Error('Invalid number part');
+      }
+
+      const nextNumber = numberPart + 1;
+      // Pad with zeros to maintain 3-digit format
+      const nextNumberStr = nextNumber.toString().padStart(3, '0');
+
+      return `${prefix}-${nextNumberStr}`;
+    } catch (error) {
+      console.error('Error incrementing student ID:', error);
+      // Return a fallback incremented ID
+      return '001-001';
     }
-
-    // First name
-    if (firstName) {
-      parts.push(firstName);
-    }
-
-    // Middle name (if exists, show as initial with period)
-    if (middleName && middleName.trim()) {
-      const middleInitial = middleName.charAt(0).toUpperCase();
-      parts.push(`${middleInitial}.`);
-    }
-
-    // Extension (if exists)
-    if (nameExtension && nameExtension.trim()) {
-      parts.push(nameExtension);
-    }
-
-    return parts.join(', ');
   };
 
   // Get grade color from database (matching grade-list.tsx structure)

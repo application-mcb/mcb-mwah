@@ -4,10 +4,13 @@
 import { useState } from "react";
 import { LoginForm } from "@/components/login-form";
 import { RegistrationForm } from "@/components/registration-form";
+import { ContinueWithUser } from "@/components/continue-with-user";
 import { AuthHero } from "@/components/auth-hero";
+import { useAuth } from "@/lib/auth-context";
 
 export default function Home() {
   const [isLogin, setIsLogin] = useState(true);
+  const { user, loading } = useAuth();
 
   const handleLoginSuccess = () => {
     // Handle successful login (e.g., redirect to dashboard)
@@ -59,16 +62,27 @@ export default function Home() {
       <div className="flex items-center justify-center p-4 lg:p-8 min-h-screen z-10 shadow-xl relative">
       <div className="z-0 absolute inset-0 opacity-50 bg-[linear-gradient(rgba(30,58,138,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(30,58,138,0.1)_1px,transparent_1px)] bg-[length:20px_20px]"></div>
         <div className="w-full max-w-lg space-y-4 z-10">
-          {isLogin ? (
-            <LoginForm
-              onLoginSuccess={handleLoginSuccess}
-              onSwitchToRegistration={handleSwitchToRegistration}
-            />
+          {loading ? (
+            // Loading state while checking authentication
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-900"></div>
+            </div>
+          ) : user ? (
+            // User is authenticated - show continue component
+            <ContinueWithUser />
           ) : (
-            <RegistrationForm
-              onRegistrationSuccess={handleRegistrationSuccess}
-              onSwitchToLogin={handleSwitchToLogin}
-            />
+            // User is not authenticated - show login/registration forms
+            isLogin ? (
+              <LoginForm
+                onLoginSuccess={handleLoginSuccess}
+                onSwitchToRegistration={handleSwitchToRegistration}
+              />
+            ) : (
+              <RegistrationForm
+                onRegistrationSuccess={handleRegistrationSuccess}
+                onSwitchToLogin={handleSwitchToLogin}
+              />
+            )
           )}
         </div>
       </div>
