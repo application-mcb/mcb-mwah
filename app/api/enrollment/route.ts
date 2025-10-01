@@ -9,7 +9,7 @@ console.log('✅ Enrollment API route loaded using Firebase Client SDK');
 // POST /api/enrollment - Submit enrollment request
 export async function POST(request: NextRequest) {
   try {
-    const { userId, gradeId, gradeLevel, department, personalInfo, documents } = await request.json();
+    const { userId, gradeId, gradeLevel, department, personalInfo, documents, studentType } = await request.json();
 
     // Validate required fields
     if (!userId || !gradeId || !personalInfo) {
@@ -58,7 +58,8 @@ export async function POST(request: NextRequest) {
         gradeLevel,
         schoolYear: ayCode,
         enrollmentDate: new Date().toISOString(),
-        status: 'pending'
+        status: 'pending',
+        studentType: studentType || 'regular' // Default to regular if not specified
       },
       documents: processedDocuments
     };
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/enrollment - Process student enrollment or update latest ID or assign/unassign section
 export async function PUT(request: NextRequest) {
   try {
-    const { userId, selectedSubjects, orNumber, scholarship, studentId, updateLatestId, sectionId, unassignSection } = await request.json();
+    const { userId, selectedSubjects, orNumber, scholarship, studentId, updateLatestId, sectionId, unassignSection, studentType } = await request.json();
 
     // If updating latest student ID
     if (updateLatestId) {
@@ -178,7 +179,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Process enrollment using the database class
-    const result = await EnrollmentDatabase.enrollStudent(userId, selectedSubjects, orNumber, scholarship, studentId);
+    const result = await EnrollmentDatabase.enrollStudent(userId, selectedSubjects, orNumber, scholarship, studentId, studentType);
 
     if (!result.success) {
       return NextResponse.json(
@@ -339,6 +340,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Failed to fetch enrollments',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
+        { status: 500 }
+      );
+    }
+  }
+
+  // Batch enrollment requests for multiple user IDs
+  const userIds = searchParams.get('userIds');
+  if (userIds) {
+    try {
+      const userIdArray = userIds.split(',').map(id => id.trim()).filter(id => id);
+      const enrollmentPromises = userIdArray.map(id => EnrollmentDatabase.getEnrollment(id));
+
+      const enrollmentResults = await Promise.all(enrollmentPromises);
+
+      // Filter out failed requests and extract successful data
+      const enrollments = enrollmentResults
+        .filter(result => result.success && result.data)
+        .map(result => result.data);
+
+      return NextResponse.json({
+        success: true,
+        data: enrollments,
+        count: enrollments.length
+      });
+    } catch (error) {
+      console.error('Error fetching batch enrollments:', error);
+      return NextResponse.json(
+        {
+          error: 'Failed to fetch batch enrollments',
           details: error instanceof Error ? error.message : 'Unknown error'
         },
         { status: 500 }

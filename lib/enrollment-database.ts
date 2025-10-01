@@ -45,6 +45,7 @@ export interface EnrollmentData {
     scholarship?: string;
     studentId?: string;
     sectionId?: string;
+    studentType?: 'regular' | 'irregular';
   };
   selectedSubjects?: string[];
   documents: {
@@ -84,7 +85,7 @@ export class EnrollmentDatabase {
       const configData = configDoc.data() || {};
 
       // Try to find AY code from various possible fields
-      let ayCode = configData.currentAY || configData.academicYear || configData.AYCode || configData.activeAY;
+      let ayCode = configData.currentAY || configData.academicYear || configData.AYCode || configData.activeAY || configData.AY;
 
       if (!ayCode) {
         // Look for any field that matches AY pattern
@@ -262,7 +263,7 @@ export class EnrollmentDatabase {
   }
 
   // Enroll student - update status and create studentGrades subcollection
-  static async enrollStudent(userId: string, selectedSubjects: string[], orNumber?: string, scholarship?: string, studentId?: string): Promise<{ success: boolean; error?: string }> {
+  static async enrollStudent(userId: string, selectedSubjects: string[], orNumber?: string, scholarship?: string, studentId?: string, studentType?: 'regular' | 'irregular'): Promise<{ success: boolean; error?: string }> {
     try {
       // Get system config for current AY code
       const systemConfig = await this.getSystemConfig();
@@ -314,6 +315,7 @@ export class EnrollmentDatabase {
           'enrollmentInfo.enrollmentDate': new Date().toISOString(),
           'enrollmentInfo.orNumber': orNumber || '',
           'enrollmentInfo.scholarship': scholarship || '',
+          'enrollmentInfo.studentType': studentType || 'regular',
           selectedSubjects: selectedSubjects,
           updatedAt: serverTimestamp()
         };
@@ -380,6 +382,7 @@ export class EnrollmentDatabase {
           'enrollmentData.enrollmentInfo.enrollmentDate': new Date().toISOString(),
           'enrollmentData.enrollmentInfo.orNumber': orNumber || '',
           'enrollmentData.enrollmentInfo.scholarship': scholarship || '',
+          'enrollmentData.enrollmentInfo.studentType': studentType || 'regular',
           updatedAt: serverTimestamp()
         });
 
@@ -405,7 +408,8 @@ export class EnrollmentDatabase {
               enrollmentDate: new Date().toISOString(),
               status: 'enrolled',
               orNumber: orNumber || '',
-              scholarship: scholarship || ''
+              scholarship: scholarship || '',
+              studentType: studentType || 'regular'
             },
             documents: {},
             submittedAt: serverTimestamp(),

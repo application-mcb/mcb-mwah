@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from 'react-toastify';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -10,6 +11,7 @@ import EnrollmentForm from "@/components/enrollment-form";
 import DocumentsManager from "@/components/documents-manager";
 import MySubjectsView from "../../components/my-subjects-view";
 import AcademicRecords from "@/components/academic-records";
+import AccountSetupProgress from "@/components/account-setup-progress";
 import {
   User,
   Calendar,
@@ -40,6 +42,7 @@ export default function Dashboard() {
   const [enrollmentData, setEnrollmentData] = useState<any>(null);
   const [sections, setSections] = useState<any[]>([]);
   const [grades, setGrades] = useState<any[]>([]);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
@@ -76,10 +79,14 @@ export default function Dashboard() {
               const enrollmentResponse = await fetch(`/api/enrollment?userId=${user.uid}`);
               const enrollmentResult = await enrollmentResponse.json();
 
-              if (enrollmentResponse.ok && enrollmentResult.success) {
+              // Handle 404 (no enrollment found) as valid case
+              if (enrollmentResponse.status === 404) {
+                console.log('No enrollment found, student may not be enrolled yet');
+                setEnrollmentData(null);
+              } else if (enrollmentResponse.ok && enrollmentResult.success) {
                 setEnrollmentData(enrollmentResult.data);
               } else {
-                console.log('No enrollment data found, student may not be enrolled yet');
+                console.log('Error fetching enrollment data');
                 setEnrollmentData(null);
               }
             } catch (error) {
@@ -117,6 +124,22 @@ export default function Dashboard() {
             } catch (error) {
               console.log('Error fetching grades data:', error);
               setGrades([]);
+            }
+
+            // Fetch documents data
+            try {
+              const documentsResponse = await fetch(`/api/documents?userId=${user.uid}`);
+              const documentsResult = await documentsResponse.json();
+
+              if (documentsResponse.ok && documentsResult.success) {
+                setDocuments(documentsResult.documents || []);
+              } else {
+                console.log('No documents data found');
+                setDocuments([]);
+              }
+            } catch (error) {
+              console.log('Error fetching documents data:', error);
+              setDocuments([]);
             }
 
           } else {
@@ -161,7 +184,10 @@ export default function Dashboard() {
           const enrollmentResponse = await fetch(`/api/enrollment?userId=${user.uid}`);
           const enrollmentResult = await enrollmentResponse.json();
 
-          if (enrollmentResponse.ok && enrollmentResult.success) {
+          // Handle 404 (no enrollment found) as valid case
+          if (enrollmentResponse.status === 404) {
+            setEnrollmentData(null);
+          } else if (enrollmentResponse.ok && enrollmentResult.success) {
             setEnrollmentData(enrollmentResult.data);
           } else {
             setEnrollmentData(null);
@@ -201,6 +227,21 @@ export default function Dashboard() {
           setGrades([]);
         }
 
+        // Also refresh documents data
+        try {
+          const documentsResponse = await fetch(`/api/documents?userId=${user.uid}`);
+          const documentsResult = await documentsResponse.json();
+
+          if (documentsResponse.ok && documentsResult.success) {
+            setDocuments(documentsResult.documents || []);
+          } else {
+            setDocuments([]);
+          }
+        } catch (error) {
+          console.error('Error refreshing documents data:', error);
+          setDocuments([]);
+        }
+
       } catch (error) {
         console.error('Error refreshing profile:', error);
       }
@@ -210,6 +251,41 @@ export default function Dashboard() {
 
   const handleEditCancel = () => {
     setIsEditModalOpen(false);
+  };
+
+  const handleProgressUpdate = async () => {
+    // Refresh enrollment data
+    try {
+      const enrollmentResponse = await fetch(`/api/enrollment?userId=${user.uid}`);
+      const enrollmentResult = await enrollmentResponse.json();
+
+      // Handle 404 (no enrollment found) as valid case
+      if (enrollmentResponse.status === 404) {
+        setEnrollmentData(null);
+      } else if (enrollmentResponse.ok && enrollmentResult.success) {
+        setEnrollmentData(enrollmentResult.data);
+      } else {
+        setEnrollmentData(null);
+      }
+    } catch (error) {
+      console.error('Error refreshing enrollment data:', error);
+      setEnrollmentData(null);
+    }
+
+    // Refresh documents data
+    try {
+      const documentsResponse = await fetch(`/api/documents?userId=${user.uid}`);
+      const documentsResult = await documentsResponse.json();
+
+      if (documentsResponse.ok && documentsResult.success) {
+        setDocuments(documentsResult.documents || []);
+      } else {
+        setDocuments([]);
+      }
+    } catch (error) {
+      console.error('Error refreshing documents data:', error);
+      setDocuments([]);
+    }
   };
 
   const formatPhoneNumber = (phone: string) => {
@@ -302,9 +378,19 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-80 bg-white/50 shadow-lg flex flex-col animate-in slide-in-from-left-4 duration-500">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Account Setup Progress Bar */}
+      {user && (
+        <AccountSetupProgress
+          userId={user.uid}
+          userProfile={userProfile}
+          documents={documents}
+        />
+      )}
+
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <aside className="w-80 bg-white/50 shadow-lg flex flex-col animate-in slide-in-from-left-4 duration-500">
         {/* Sidebar Header */}
         <div className="p-6 border-blue-100">
           <div className="flex flex-col items-center text-center">
@@ -418,51 +504,123 @@ export default function Dashboard() {
 
 
             
-            <Button 
+            <Button
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'subjects' ? 'bg-blue-50 border-blue-900' : ''}`}
-              onClick={() => setCurrentView('subjects')}
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 ${
+                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
+                  ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
+                  : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
+              } border-l-5 ${currentView === 'subjects' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
+              onClick={() => {
+                if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
+                  // Show enrollment required message
+                  toast.info('You need to enroll first to access this feature.', {
+                    autoClose: 3000,
+                    position: 'top-right'
+                  });
+                  return;
+                }
+                setCurrentView('subjects');
+              }}
             >
-                <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
+                <div className={`flex items-center justify-center aspect-square w-6 h-6 ${
+                  !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
+                    ? 'bg-red-800'
+                    : 'bg-blue-900'
+                }`}>
               <BookOpen className="text-white" weight="fill" />
             </div>
-            
+
               My Subjects
             </Button>
             
-            <Button 
+            <Button
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'schedule' ? 'bg-blue-50 border-blue-900' : ''}`}
-              onClick={() => setCurrentView('schedule')}
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 ${
+                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
+                  ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
+                  : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
+              } border-l-5 ${currentView === 'schedule' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
+              onClick={() => {
+                if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
+                  // Show enrollment required message
+                  toast.info('You need to enroll first to access this feature.', {
+                    autoClose: 3000,
+                    position: 'top-right'
+                  });
+                  return;
+                }
+                setCurrentView('schedule');
+              }}
             >
-              <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
+              <div className={`flex items-center justify-center aspect-square w-6 h-6 ${
+                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
+                  ? 'bg-red-800'
+                  : 'bg-blue-900'
+              }`}>
               <Calendar className="text-white" weight="fill" />
             </div>
-            
+
               Schedule
             </Button>
             
-            <Button 
+            <Button
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'performance' ? 'bg-blue-50 border-blue-900' : ''}`}
-              onClick={() => setCurrentView('performance')}
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 ${
+                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
+                  ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
+                  : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
+              } border-l-5 ${currentView === 'performance' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
+              onClick={() => {
+                if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
+                  // Show enrollment required message
+                  toast.info('You need to enroll first to access this feature.', {
+                    autoClose: 3000,
+                    position: 'top-right'
+                  });
+                  return;
+                }
+                setCurrentView('performance');
+              }}
             >
-              <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
+              <div className={`flex items-center justify-center aspect-square w-6 h-6 ${
+                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
+                  ? 'bg-red-800'
+                  : 'bg-blue-900'
+              }`}>
               <ChartBar className="text-white" weight="fill" />
             </div>
-            
+
               Performance
             </Button>
             
-            <Button 
+            <Button
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'records' ? 'bg-blue-50 border-blue-900' : ''}`}
-              onClick={() => setCurrentView('records')}
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 ${
+                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
+                  ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
+                  : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
+              } border-l-5 ${currentView === 'records' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
+              onClick={() => {
+                if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
+                  // Show enrollment required message
+                  toast.info('You need to enroll first to access this feature.', {
+                    autoClose: 3000,
+                    position: 'top-right'
+                  });
+                  return;
+                }
+                setCurrentView('records');
+              }}
             >
-              <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
+              <div className={`flex items-center justify-center aspect-square w-6 h-6 ${
+                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
+                  ? 'bg-red-800'
+                  : 'bg-blue-900'
+              }`}>
               <IdentificationCard className="text-white" weight="fill" />
             </div>
-            
+
               Academic Records
             </Button>
           </div>
@@ -472,15 +630,14 @@ export default function Dashboard() {
         <div className="p-6 border-t border-gray-200">
        
           <Button 
-            variant="outline"
-            className="rounded-none border-r-0 border-b-0 font-light border-t-0 w-full justify-start border-l-5 border-red-900 bg-red-50 text-red-900 hover:text-red-900 hover:border-red-900"
+            className="bg-red-800 text-white"
             onClick={handleSignOut}
           >
-            <div className="flex justify-center items-center bg-red-800 aspect-square  w-6 h-6 " >
-              <SignOut className="text-white" />
+            <div className="flex justify-center items-center bg-white aspect-square w-5 h-5 " >
+              <SignOut className="text-red-800" weight="fill" />
             </div>
 
-            Sign Out  {user.email?.split('@')[0] || 'Student'}
+            Sign Out  {userProfile?.firstName} {userProfile?.lastName}
           </Button>
         </div>
       </aside>
@@ -614,15 +771,23 @@ export default function Dashboard() {
             <EnrollmentForm
               userId={user.uid}
               userProfile={userProfile}
+              onProgressUpdate={handleProgressUpdate}
             />
           )}
 
           {currentView === 'documents' && user && (
-            <DocumentsManager userId={user.uid} />
+            <DocumentsManager
+              userId={user.uid}
+              userProfile={userProfile}
+              onProgressUpdate={handleProgressUpdate}
+            />
           )}
 
           {currentView === 'subjects' && user && (
-            <MySubjectsView userId={user.uid} />
+            <MySubjectsView
+              userId={user.uid}
+              onNavigateToEnrollment={() => setCurrentView('enrollment')}
+            />
           )}
 
           {currentView === 'schedule' && (
@@ -709,6 +874,7 @@ export default function Dashboard() {
             <AcademicRecords
               userId={user?.uid || ''}
               studentName={`${userProfile?.firstName} ${userProfile?.lastName}`}
+              onNavigateToEnrollment={() => setCurrentView('enrollment')}
             />
           )}
         </div>
@@ -729,6 +895,7 @@ export default function Dashboard() {
           isModal={true}
         />
       </Modal>
+      </div>
     </div>
   );
 }

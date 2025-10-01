@@ -12,9 +12,10 @@ import { GradeData } from '@/lib/grade-section-database';
 interface EnrollmentFormProps {
   userId: string;
   userProfile: any;
+  onProgressUpdate?: () => void;
 }
 
-export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormProps) {
+export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }: EnrollmentFormProps) {
   const [grades, setGrades] = useState<GradeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGrade, setSelectedGrade] = useState<GradeData | null>(null);
@@ -25,6 +26,20 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
   const [enrolling, setEnrolling] = useState(false);
   const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
   const [showDataPreserved, setShowDataPreserved] = useState(false);
+  const [existingEnrollment, setExistingEnrollment] = useState<any>(null);
+  const [checkingEnrollment, setCheckingEnrollment] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingEnrollment, setDeletingEnrollment] = useState(false);
+  const [deleteCountdown, setDeleteCountdown] = useState(0);
+  const [studentType, setStudentType] = useState<'regular' | 'irregular' | null>(null);
+  const [showIrregularModal, setShowIrregularModal] = useState(false);
+  const [documentsStatus, setDocumentsStatus] = useState<{
+    uploaded: number;
+    required: number;
+    isComplete: boolean;
+    uploadedDocuments?: any[];
+  } | null>(null);
+  const [checkingDocuments, setCheckingDocuments] = useState(true);
 
   const [submitModalOpen, setSubmitModalOpen] = useState(false);
   const [countdown, setCountdown] = useState(5);
@@ -49,6 +64,8 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
 
   useEffect(() => {
     loadGrades();
+    checkExistingEnrollment();
+    checkDocumentsStatus();
   }, []);
 
   // Countdown effect for submit modal
@@ -61,6 +78,17 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
     }
     return () => clearInterval(interval);
   }, [submitModalOpen, countdown]);
+
+  // Countdown effect for delete modal
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (showDeleteModal && deleteCountdown > 0) {
+      interval = setInterval(() => {
+        setDeleteCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [showDeleteModal, deleteCountdown]);
 
   // Autofill personal information when userProfile is available
   useEffect(() => {
@@ -115,6 +143,131 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkExistingEnrollment = async () => {
+    try {
+      setCheckingEnrollment(true);
+      const response = await fetch(`/api/enrollment?userId=${userId}`);
+      const data = await response.json();
+
+      if (response.ok && data.success && data.data) {
+        setExistingEnrollment(data.data);
+      } else {
+        setExistingEnrollment(null);
+      }
+    } catch (error) {
+      console.error('Error checking existing enrollment:', error);
+      setExistingEnrollment(null);
+    } finally {
+      setCheckingEnrollment(false);
+    }
+  };
+
+  const checkDocumentsStatus = async () => {
+    try {
+      setCheckingDocuments(true);
+      const response = await fetch(`/api/documents?userId=${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const documents = data.documents || [];
+
+        // Define required documents based on the documents-manager.tsx structure
+        const requiredTypes = ['reportCard', 'certificateOfGoodMoral', 'birthCertificate', 'idPicture'];
+        const uploadedRequired = requiredTypes.filter(type => documents.some((doc: any) => doc.type === type));
+
+        setDocumentsStatus({
+          uploaded: uploadedRequired.length,
+          required: requiredTypes.length,
+          isComplete: uploadedRequired.length === requiredTypes.length,
+          uploadedDocuments: documents // Store the full documents array for detailed checking
+        });
+      } else {
+        setDocumentsStatus({
+          uploaded: 0,
+          required: 4,
+          isComplete: false,
+          uploadedDocuments: []
+        });
+      }
+    } catch (error) {
+      console.error('Error checking documents status:', error);
+      setDocumentsStatus({
+        uploaded: 0,
+        required: 4,
+        isComplete: false,
+        uploadedDocuments: []
+      });
+    } finally {
+      setCheckingDocuments(false);
+    }
+  };
+
+  const handleDeleteEnrollment = () => {
+    setShowDeleteModal(true);
+    setDeleteCountdown(5);
+  };
+
+  const confirmDeleteEnrollment = async () => {
+    try {
+      setDeletingEnrollment(true);
+
+      const response = await fetch('/api/enrollment', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success('Enrollment deleted successfully. You can now submit a new enrollment.', {
+          autoClose: 6000,
+        });
+        setExistingEnrollment(null);
+        setShowDeleteModal(false);
+        // Reset form to initial state
+        setSelectedGrade(null);
+        setPersonalInfo({
+          firstName: '',
+          middleName: '',
+          lastName: '',
+          extension: '',
+          email: '',
+          phone: '',
+          birthMonth: '',
+          birthDay: '',
+          birthYear: '',
+          placeOfBirth: '',
+          gender: '',
+          citizenship: '',
+          religion: '',
+          civilStatus: ''
+        });
+        setCurrentStep('compliance');
+        setComplianceChecked(false);
+      } else {
+        toast.error(data.error || 'Failed to delete enrollment.', {
+          autoClose: 8000,
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting enrollment:', error);
+      toast.error('Network error occurred while deleting enrollment.', {
+        autoClose: 7000,
+      });
+    } finally {
+      setDeletingEnrollment(false);
+    }
+  };
+
+  const cancelDeleteEnrollment = () => {
+    setShowDeleteModal(false);
+    setDeleteCountdown(0);
   };
 
   const handleComplianceCheck = () => {
@@ -214,6 +367,14 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
 
 
   const handleFinalSubmit = async () => {
+    // Check if all required documents are uploaded
+    if (!documentsStatus?.isComplete) {
+      toast.error(`Please upload all required documents (${documentsStatus?.required || 4}) before submitting your enrollment. You have uploaded ${documentsStatus?.uploaded || 0} of ${documentsStatus?.required || 4} required documents.`, {
+        autoClose: 8000,
+      });
+      return;
+    }
+
     try {
       setEnrolling(true);
 
@@ -229,6 +390,7 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
           gradeLevel: selectedGrade?.gradeLevel,
           department: selectedGrade?.department,
           personalInfo,
+          studentType,
           documents: {} // Empty documents object - documents will be referenced separately
         }),
       });
@@ -279,15 +441,6 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
     changeStep('grade-selection');
   };
 
-  const handleGradeSelect = (grade: GradeData) => {
-    setSelectingGrade(grade.id);
-    // Add a delay to show the selection animation
-    setTimeout(() => {
-      setSelectedGrade(grade);
-      setSelectingGrade(null);
-      changeStep('personal-info');
-    }, 600);
-  };
 
   const handleProceedToConfirmation = () => {
     // Validate personal information (documents are handled separately now)
@@ -511,6 +664,48 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
     calculateAgeFromValues(birthMonth, birthDay, birthYear);
   };
 
+  // Helper function to determine if a grade level is regular or irregular
+  const isRegularGradeLevel = (gradeLevel: number): boolean => {
+    // Regular grades: 7 (JHS entry), 11 (SHS entry), 1 (College freshman)
+    return gradeLevel === 7 || gradeLevel === 11 || gradeLevel === 1;
+  };
+
+  const handleGradeSelect = (grade: GradeData) => {
+    setSelectingGrade(grade.id);
+
+    // Check if this is an irregular grade level
+    const isRegular = isRegularGradeLevel(grade.gradeLevel);
+
+    if (!isRegular) {
+      // Show irregular student modal
+      setTimeout(() => {
+        setSelectingGrade(null);
+        setShowIrregularModal(true);
+        // Store the selected grade temporarily
+        setSelectedGrade(grade);
+      }, 600);
+    } else {
+      // Regular grade level - proceed normally
+      setTimeout(() => {
+        setSelectedGrade(grade);
+        setStudentType('regular');
+        setSelectingGrade(null);
+        changeStep('personal-info');
+      }, 600);
+    }
+  };
+
+  const confirmIrregularStudent = () => {
+    setStudentType('irregular');
+    setShowIrregularModal(false);
+    changeStep('personal-info');
+  };
+
+  const cancelIrregularStudent = () => {
+    setSelectedGrade(null);
+    setShowIrregularModal(false);
+  };
+
   const handleSubmitEnrollment = async () => {
     if (!selectedGrade) return;
 
@@ -528,6 +723,7 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
           gradeLevel: selectedGrade.gradeLevel,
           department: selectedGrade.department,
           personalInfo,
+          studentType: studentType,
         }),
       });
 
@@ -538,6 +734,11 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
       }
 
       toast.success('Enrollment submitted successfully! You will be notified once it\'s processed.');
+
+      // Trigger progress update callback
+      if (onProgressUpdate) {
+        onProgressUpdate();
+      }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -545,7 +746,7 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
     }
   };
 
-  if (loading) {
+  if (loading || checkingEnrollment || checkingDocuments) {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-3">
@@ -579,44 +780,467 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
     );
   }
 
+  // Show document upload message if required documents are not complete
+  if (documentsStatus && !documentsStatus.isComplete) {
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
       <div className="flex items-center space-x-3">
         <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-          <GraduationCap size={20} className="text-white" weight="fill" />
+              <Warning size={20} className="text-white" weight="bold" />
         </div>
         <div>
           <h1
             className="text-2xl font-medium text-gray-900"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
           >
-            Student Enrollment
+                Complete Document Requirements
           </h1>
           <p
             className="text-sm text-gray-600"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
-            Select your grade level and complete your enrollment process
+                You must upload all required documents before proceeding with enrollment
           </p>
+            </div>
         </div>
       </div>
 
-       
+        {/* Document Requirements Alert */}
+        <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-gray-100 flex items-center justify-center">
+              <FileText size={24} className="text-blue-900" weight="bold" />
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                Required Documents Missing
+              </h3>
+              <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                You have uploaded {documentsStatus.uploaded} of {documentsStatus.required} required documents.
+                Complete document upload to access the enrollment form.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="bg-white border border-gray-200 p-4">
+              <h4 className="text-sm font-medium text-gray-900 mb-3" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                Required Documents:
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  { key: 'reportCard', name: 'Report Card (Form 138)' },
+                  { key: 'certificateOfGoodMoral', name: 'Certificate of Good Moral Character' },
+                  { key: 'birthCertificate', name: 'Birth Certificate' },
+                  { key: 'idPicture', name: 'ID Picture' }
+                ].map((doc) => {
+                  const isUploaded = documentsStatus?.uploadedDocuments?.some((uploadedDoc: any) => uploadedDoc.type === doc.key) || false;
+                  return (
+                    <div key={doc.key} className="flex items-center gap-3">
+                      <div className={`w-5 h-5 flex items-center justify-center border-2 ${
+                        isUploaded
+                          ? 'border-blue-900 bg-blue-900'
+                          : 'border-gray-300'
+                      }`}>
+                        {isUploaded ? (
+                          <Check size={12} className="text-white" weight="bold" />
+                        ) : (
+                          <div className="w-3 h-3 border border-gray-300"></div>
+                        )}
+                      </div>
+                      <span className={`text-sm ${
+                        isUploaded ? 'text-blue-900' : 'text-gray-700'
+                      }`} style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                        {doc.name}
+                        {!isUploaded && <span className="text-gray-500 ml-1">*</span>}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
       </div>
 
-      {/* Data Preserved Notification */}
-      {showDataPreserved && (
-        <div className="bg-green-50 border border-green-200 p-3 mb-4">
-          <div className="flex items-center space-x-2">
-            <Check size={16} className="text-green-600" weight="bold" />
-            <p className="text-sm text-green-800" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-              Your information has been saved. You can safely navigate between steps to review and edit your details.
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  toast.info('Navigate to the Documents section in your dashboard sidebar to upload required documents.');
+                }}
+                className="bg-blue-900 hover:bg-blue-800 text-white"
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
+                <FileText size={16} className="mr-2" />
+                Go to Documents Section
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.location.reload()}
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
+                Refresh Status
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Help Information */}
+        <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+          <h3 className="text-lg font-medium text-gray-900 mb-3" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+            Need Help?
+          </h3>
+          <div className="text-sm text-gray-700 space-y-2" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+            <p>• Navigate to the <strong>Documents</strong> section in your dashboard sidebar</p>
+            <p>• Upload each required document using the upload buttons</p>
+            <p>• Ensure all documents are clearly readable and complete</p>
+            <p>• Once all documents are uploaded, return here to access the enrollment form</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show enrollment summary if student already has an enrollment
+  if (existingEnrollment) {
+    const formatDate = (dateInput: any) => {
+      try {
+        let date: Date;
+
+        // Handle Firestore Timestamp objects (before JSON serialization)
+        if (dateInput && typeof dateInput === 'object' && 'toDate' in dateInput) {
+          date = dateInput.toDate();
+        }
+        // Handle serialized Firestore timestamps (after JSON serialization)
+        else if (dateInput && typeof dateInput === 'object' && ('_seconds' in dateInput || 'seconds' in dateInput)) {
+          const seconds = dateInput._seconds || dateInput.seconds;
+          const nanoseconds = dateInput._nanoseconds || dateInput.nanoseconds || 0;
+          date = new Date(seconds * 1000 + nanoseconds / 1000000);
+        }
+        // Handle string dates
+        else if (typeof dateInput === 'string') {
+          date = new Date(dateInput);
+        }
+        // Handle number timestamps (milliseconds)
+        else if (typeof dateInput === 'number') {
+          date = new Date(dateInput);
+        }
+        // Handle Date objects
+        else if (dateInput instanceof Date) {
+          date = dateInput;
+        }
+        else {
+          return 'Invalid Date';
+        }
+
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+          return 'Invalid Date';
+        }
+
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch {
+        return 'Invalid Date';
+      }
+    };
+
+    const formatFullName = (firstName?: string, middleName?: string, lastName?: string, nameExtension?: string) => {
+      if (!lastName && !firstName) return 'N/A';
+
+      const parts: string[] = [];
+
+      // Last name first
+      if (lastName) {
+        parts.push(lastName);
+      }
+
+      // First name
+      if (firstName) {
+        parts.push(firstName);
+      }
+
+      // Middle name (if exists, show as initial with period)
+      if (middleName && middleName.trim()) {
+        const middleInitial = middleName.charAt(0).toUpperCase();
+        parts.push(`${middleInitial}.`);
+      }
+
+      // Extension (if exists)
+      if (nameExtension && nameExtension.trim()) {
+        parts.push(nameExtension);
+      }
+
+      return parts.join(', ');
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+              <Check size={20} className="text-white" weight="bold" />
+            </div>
+            <div>
+              <h1
+                className="text-2xl font-medium text-gray-900"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Enrollment Submitted
+              </h1>
+              <p
+                className="text-sm text-gray-600"
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
+                Your enrollment application has been submitted and is being processed
             </p>
           </div>
         </div>
-      )}
+        </div>
+
+        {/* Status Banner */}
+        <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gray-100 flex items-center justify-center">
+              <Check size={24} className="text-blue-900" weight="bold" />
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                Enrollment Application Received
+              </h3>
+              <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                Your enrollment for {existingEnrollment.enrollmentInfo?.schoolYear} has been submitted.
+                {existingEnrollment.enrollmentInfo?.status === 'pending' && ' It is currently under review by our registrar team.'}
+                {existingEnrollment.enrollmentInfo?.status === 'approved' && ' It has been approved and is awaiting final enrollment.'}
+                {existingEnrollment.enrollmentInfo?.status === 'enrolled' && ' You have been successfully enrolled.'}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Enrollment Summary */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Personal Information */}
+          <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+              <User size={20} className="text-blue-900" />
+              Personal Information
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Full Name:</span>
+                <span className="text-sm text-gray-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {formatFullName(
+                    existingEnrollment.personalInfo?.firstName,
+                    existingEnrollment.personalInfo?.middleName,
+                    existingEnrollment.personalInfo?.lastName,
+                    existingEnrollment.personalInfo?.nameExtension
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Email:</span>
+                <span className="text-sm text-gray-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {existingEnrollment.personalInfo?.email || 'N/A'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Phone:</span>
+                <span className="text-sm text-gray-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {existingEnrollment.personalInfo?.phone || 'N/A'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Date of Birth:</span>
+                <span className="text-sm text-gray-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {existingEnrollment.personalInfo?.birthMonth && existingEnrollment.personalInfo?.birthDay && existingEnrollment.personalInfo?.birthYear
+                    ? `${existingEnrollment.personalInfo.birthMonth}/${existingEnrollment.personalInfo.birthDay}/${existingEnrollment.personalInfo.birthYear}`
+                    : 'N/A'
+                  }
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Gender:</span>
+                <span className="text-sm text-gray-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {existingEnrollment.personalInfo?.gender || 'N/A'}
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Academic Information */}
+          <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+              <GraduationCap size={20} className="text-blue-900" />
+              Academic Information
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Grade Level:</span>
+                <span className="text-sm text-gray-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  Grade {existingEnrollment.enrollmentInfo?.gradeLevel || 'N/A'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>School Year:</span>
+                <span className="text-sm text-gray-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {existingEnrollment.enrollmentInfo?.schoolYear || 'N/A'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Status:</span>
+                <span className={`inline-flex px-2 py-1 text-xs font-medium ${
+                  existingEnrollment.enrollmentInfo?.status === 'enrolled' ? 'bg-blue-900 text-white' :
+                  existingEnrollment.enrollmentInfo?.status === 'approved' ? 'bg-gray-100 text-gray-800' :
+                  existingEnrollment.enrollmentInfo?.status === 'pending' ? 'bg-gray-200 text-gray-700' :
+                  'bg-gray-100 text-gray-800'
+                }`} style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {existingEnrollment.enrollmentInfo?.status || 'Unknown'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Submitted:</span>
+                <span className="text-sm text-gray-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {formatDate(existingEnrollment.submittedAt)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Last Updated:</span>
+                <span className="text-sm text-gray-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {formatDate(existingEnrollment.updatedAt)}
+                </span>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Actions */}
+        <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                Need to Make Changes?
+              </h3>
+              <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                If you need to modify your enrollment information, you can delete this submission and start fresh.
+                <strong> This action cannot be undone.</strong>
+              </p>
+            </div>
+            <Button
+              onClick={handleDeleteEnrollment}
+              className="bg-blue-900 hover:bg-blue-800 text-white border-blue-900"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
+              <X size={16} className="mr-2" />
+              Delete Submission
+            </Button>
+          </div>
+        </Card>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={cancelDeleteEnrollment}
+          title="Delete Enrollment Submission"
+          size="md"
+        >
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-gray-100 flex items-center justify-center">
+              <Warning size={24} className="text-gray-600" weight="bold" />
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                Dangerous Action
+              </h3>
+              <p className="text-xs text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                This action cannot be undone
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 border border-gray-200 p-4 mb-6">
+            <h4 className="text-xs font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+              What happens when you delete your enrollment?
+            </h4>
+            <ul className="text-xs text-gray-700 space-y-1" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                <li>• Your current enrollment submission will be permanently deleted</li>
+                <li>• All associated data will be removed from our system</li>
+                <li>• You will need to complete the enrollment process again from the beginning</li>
+                <li>• Any progress made on your application will be lost</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={cancelDeleteEnrollment}
+                variant="outline"
+                className="flex-1"
+                disabled={deletingEnrollment}
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmDeleteEnrollment}
+                disabled={deletingEnrollment || deleteCountdown > 0}
+                className={`flex-1 ${
+                  deletingEnrollment || deleteCountdown > 0
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-900 hover:bg-blue-800'
+                }`}
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
+                {deletingEnrollment ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <X size={16} className="mr-2" />
+                    {deleteCountdown > 0 ? `Delete in ${deleteCountdown}s` : 'Delete Enrollment'}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white p-6 border border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-800 flex items-center justify-center">
+              <GraduationCap size={24} className="text-white" weight="fill" />
+            </div>
+            <div>
+              <h1
+                className="text-2xl font-medium text-gray-900"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Student Enrollment
+              </h1>
+              <p
+                className="text-sm text-gray-600"
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
+                Select your grade level and complete your enrollment process
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Enhanced Progress Indicator */}
       <div className="bg-white p-6 border border-gray-200 shadow-sm">
@@ -643,14 +1267,14 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
               }`}
               onClick={() => handleProgressStepClick('compliance')}
             >
-              <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-full ${
+              <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
                 currentStep === 'compliance' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
                 complianceChecked ? 'bg-blue-800 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
               }`}>
                 <Check size={18} weight="bold" className="transition-all duration-300" />
                 {/* Pulse animation for current step */}
                 {currentStep === 'compliance' && (
-                  <div className="absolute inset-0 rounded-full bg-blue-900 animate-ping opacity-20"></div>
+                  <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
                 )}
             </div>
               <span className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
@@ -668,14 +1292,14 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
               }`}
               onClick={() => handleProgressStepClick('grade-selection')}
             >
-              <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-full ${
+              <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
                 currentStep === 'grade-selection' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
                 selectedGrade !== null ? 'bg-blue-800 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
               }`}>
                 <GraduationCap size={18} weight="bold" className="transition-all duration-300" />
                 {/* Pulse animation for current step */}
                 {currentStep === 'grade-selection' && (
-                  <div className="absolute inset-0 rounded-full bg-blue-900 animate-ping opacity-20"></div>
+                  <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
                 )}
             </div>
               <span className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
@@ -693,14 +1317,14 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
               }`}
               onClick={() => handleProgressStepClick('personal-info')}
             >
-              <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-full ${
+              <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
                 currentStep === 'personal-info' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
                 isPersonalInfoCompleted() ? 'bg-blue-800 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
               }`}>
                 <User size={18} weight="bold" className="transition-all duration-300" />
                 {/* Pulse animation for current step */}
                 {currentStep === 'personal-info' && (
-                  <div className="absolute inset-0 rounded-full bg-blue-900 animate-ping opacity-20"></div>
+                  <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
                 )}
             </div>
               <span className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
@@ -718,14 +1342,14 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
               }`}
               onClick={() => handleProgressStepClick('confirmation')}
             >
-              <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-full ${
+              <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
                 currentStep === 'confirmation' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
                 isPersonalInfoCompleted() ? 'bg-blue-800 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
               }`}>
                 <Check size={18} weight="bold" className="transition-all duration-300" />
                 {/* Pulse animation for current step */}
                 {currentStep === 'confirmation' && (
-                  <div className="absolute inset-0 rounded-full bg-blue-900 animate-ping opacity-20"></div>
+                  <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
                 )}
             </div>
               <span className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
@@ -744,7 +1368,7 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
       {!userProfile && (
         <Card className="p-8 border-none bg-gray-50 border-l-5 border-blue-900">
           <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-900/30 border-t-blue-900 mx-auto"></div>
+            <div className="animate-spin rounded-none h-8 w-8 border-2 border-blue-900/30 border-t-blue-900 mx-auto"></div>
             <p className="text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
               Loading your profile information...
             </p>
@@ -1488,22 +2112,60 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
                 </h4>
                 
                 <div className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 p-4">
+                  {/* Documents Status */}
+                  <div className={`p-4 border ${
+                  documentsStatus?.isComplete
+                    ? 'bg-gray-50 border-gray-200'
+                    : 'bg-gray-50 border-gray-200'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className={`font-medium text-sm text-gray-900`} style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                        Required Documents Status
+                      </h5>
+                      <div className={`flex items-center gap-1 text-xs px-2 py-1 ${
+                        documentsStatus?.isComplete
+                          ? 'bg-blue-900 text-white'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {documentsStatus?.isComplete ? (
+                          <Check size={12} />
+                        ) : (
+                          <Warning size={12} />
+                        )}
+                        <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                          {documentsStatus?.uploaded || 0}/{documentsStatus?.required || 4}
+                        </span>
+                      </div>
+                    </div>
+                    <p className={`text-xs text-gray-600`} style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                      {documentsStatus?.isComplete
+                        ? 'All required documents have been uploaded. You can proceed with enrollment.'
+                        : `You need to upload ${documentsStatus?.required || 4 - (documentsStatus?.uploaded || 0)} more required document(s) before submitting your enrollment.`
+                      }
+                    </p>
+                  </div>
+
+                  <div className="bg-gray-50 border border-gray-200 p-4">
                       <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 w-8 h-8 bg-blue-500 flex items-center justify-center">
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-900 flex items-center justify-center">
                         <FileText size={16} className="text-white" weight="bold" />
                         </div>
                       <div className="flex-1">
-                        <h5 className="font-medium text-blue-900 text-sm mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                        <h5 className="font-medium text-gray-900 text-sm mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                           Documents Managed Separately
                           </h5>
-                        <p className="text-xs text-blue-700 mb-3" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                        <p className="text-xs text-gray-600 mb-3" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                           Your academic documents are now managed in the Documents section of your dashboard. You can upload and manage all your documents once and reuse them across multiple enrollments.
                         </p>
+                        {!documentsStatus?.isComplete && (
+                          <div className="mb-3 p-2 bg-gray-100 border border-gray-200 rounded text-xs text-gray-700" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                            <strong>⚠️ Required:</strong> Report Card, Certificate of Good Moral, Birth Certificate, and ID Picture must be uploaded before enrollment.
+                          </div>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-blue-500 text-blue-700 hover:bg-blue-100"
+                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                           onClick={() => {
                             // This would navigate to documents section, but since we're in a modal, we'll just show info
@@ -1549,7 +2211,7 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
                 >
                   {enrolling ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block animate-pulse"></div>
+                      <div className="animate-spin rounded-none h-4 w-4 border-b-2 border-white mr-2 inline-block animate-pulse"></div>
                       <span className="animate-pulse">
 'Submitting...'
                       </span>
@@ -1567,6 +2229,69 @@ export default function EnrollmentForm({ userId, userProfile }: EnrollmentFormPr
         </div>
       )}
 
+
+      {/* Irregular Student Modal */}
+      <Modal
+        isOpen={showIrregularModal}
+        onClose={cancelIrregularStudent}
+        title="Irregular Student Enrollment"
+        size="md"
+      >
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-gray-100 flex items-center justify-center">
+              <Warning size={24} className="text-gray-600" weight="bold" />
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                Irregular Student Enrollment
+              </h3>
+              <p className="text-xs text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                Confirmation required
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 border border-gray-200 p-4 mb-6">
+            <h4 className="text-sm font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+              You have selected Grade {selectedGrade?.gradeLevel}
+            </h4>
+            <p className="text-sm text-gray-700" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+              You have selected a grade level that is not a typical starting point. Does this mean you are enrolling as a transferee student rather than beginning at the entry level? If so, you will be classified as an irregular student.
+            </p>
+          </div>
+
+          <div className="bg-gray-50 border border-gray-200 p-4 mb-6">
+            <h4 className="text-sm font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+              What does this mean?
+            </h4>
+            <ul className="text-sm text-gray-700 space-y-1" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+              <li>• You will be classified as an <strong>irregular student</strong></li>
+              <li>• This indicates you are transferring from another school or institution</li>
+              <li>• Your enrollment will be processed accordingly</li>
+              <li>• You may need to provide additional documentation</li>
+            </ul>
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              onClick={cancelIrregularStudent}
+              variant="outline"
+              className="flex-1"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
+              Cancel Selection
+            </Button>
+            <Button
+              onClick={confirmIrregularStudent}
+              className="flex-1 bg-blue-900 hover:bg-blue-800 text-white border-blue-900"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
+              Yes, I'm a Transferee
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Submit Confirmation Modal */}
       <Modal

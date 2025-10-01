@@ -54,7 +54,7 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
   const [grades, setGrades] = useState<Record<string, Grade>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGradeFilter, setSelectedGradeFilter] = useState<string>('all');
+  const [selectedGradeFilter, setSelectedGradeFilter] = useState<string[]>([]);
 
   useEffect(() => {
     loadTeacherAssignments();
@@ -173,8 +173,8 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
 
   // Filter assignments based on search and grade filter
   const filteredAssignments = Object.entries(groupedAssignments).filter(([subjectId, { subject, sections }]) => {
-    // Grade filter
-    if (selectedGradeFilter !== 'all' && subject.gradeLevel.toString() !== selectedGradeFilter) {
+    // Grade filter - only show subjects with ANY of the selected grade levels
+    if (selectedGradeFilter.length > 0 && !selectedGradeFilter.includes(subject.gradeLevel.toString())) {
       return false;
     }
 
@@ -217,7 +217,7 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
           </div>
         </div>
 
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden pb-0 pt-0">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-100 border-b-2 border-gray-300">
@@ -303,20 +303,55 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedGradeFilter}
-              onChange={(e) => setSelectedGradeFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              <option value="all">All Grades</option>
+          <div className="flex flex-col gap-3">
+            {/* Grade Filter Pills */}
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-xs text-gray-600 mr-2 min-w-fit"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                Grade:
+              </span>
+              <button
+                onClick={() => setSelectedGradeFilter(selectedGradeFilter.length === availableGrades.length ? [] : availableGrades.map(g => g.toString()))}
+                className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+                  selectedGradeFilter.length === availableGrades.length
+                    ? 'bg-blue-900 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                style={{
+                  fontFamily: 'Poppins',
+                  fontWeight: selectedGradeFilter.length === availableGrades.length ? 400 : 300,
+                  borderRadius: '9999px'
+                }}
+              >
+                {selectedGradeFilter.length === availableGrades.length ? 'None' : 'All'}
+              </button>
               {availableGrades.map(gradeLevel => (
-                <option key={gradeLevel} value={gradeLevel.toString()}>
+                <button
+                  key={gradeLevel}
+                  onClick={() => {
+                    const gradeStr = gradeLevel.toString();
+                    const isSelected = selectedGradeFilter.includes(gradeStr);
+                    if (isSelected) {
+                      setSelectedGradeFilter(prev => prev.filter(id => id !== gradeStr));
+                    } else {
+                      setSelectedGradeFilter(prev => [...prev, gradeStr]);
+                    }
+                  }}
+                  className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+                    selectedGradeFilter.includes(gradeLevel.toString())
+                      ? 'bg-blue-900 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  style={{
+                    fontFamily: 'Poppins',
+                    fontWeight: selectedGradeFilter.includes(gradeLevel.toString()) ? 400 : 300,
+                    borderRadius: '9999px'
+                  }}
+                >
                   Grade {gradeLevel}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         </div>
 
@@ -337,17 +372,21 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
               : 'Try adjusting your search or filter criteria.'
             }
           </p>
-          {assignments.length > 0 && (searchQuery || selectedGradeFilter !== 'all') && (
-            <Button
+          {assignments.length > 0 && (searchQuery || selectedGradeFilter.length > 0) && (
+            <button
               onClick={() => {
                 setSearchQuery('');
-                setSelectedGradeFilter('all');
+                setSelectedGradeFilter([]);
               }}
-              className="bg-blue-900 hover:bg-blue-800"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+              style={{
+                fontFamily: 'Poppins',
+                fontWeight: 300,
+                borderRadius: '9999px'
+              }}
             >
               Clear Filters
-            </Button>
+            </button>
           )}
         </Card>
       </div>
@@ -395,38 +434,78 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedGradeFilter}
-            onChange={(e) => setSelectedGradeFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-          >
-            <option value="all">All Grades</option>
+        <div className="flex flex-col gap-3">
+          {/* Grade Filter Pills */}
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="text-xs text-gray-600 mr-2 min-w-fit"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+              Grade:
+            </span>
+            <button
+              onClick={() => setSelectedGradeFilter(selectedGradeFilter.length === availableGrades.length ? [] : availableGrades.map(g => g.toString()))}
+              className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+                selectedGradeFilter.length === availableGrades.length
+                  ? 'bg-blue-900 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              style={{
+                fontFamily: 'Poppins',
+                fontWeight: selectedGradeFilter.length === availableGrades.length ? 400 : 300,
+                borderRadius: '9999px'
+              }}
+            >
+              {selectedGradeFilter.length === availableGrades.length ? 'None' : 'All'}
+            </button>
             {availableGrades.map(gradeLevel => (
-              <option key={gradeLevel} value={gradeLevel.toString()}>
+              <button
+                key={gradeLevel}
+                onClick={() => {
+                  const gradeStr = gradeLevel.toString();
+                  const isSelected = selectedGradeFilter.includes(gradeStr);
+                  if (isSelected) {
+                    setSelectedGradeFilter(prev => prev.filter(id => id !== gradeStr));
+                  } else {
+                    setSelectedGradeFilter(prev => [...prev, gradeStr]);
+                  }
+                }}
+                className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+                  selectedGradeFilter.includes(gradeLevel.toString())
+                    ? 'bg-blue-900 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                style={{
+                  fontFamily: 'Poppins',
+                  fontWeight: selectedGradeFilter.includes(gradeLevel.toString()) ? 400 : 300,
+                  borderRadius: '9999px'
+                }}
+              >
                 Grade {gradeLevel}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
         </div>
       </div>
 
       {/* Results Count */}
-      {(searchQuery || selectedGradeFilter !== 'all') && (
+      {(searchQuery || selectedGradeFilter.length > 0) && (
         <div className="text-xs text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
           Showing {filteredAssignments.length} of {Object.keys(groupedAssignments).length} subject{Object.keys(groupedAssignments).length !== 1 ? 's' : ''}
-          {(searchQuery || selectedGradeFilter !== 'all') && (
+          {(searchQuery || selectedGradeFilter.length > 0) && (
             <span className="ml-2">
               {searchQuery && `• Search: "${searchQuery}"`}
-              {selectedGradeFilter !== 'all' && `• Grade ${selectedGradeFilter}`}
+              {selectedGradeFilter.length > 0 && (() => {
+                const selectedGradesText = selectedGradeFilter
+                  .map(grade => `Grade ${grade}`)
+                  .join(', ');
+                return selectedGradesText ? `• Grades: ${selectedGradesText}` : '';
+              })()}
             </span>
           )}
         </div>
       )}
 
       {/* Classes Table */}
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden pb-0 pt-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-100 border-b-2 border-gray-300">

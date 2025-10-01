@@ -2444,7 +2444,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="flex items-center">
 
-                        <div className="flex-shrink-0 h-10 w-10">
+                        <div className="flex-shrink-0 h-10 w-10 relative">
                           {studentProfiles[enrollment.userId]?.photoURL ? (
                             <img
                               src={studentProfiles[enrollment.userId].photoURL}
@@ -2458,6 +2458,12 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
                               </span>
                             </div>
                           )}
+                          <span
+                            className={`absolute -bottom-0 -right-0 w-3 h-3 border-2 border-white ${
+                              enrollment.enrollmentInfo?.studentType === 'regular' ? 'bg-emerald-700' : 'bg-red-600'
+                            }`}
+                            aria-label={enrollment.enrollmentInfo?.studentType === 'regular' ? 'Regular Student' : 'Irregular Student'}
+                          ></span>
                         </div>
                         <div className="ml-4">
                           <div className="text-xs font-medium text-gray-900"
@@ -2493,15 +2499,29 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 flex-shrink-0"
-                          style={{ backgroundColor: getStatusHexColor(enrollment.enrollmentInfo?.status || 'unknown') }}
-                        ></div>
-                        <span className="text-xs capitalize font-medium font-mono"
-                              style={{ fontWeight: 400 }}>
-                          {enrollment.enrollmentInfo?.status || 'Unknown'}
-                        </span>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 flex-shrink-0"
+                            style={{ backgroundColor: getStatusHexColor(enrollment.enrollmentInfo?.status || 'unknown') }}
+                          ></div>
+                          <span className="text-xs capitalize font-medium font-mono"
+                                style={{ fontWeight: 400 }}>
+                            {enrollment.enrollmentInfo?.status || 'Unknown'}
+                          </span>
+                        </div>
+                        {enrollment.enrollmentInfo?.studentType && (
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 flex-shrink-0"
+                              style={{ backgroundColor: enrollment.enrollmentInfo.studentType === 'irregular' ? '#dc2626' : '#064e3b' }}
+                            ></div>
+                            <span className="text-xs capitalize text-black font-mono"
+                                  style={{ fontWeight: 300 }}>
+                              {enrollment.enrollmentInfo.studentType}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 border-r border-gray-200 font-mono"

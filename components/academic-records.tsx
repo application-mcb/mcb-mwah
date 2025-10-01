@@ -72,9 +72,10 @@ interface EnrollmentData {
 interface AcademicRecordsProps {
   userId: string;
   studentName?: string;
+  onNavigateToEnrollment?: () => void;
 }
 
-export default function AcademicRecords({ userId, studentName }: AcademicRecordsProps) {
+export default function AcademicRecords({ userId, studentName, onNavigateToEnrollment }: AcademicRecordsProps) {
   const [grades, setGrades] = useState<StudentGrades>({});
   const [subjects, setSubjects] = useState<Record<string, SubjectData>>({});
   const [teachers, setTeachers] = useState<Record<string, Teacher>>({});
@@ -98,13 +99,24 @@ export default function AcademicRecords({ userId, studentName }: AcademicRecords
       const enrollmentResponse = await fetch(`/api/enrollment?userId=${userId}`);
       const enrollmentData = await enrollmentResponse.json();
 
+      // Handle 404 (no enrollment found) as a valid case, not an error
+      if (enrollmentResponse.status === 404) {
+        console.log('No enrollment found for academic records - showing enrollment required message');
+        setEnrollment(null);
+        setLoading(false);
+        return;
+      }
+
       if (!enrollmentResponse.ok || !enrollmentData.success) {
         throw new Error(enrollmentData.error || 'Failed to load enrollment data');
       }
 
       const enrollmentInfo = enrollmentData.data;
       if (!enrollmentInfo) {
-        throw new Error('No enrollment data found');
+        console.log('No enrollment data found - showing enrollment required message');
+        setEnrollment(null);
+        setLoading(false);
+        return;
       }
 
       setEnrollment(enrollmentInfo);
@@ -125,28 +137,50 @@ export default function AcademicRecords({ userId, studentName }: AcademicRecords
 
       const ayCode = configData.ayCode;
 
-      // 3. Load student grades for current AY
-      const gradesResponse = await fetch(`/api/students/${userId}/grades?ayCode=${ayCode}`);
+      // 3. Load subjects data for reference (needed for grades processing)
+      const subjectsResponse = await fetch('/api/subjects');
+      const subjectsDataResponse = await subjectsResponse.json();
+      let subjectsMap: Record<string, SubjectData> = {};
+
+      if (subjectsResponse.ok && subjectsDataResponse.subjects) {
+        subjectsDataResponse.subjects.forEach((subject: SubjectData) => {
+          subjectsMap[subject.id] = subject;
+        });
+      }
+
+      // 4. Load student grades for current AY
+      const gradesResponse = await fetch(`/api/students/${userId}/grades`);
       const gradesData = await gradesResponse.json();
 
       if (gradesResponse.ok && gradesData.grades) {
-        setGrades(gradesData.grades);
+        // Validate and sanitize grades data
+        const sanitizedGrades: StudentGrades = {};
+        Object.entries(gradesData.grades).forEach(([subjectId, subjectGrade]: [string, any]) => {
+          if (subjectGrade && typeof subjectGrade === 'object') {
+            // Try to get subject name from grades data, or fallback to subjects collection
+            let subjectName = subjectGrade.subjectName;
+            if (!subjectName) {
+              const subject = subjectsMap[subjectId];
+              subjectName = subject?.name || 'Unknown Subject';
+            }
+
+            sanitizedGrades[subjectId] = {
+              subjectName: subjectName || 'Unknown Subject',
+              period1: typeof subjectGrade.period1 === 'number' ? subjectGrade.period1 : null,
+              period2: typeof subjectGrade.period2 === 'number' ? subjectGrade.period2 : null,
+              period3: typeof subjectGrade.period3 === 'number' ? subjectGrade.period3 : null,
+              period4: typeof subjectGrade.period4 === 'number' ? subjectGrade.period4 : null
+            };
+          }
+        });
+        setGrades(sanitizedGrades);
       } else {
         // If no grades exist yet, initialize with empty structure
         setGrades({});
       }
 
-      // 4. Load subjects data for reference
-      const subjectsResponse = await fetch('/api/subjects');
-      const subjectsData = await subjectsResponse.json();
-
-      if (subjectsResponse.ok && subjectsData.subjects) {
-        const subjectsMap: Record<string, SubjectData> = {};
-        subjectsData.subjects.forEach((subject: SubjectData) => {
-          subjectsMap[subject.id] = subject;
-        });
-        setSubjects(subjectsMap);
-      }
+      // Set subjects data
+      setSubjects(subjectsMap);
 
       // Stop loading main content
       setLoading(false);
@@ -253,15 +287,76 @@ export default function AcademicRecords({ userId, studentName }: AcademicRecords
   };
 
 
-  const calculateAverage = (period1: number | null, period2: number | null, period3: number | null, period4: number | null): number | null => {
-    const periods = [period1, period2, period3, period4].filter(p => p !== null);
+  const calculateAverage = (period1: number | null, period2: number | null, period3: number | null, period4: number | null): { average: number | null; completedPeriods: number } => {
+    const periods = [period1, period2, period3, period4].filter(p => p !== null && typeof p === 'number');
 
-    // Only calculate average if all 4 periods are filled
-    if (periods.length === 4) {
-      return periods.reduce((sum, grade) => sum + grade!, 0) / 4;
+    // Calculate average with whatever periods are available
+    if (periods.length > 0) {
+      const average = periods.reduce((sum, grade) => sum + grade, 0) / periods.length;
+      return { average, completedPeriods: periods.length };
     }
 
-    return null;
+    return { average: null, completedPeriods: 0 };
+  };
+
+  const getGradeStatus = (grade: number | null) => {
+    if (grade === null || grade === undefined) {
+      return { dotColor: 'bg-gray-400', text: '—', textColor: 'text-gray-500' };
+    }
+
+    if (grade >= 90) {
+      return { dotColor: 'bg-green-600', text: 'Excellent', textColor: 'text-green-700' };
+    } else if (grade >= 85) {
+      return { dotColor: 'bg-blue-600', text: 'Very Good', textColor: 'text-blue-700' };
+    } else if (grade >= 80) {
+      return { dotColor: 'bg-yellow-600', text: 'Good', textColor: 'text-yellow-700' };
+    } else if (grade >= 75) {
+      return { dotColor: 'bg-orange-600', text: 'Fair', textColor: 'text-orange-700' };
+    } else {
+      return { dotColor: 'bg-red-600', text: 'Needs Improvement', textColor: 'text-red-700' };
+    }
+  };
+
+  const getStatusInfo = (average: number | null, completedPeriods: number) => {
+    if (average === null || completedPeriods === 0) {
+      return {
+        text: 'Incomplete',
+        dotColor: 'bg-gray-400',
+        textColor: 'text-gray-500'
+      };
+    }
+
+    if (average >= 90) {
+      return {
+        text: 'Excellent',
+        dotColor: 'bg-green-600',
+        textColor: 'text-green-700'
+      };
+    } else if (average >= 85) {
+      return {
+        text: 'Very Good',
+        dotColor: 'bg-blue-600',
+        textColor: 'text-blue-700'
+      };
+    } else if (average >= 80) {
+      return {
+        text: 'Good',
+        dotColor: 'bg-yellow-600',
+        textColor: 'text-yellow-700'
+      };
+    } else if (average >= 75) {
+      return {
+        text: 'Fair',
+        dotColor: 'bg-orange-600',
+        textColor: 'text-orange-700'
+      };
+    } else {
+      return {
+        text: 'Needs Improvement',
+        dotColor: 'bg-red-600',
+        textColor: 'text-red-700'
+      };
+    }
   };
 
 
@@ -319,7 +414,7 @@ export default function AcademicRecords({ userId, studentName }: AcademicRecords
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-5 h-5 bg-gray-300 rounded animate-pulse"></div>
-                      <div className="h-3 bg-gray-300 rounded w-12 animate-pulse"></div>
+                      <div className="h-3 bg-gray-300 rounded w-20 animate-pulse"></div>
                     </div>
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -354,31 +449,135 @@ export default function AcademicRecords({ userId, studentName }: AcademicRecords
 
                     {/* Period Columns */}
                     <td className="px-6 py-4 text-center border-r border-gray-200">
-                      <div className="h-6 bg-gray-200 rounded w-12 mx-auto animate-pulse"></div>
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-3 bg-gray-200 rounded w-12 animate-pulse"></div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center border-r border-gray-200">
-                      <div className="h-6 bg-gray-200 rounded w-12 mx-auto animate-pulse"></div>
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-3 bg-gray-200 rounded w-12 animate-pulse"></div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center border-r border-gray-200">
-                      <div className="h-6 bg-gray-200 rounded w-12 mx-auto animate-pulse"></div>
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-3 bg-gray-200 rounded w-12 animate-pulse"></div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center border-r border-gray-200">
-                      <div className="h-6 bg-gray-200 rounded w-12 mx-auto animate-pulse"></div>
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-3 bg-gray-200 rounded w-12 animate-pulse"></div>
+                        </div>
+                      </div>
                     </td>
 
                     {/* Average Column */}
                     <td className="px-6 py-4 text-center border-r border-gray-200">
-                      <div className="h-6 bg-gray-200 rounded w-10 mx-auto animate-pulse"></div>
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-3 bg-gray-200 rounded w-12 animate-pulse"></div>
+                        </div>
+                      </div>
                     </td>
 
                     {/* Remarks Column */}
                     <td className="px-6 py-4 text-center">
-                      <div className="h-6 bg-gray-200 rounded w-16 mx-auto animate-pulse"></div>
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-8 animate-pulse"></div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-2 h-2 bg-gray-200 rounded animate-pulse"></div>
+                          <div className="h-3 bg-gray-200 rounded w-12 animate-pulse"></div>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Check if student is enrolled
+  if (!enrollment || enrollment.enrollmentInfo?.status !== 'enrolled') {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="bg-white p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-800 flex items-center justify-center">
+                <BookOpen size={24} className="text-white" weight="fill" />
+              </div>
+              <div>
+                <h1
+                  className="text-2xl font-medium text-gray-900"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Academic Records
+                </h1>
+                <p
+                  className="text-sm text-gray-600"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  View your academic performance and grades
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Card className="p-12 text-center border-none bg-red-50 border-l-5 border-red-500">
+          <div className="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-6">
+            <GraduationCap size={32} className="text-red-600" weight="duotone" />
+          </div>
+          <h3
+            className="text-xl font-medium text-red-900 mb-3"
+            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+          >
+            Enrollment Required
+          </h3>
+          <p
+            className="text-red-700 text-justify border-l-5 border-red-500 p-4 bg-red-100 mb-6 max-w-lg mx-auto"
+            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+          >
+            <strong>You must enroll first before accessing your academic records.</strong> Complete your enrollment process to get assigned to subjects and view your academic performance.
+          </p>
+          <div className="space-y-3">
+            <Button
+              onClick={() => {
+                // Navigate to enrollment tab in dashboard without page reload
+                if (onNavigateToEnrollment) {
+                  onNavigateToEnrollment();
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white px-8 py-3"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <GraduationCap size={20} className="mr-2" />
+              Start Enrollment Process
+            </Button>
+            <p className="text-xs text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+              This will take you to the enrollment section
+            </p>
           </div>
         </Card>
       </div>
@@ -476,8 +675,8 @@ export default function AcademicRecords({ userId, studentName }: AcademicRecords
                     Period 4
                   </div>
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
                       <Calculator size={12} weight="bold" className="text-white" />
@@ -506,11 +705,20 @@ export default function AcademicRecords({ userId, studentName }: AcademicRecords
                 </tr>
               ) : (
                 Object.entries(grades).map(([subjectId, subjectGrade]) => {
-                  const average = calculateAverage(
-                    subjectGrade.period1,
-                    subjectGrade.period2,
-                    subjectGrade.period3,
-                    subjectGrade.period4
+                  // Ensure subjectGrade has the expected structure
+                  const safeSubjectGrade: SubjectGrade = {
+                    subjectName: subjectGrade.subjectName || 'Unknown Subject',
+                    period1: typeof subjectGrade.period1 === 'number' ? subjectGrade.period1 : null,
+                    period2: typeof subjectGrade.period2 === 'number' ? subjectGrade.period2 : null,
+                    period3: typeof subjectGrade.period3 === 'number' ? subjectGrade.period3 : null,
+                    period4: typeof subjectGrade.period4 === 'number' ? subjectGrade.period4 : null
+                  };
+
+                  const { average, completedPeriods } = calculateAverage(
+                    safeSubjectGrade.period1,
+                    safeSubjectGrade.period2,
+                    safeSubjectGrade.period3,
+                    safeSubjectGrade.period4
                   );
 
                   return (
@@ -526,7 +734,7 @@ export default function AcademicRecords({ userId, studentName }: AcademicRecords
                             <div>
                               <div className="text-sm font-medium text-gray-900"
                                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                                {subjects[subjectId]?.code || subjectId} - {subjectGrade.subjectName}
+                                {safeSubjectGrade.subjectName || 'Unknown Subject'}
                               </div>
                             </div>
                           </div>
@@ -626,66 +834,87 @@ export default function AcademicRecords({ userId, studentName }: AcademicRecords
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center border-r border-gray-200">
-                        <div className={`text-sm font-medium ${
-                          subjectGrade.period1 !== null
-                            ? subjectGrade.period1 >= 75 ? 'text-green-600' : 'text-red-600'
-                            : 'text-gray-400'
-                        }`}
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                          {subjectGrade.period1 !== null ? subjectGrade.period1.toFixed(1) : '—'}
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="text-sm font-medium text-gray-900"
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                            {safeSubjectGrade.period1 !== null ? safeSubjectGrade.period1.toFixed(1) : '—'}
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className={`w-2 h-2 ${getGradeStatus(safeSubjectGrade.period1).dotColor} flex-shrink-0`}></div>
+                            <div className={`text-xs font-medium ${getGradeStatus(safeSubjectGrade.period1).textColor}`}>
+                              {getGradeStatus(safeSubjectGrade.period1).text}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center border-r border-gray-200">
-                        <div className={`text-sm font-medium ${
-                          subjectGrade.period2 !== null
-                            ? subjectGrade.period2 >= 75 ? 'text-green-600' : 'text-red-600'
-                            : 'text-gray-400'
-                        }`}
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                          {subjectGrade.period2 !== null ? subjectGrade.period2.toFixed(1) : '—'}
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="text-sm font-medium text-gray-900"
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                            {safeSubjectGrade.period2 !== null ? safeSubjectGrade.period2.toFixed(1) : '—'}
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className={`w-2 h-2 ${getGradeStatus(safeSubjectGrade.period2).dotColor} flex-shrink-0`}></div>
+                            <div className={`text-xs font-medium ${getGradeStatus(safeSubjectGrade.period2).textColor}`}>
+                              {getGradeStatus(safeSubjectGrade.period2).text}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center border-r border-gray-200">
-                        <div className={`text-sm font-medium ${
-                          subjectGrade.period3 !== null
-                            ? subjectGrade.period3 >= 75 ? 'text-green-600' : 'text-red-600'
-                            : 'text-gray-400'
-                        }`}
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                          {subjectGrade.period3 !== null ? subjectGrade.period3.toFixed(1) : '—'}
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="text-sm font-medium text-gray-900"
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                            {safeSubjectGrade.period3 !== null ? safeSubjectGrade.period3.toFixed(1) : '—'}
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className={`w-2 h-2 ${getGradeStatus(safeSubjectGrade.period3).dotColor} flex-shrink-0`}></div>
+                            <div className={`text-xs font-medium ${getGradeStatus(safeSubjectGrade.period3).textColor}`}>
+                              {getGradeStatus(safeSubjectGrade.period3).text}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center border-r border-gray-200">
-                        <div className={`text-sm font-medium ${
-                          subjectGrade.period4 !== null
-                            ? subjectGrade.period4 >= 75 ? 'text-green-600' : 'text-red-600'
-                            : 'text-gray-400'
-                        }`}
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                          {subjectGrade.period4 !== null ? subjectGrade.period4.toFixed(1) : '—'}
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="text-sm font-medium text-gray-900"
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                            {safeSubjectGrade.period4 !== null ? safeSubjectGrade.period4.toFixed(1) : '—'}
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className={`w-2 h-2 ${getGradeStatus(safeSubjectGrade.period4).dotColor} flex-shrink-0`}></div>
+                            <div className={`text-xs font-medium ${getGradeStatus(safeSubjectGrade.period4).textColor}`}>
+                              {getGradeStatus(safeSubjectGrade.period4).text}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center border-r border-gray-200">
-                        <div className={`text-sm font-medium px-3 py-1 rounded ${
-                          average !== null
-                            ? average >= 75 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                          {average !== null ? average.toFixed(1) : '—'}
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="text-sm font-medium text-gray-900"
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                            {average !== null && typeof average === 'number' ? average.toFixed(1) : '—'}
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className={`w-2 h-2 ${getStatusInfo(average, completedPeriods).dotColor} flex-shrink-0`}></div>
+                            <div className={`text-xs font-medium ${getStatusInfo(average, completedPeriods).textColor}`}>
+                              {getStatusInfo(average, completedPeriods).text}
+                            </div>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <div className={`text-sm font-medium px-3 py-1 rounded ${
-                          average !== null
-                            ? average >= 75 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                          {average !== null
-                            ? average >= 75 ? 'Passed' : 'Failed'
-                            : 'Incomplete'
-                          }
+                        <div className="flex flex-col items-center space-y-2">
+                          <div className="text-sm font-medium text-gray-900"
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                            {average !== null && typeof average === 'number' ? average.toFixed(1) : '—'}
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <div className={`w-2 h-2 ${getStatusInfo(average, completedPeriods).dotColor} flex-shrink-0`}></div>
+                            <div className={`text-xs font-medium ${getStatusInfo(average, completedPeriods).textColor}`}>
+                              {getStatusInfo(average, completedPeriods).text}
+                            </div>
+                          </div>
                         </div>
                       </td>
                     </tr>

@@ -71,9 +71,10 @@ interface EnrollmentData {
 
 interface MySubjectsViewProps {
   userId: string;
+  onNavigateToEnrollment?: () => void;
 }
 
-export default function MySubjectsView({ userId }: MySubjectsViewProps) {
+export default function MySubjectsView({ userId, onNavigateToEnrollment }: MySubjectsViewProps) {
   const [enrollment, setEnrollment] = useState<EnrollmentData | null>(null);
   const [subjects, setSubjects] = useState<Record<string, SubjectData>>({});
   const [subjectSets, setSubjectSets] = useState<Record<number, SubjectSetData[]>>({});
@@ -99,13 +100,24 @@ export default function MySubjectsView({ userId }: MySubjectsViewProps) {
       const enrollmentResponse = await fetch(`/api/enrollment?userId=${userId}`);
       const enrollmentData = await enrollmentResponse.json();
 
+      // Handle 404 (no enrollment found) as a valid case, not an error
+      if (enrollmentResponse.status === 404) {
+        console.log('No enrollment found for user - showing enrollment required message');
+        setEnrollment(null);
+        setLoading(false);
+        return;
+      }
+
       if (!enrollmentResponse.ok || !enrollmentData.success) {
         throw new Error(enrollmentData.error || 'Failed to load enrollment data');
       }
 
       const enrollmentInfo = enrollmentData.data;
       if (!enrollmentInfo) {
-        throw new Error('No enrollment data found');
+        console.log('No enrollment data found - showing enrollment required message');
+        setEnrollment(null);
+        setLoading(false);
+        return;
       }
 
       setEnrollment(enrollmentInfo);
@@ -391,48 +403,65 @@ export default function MySubjectsView({ userId }: MySubjectsViewProps) {
   if (!enrollment || enrollment.enrollmentInfo?.status !== 'enrolled') {
     return (
       <div className="space-y-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <BookOpen size={20} className="text-white" weight="fill" />
-          </div>
-          <div>
-            <h1
-              className="text-2xl font-medium text-gray-900"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-            >
-              My Subjects
-            </h1>
-            <p
-              className="text-xs text-gray-600"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              View your enrolled subjects and curriculum
-            </p>
+        {/* Header */}
+        <div className="bg-white p-6 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-800 flex items-center justify-center">
+                <BookOpen size={24} className="text-white" weight="fill" />
+              </div>
+              <div>
+                <h1
+                  className="text-2xl font-medium text-gray-900"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  My Subjects
+                </h1>
+                <p
+                  className="text-sm text-gray-600"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  View your enrolled subjects and curriculum
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
-          <BookOpen size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+        <Card className="p-12 text-center border-none bg-red-50 border-l-5 border-red-500">
+          <div className="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-6">
+            <GraduationCap size={32} className="text-red-600" weight="duotone" />
+          </div>
           <h3
-            className="text-lg font-medium text-gray-900 mb-2"
-            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            className="text-xl font-medium text-red-900 mb-3"
+            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
           >
-            Not Enrolled Yet
+            Enrollment Required
           </h3>
           <p
-            className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+            className="text-red-700 text-justify border-l-5 border-red-500 p-4 bg-red-100 mb-6 max-w-lg mx-auto"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
-            You haven't been enrolled yet. Complete your enrollment process to get access to your subjects and curriculum.
+            <strong>You must enroll first before accessing your subjects.</strong> Complete your enrollment process to get assigned to subjects and view your curriculum.
           </p>
-          <Button
-            onClick={() => window.location.reload()} // This will navigate back to dashboard and switch to enrollment
-            className="bg-blue-900 hover:bg-blue-800 mt-4"
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-          >
-            <GraduationCap size={20} className="mr-2" />
-            Go to Enrollment
-          </Button>
+          <div className="space-y-3">
+            <Button
+              onClick={() => {
+                // Navigate to enrollment tab in dashboard without page reload
+                if (onNavigateToEnrollment) {
+                  onNavigateToEnrollment();
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white px-8 py-3"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <GraduationCap size={20} className="mr-2" />
+              Start Enrollment Process
+            </Button>
+            <p className="text-xs text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+              This will take you to the enrollment section
+            </p>
+          </div>
         </Card>
       </div>
     );
@@ -521,33 +550,35 @@ export default function MySubjectsView({ userId }: MySubjectsViewProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <BookOpen size={20} className="text-white" weight="fill" />
+      <div className="bg-white p-6 border border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-800 flex items-center justify-center">
+              <BookOpen size={24} className="text-white" weight="fill" />
+            </div>
+            <div>
+              <h1
+                className="text-2xl font-medium text-gray-900"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                My Subjects ({enrolledSubjects.length})
+              </h1>
+              <p
+                className="text-sm text-gray-600"
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
+                View your enrolled subjects and assigned teachers
+              </p>
+            </div>
           </div>
-          <div>
-            <h1
-              className="text-2xl font-medium text-gray-900"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-            >
-              My Subjects ({enrolledSubjects.length})
-            </h1>
-            <p
-              className="text-xs text-gray-600"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              View your enrolled subjects and assigned teachers
-            </p>
-          </div>
-        </div>
 
-        {/* Enrollment Status Badge */}
-        <div className="flex items-center space-x-2">
-          <CheckCircle size={16} className="text-green-600" weight="fill" />
-          <span className="text-xs text-green-700 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-            Enrolled - {enrollment.enrollmentInfo?.schoolYear}
-          </span>
+          {/* Enrollment Status Badge */}
+          <div className="flex items-center space-x-2">
+            <CheckCircle size={16} className="text-green-600" weight="fill" />
+            <span className="text-xs text-green-700 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+              Enrolled - {enrollment.enrollmentInfo?.schoolYear}
+            </span>
+          </div>
         </div>
       </div>
 

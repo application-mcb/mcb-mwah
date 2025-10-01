@@ -7,10 +7,29 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const uid = searchParams.get('uid');
+    const uids = searchParams.get('uids');
 
+    // Handle batch profile requests
+    if (uids) {
+      const uidArray = uids.split(',').map(id => id.trim()).filter(id => id);
+      const profilePromises = uidArray.map(id => StudentDatabase.getStudent(id));
+
+      const profiles = await Promise.all(profilePromises);
+
+      // Filter out null results
+      const validProfiles = profiles.filter(profile => profile !== null);
+
+      return NextResponse.json({
+        success: true,
+        users: validProfiles,
+        count: validProfiles.length
+      });
+    }
+
+    // Handle single profile request
     if (!uid) {
       return NextResponse.json(
-        { error: 'User ID is required' },
+        { error: 'User ID (uid) or User IDs (uids) parameter is required' },
         { status: 400 }
       );
     }

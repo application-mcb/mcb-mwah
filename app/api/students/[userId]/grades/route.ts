@@ -1,24 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase-server';
+import { EnrollmentDatabase } from '@/lib/enrollment-database';
 
-// GET /api/students/[userId]/grades - Get student grades for a specific AY
+// GET /api/students/[userId]/grades - Get student grades for a specific AY or batch grades for multiple students
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const { searchParams } = new URL(request.url);
-    const ayCode = searchParams.get('ayCode');
+    const userIds = searchParams.get('userIds'); // For batch requests
 
-    if (!ayCode) {
-      return NextResponse.json(
-        { error: 'Academic year code is required' },
-        { status: 400 }
-      );
+    // Get current academic year from system config
+    const systemConfig = await EnrollmentDatabase.getSystemConfig();
+    const ayCode = systemConfig.ayCode;
+
+    const { userId } = await params;
+
+    // Handle batch grade requests
+    if (userIds && userId === 'batch') {
+      const userIdArray = userIds.split(',').map(id => id.trim()).filter(id => id);
+
+      const gradePromises = userIdArray.map(async (studentId) => {
+        try {
+          const gradesRef = doc(db, 'students', studentId, 'studentGrades', ayCode);
+          const gradesSnap = await getDoc(gradesRef);
+
+          if (!gradesSnap.exists()) {
+            return { userId: studentId, grades: {} };
+          }
+
+          const gradesData = gradesSnap.data();
+          const { createdAt, updatedAt, ...grades } = gradesData;
+
+          return { userId: studentId, grades };
+        } catch (error) {
+          console.error(`Error fetching grades for user ${studentId}:`, error);
+          return { userId: studentId, grades: {} };
+        }
+      });
+
+      const gradeResults = await Promise.all(gradePromises);
+
+      return NextResponse.json({
+        success: true,
+        batchGrades: gradeResults,
+        count: gradeResults.length
+      });
     }
 
-    const userId = params.userId;
+    // Handle single student grades request
 
     // Get student grades for the specified AY
     const gradesRef = doc(db, 'students', userId, 'studentGrades', ayCode);
@@ -50,17 +82,10 @@ export async function GET(
 // PUT /api/students/[userId]/grades - Update student grades
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { ayCode, grades } = await request.json();
-
-    if (!ayCode) {
-      return NextResponse.json(
-        { error: 'Academic year code is required' },
-        { status: 400 }
-      );
-    }
+    const { grades } = await request.json();
 
     if (!grades || typeof grades !== 'object') {
       return NextResponse.json(
@@ -69,7 +94,11 @@ export async function PUT(
       );
     }
 
-    const userId = params.userId;
+    // Get current academic year from system config
+    const systemConfig = await EnrollmentDatabase.getSystemConfig();
+    const ayCode = systemConfig.ayCode;
+
+    const { userId } = await params;
 
     // Update student grades
     const gradesRef = doc(db, 'students', userId, 'studentGrades', ayCode);
@@ -80,7 +109,19 @@ export async function PUT(
       updatedAt: serverTimestamp()
     };
 
-    await updateDoc(gradesRef, updateData);
+    // Check if document exists first
+    const gradesSnap = await getDoc(gradesRef);
+
+    if (gradesSnap.exists()) {
+      // Update existing document
+      await updateDoc(gradesRef, updateData);
+    } else {
+      // Create new document
+      await setDoc(gradesRef, {
+        ...updateData,
+        createdAt: serverTimestamp()
+      });
+    }
 
     console.log(`✅ Updated grades for student ${userId} in AY ${ayCode}`);
 

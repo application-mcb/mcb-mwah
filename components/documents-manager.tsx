@@ -62,6 +62,8 @@ interface DocumentInfo {
 
 interface DocumentsManagerProps {
   userId: string;
+  userProfile?: any;
+  onProgressUpdate?: () => void;
 }
 
 const REQUIRED_DOCUMENTS = [
@@ -97,29 +99,29 @@ const REQUIRED_DOCUMENTS = [
     key: 'form137' as const,
     name: 'Form 137',
     description: 'Permanent Record',
-    required: false,
+    required: true,
     icon: BookOpen
   },
   {
     key: 'certificateOfCompletion' as const,
     name: 'Certificate of Completion',
     description: 'From previous school',
-    required: false,
+    required: true,
     icon: Certificate
   },
   {
     key: 'marriageCertificate' as const,
     name: 'Marriage Certificate',
     description: 'Required for married students only',
-    required: false,
+    required: 'conditional', // Will be determined by civil status
     icon: Heart
   }
 ];
 
-export default function DocumentsManager({ userId }: DocumentsManagerProps) {
+export default function DocumentsManager({ userId, userProfile, onProgressUpdate }: DocumentsManagerProps) {
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingDocKey, setUploadingDocKey] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraDocumentKey, setCameraDocumentKey] = useState<string | null>(null);
@@ -161,6 +163,7 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
   };
 
   const handleFileUpload = async (documentKey: string, file: File) => {
+    setUploadingDocKey(documentKey);
     if (!file) return;
 
     // Validate file type
@@ -177,7 +180,6 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
     }
 
     try {
-      setUploading(true);
       setUploadProgress(0);
 
       console.log('Starting upload for file:', file.name, 'type:', file.type, 'size:', file.size);
@@ -201,7 +203,7 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
           console.error('Error code:', error.code);
           console.error('Error message:', error.message);
           toast.error(`Upload failed: ${error.message || 'Unknown error'}`);
-          setUploading(false);
+          setUploadingDocKey(null);
         },
         async () => {
           try {
@@ -232,6 +234,11 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
               console.log('Document saved successfully:', result);
               toast.success('Document uploaded successfully');
               loadDocuments();
+
+              // Trigger progress update callback
+              if (onProgressUpdate) {
+                onProgressUpdate();
+              }
             } else {
               const errorText = await response.text();
               console.error('Failed to save document. Response:', errorText);
@@ -241,7 +248,7 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
             console.error('Error saving document:', error);
             toast.error(error instanceof Error ? error.message : 'Failed to save document information');
           } finally {
-            setUploading(false);
+            setUploadingDocKey(null);
             setUploadProgress(0);
           }
         }
@@ -249,7 +256,7 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
     } catch (error) {
       console.error('Upload setup error:', error);
       toast.error('Upload failed');
-      setUploading(false);
+      setUploadingDocKey(null);
     }
   };
 
@@ -366,6 +373,21 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Determine if a document is required based on user profile
+  const isDocumentRequired = (docType: any) => {
+    if (docType.required === true) return true;
+    if (docType.required === 'conditional') {
+      // Marriage certificate is required only for married students
+      return userProfile?.civilStatus?.toLowerCase() === 'married';
+    }
+    return false;
+  };
+
+  // Get required documents count based on user profile
+  const getRequiredDocumentsCount = () => {
+    return REQUIRED_DOCUMENTS.filter(docType => isDocumentRequired(docType)).length;
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -421,18 +443,23 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
       {/* Header */}
       <div className="bg-white p-6 border border-gray-200">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-              Document Management
-            </h2>
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-800 flex items-center justify-center">
+              <FileText size={24} className="text-white" weight="fill" />
+            </div>
+            <div>
+              <h2 className="text-xl font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                Document Management
+              </h2>
             <p className="text-sm text-gray-600 mt-1" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
               Upload and manage your academic documents. These documents will be available for all your enrollments.
             </p>
+            </div>
           </div>
-          <div className="flex items-center space-x-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+          <div className="flex items-center space-x-2 text-sm text-white bg-blue-900 px-3 py-1">
             <Check size={16} />
             <span style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
-              {documents.length} of {REQUIRED_DOCUMENTS.filter(d => d.required).length} required uploaded
+              {documents.length} of {getRequiredDocumentsCount()} required uploaded
             </span>
           </div>
         </div>
@@ -440,34 +467,38 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
 
       {/* Documents Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {REQUIRED_DOCUMENTS.map((docType) => {
+        {REQUIRED_DOCUMENTS.filter(docType => isDocumentRequired(docType)).map((docType, index) => {
           const existingDoc = getDocumentStatus(docType.key);
           const IconComponent = docType.icon;
 
           return (
-            <Card key={docType.key} className={`p-5 border transition-all duration-200 shadow-sm hover:shadow-md ${
-              existingDoc ? 'border-emerald-200 bg-emerald-50/30' : 'border-gray-200 border-dashed hover:border-emerald-300 bg-white'
-            }`}>
+            <Card key={docType.key} className={`group p-6 border-none hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 ${existingDoc ? 'bg-blue-900' : 'bg-red-800'} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
+            style={{
+              animationDelay: `${index * 75}ms`,
+              animationFillMode: 'both'
+            }}>
               <div className="flex items-start gap-4">
-                <div className={`w-12 h-12 flex items-center justify-center ${
-                  existingDoc ? 'bg-emerald-800' : 'bg-blue-900'
-                }`}>
-                  <IconComponent size={20} className="text-white" weight="fill" />
+                <div className="w-16 h-16 bg-white flex items-center justify-center flex-shrink-0">
+                  <IconComponent
+                    size={32}
+                    style={{ color: existingDoc ? '#1e40af' : '#b91c1c' }}
+                    weight="fill"
+                  />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-base font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                    <h3 className="text-lg font-medium text-white" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                       {docType.name}
-                      {docType.required && <span className="text-red-500 ml-1">*</span>}
+                      {isDocumentRequired(docType) && <span className="text-white ml-1">*</span>}
                     </h3>
                   </div>
-                  <p className="text-sm text-gray-600 mb-4" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                  <p className="text-sm text-white mb-4" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                     {docType.description}
                   </p>
 
                   {existingDoc ? (
                     <div className="space-y-4">
-                      <div className="flex items-center gap-1 text-xs bg-emerald-100 text-emerald-800 w-fit px-2 py-0.5">
+                      <div className="flex items-center gap-1 text-xs bg-white/20 text-white w-fit px-2 py-0.5">
                         <Check size={12} />
                         <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>Uploaded</span>
                       </div>
@@ -476,19 +507,19 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
                         <Button
                           size="sm"
                           onClick={() => handlePreview(existingDoc)}
-                          className="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 text-sm flex-1"
+                          className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                         >
-                          <Eye size={14} className="mr-2" />
+                          <Eye size={14} className="mr-2 transition-transform duration-200" />
                           Preview
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => handleDownload(existingDoc)}
-                          className="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2 text-sm flex-1"
+                          className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                         >
-                          <Download size={14} className="mr-2" />
+                          <Download size={14} className="mr-2 transition-transform duration-200" />
                           Download
                         </Button>
                         <Button
@@ -497,10 +528,10 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
                             setDocumentToDelete(existingDoc);
                             setDeleteModalOpen(true);
                           }}
-                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm"
+                          className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                         >
-                          <Trash size={14} className="mr-2" />
+                          <Trash size={14} className="mr-2 transition-transform duration-200" />
                           Delete
                         </Button>
                       </div>
@@ -508,7 +539,7 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 px-3 py-1 w-fit border border-amber-200">
+                      <div className="flex items-center gap-2 text-xs text-white bg-white/20 px-3 py-1 w-fit border border-white/30">
                         <Warning size={12} />
                         <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>Not uploaded</span>
                       </div>
@@ -527,7 +558,7 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
                               setSelectedDocumentKey(docType.key);
                               setFilePreviewModalOpen(true);
                               // Reset upload state in case of previous failed upload
-                              setUploading(false);
+                              setUploadingDocKey(null);
                               setUploadProgress(0);
                               // Don't reset the input value - let the modal handle file replacement
                             } else {
@@ -536,7 +567,7 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
                           }}
                           className="hidden"
                           id={`file-${docType.key}`}
-                          disabled={uploading || filePreviewModalOpen || isProcessingFile}
+                          disabled={uploadingDocKey === docType.key || filePreviewModalOpen || isProcessingFile}
                         />
                         <label
                           htmlFor={`file-${docType.key}`}
@@ -547,8 +578,8 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
                             e.preventDefault();
                             e.stopPropagation();
                             const fileInput = document.getElementById(`file-${docType.key}`) as HTMLInputElement;
-                            console.log('Label clicked, file input:', fileInput, 'uploading:', uploading, 'processing:', isProcessingFile);
-                            if (fileInput && !uploading && !isProcessingFile) {
+                            console.log('Label clicked, file input:', fileInput, 'uploadingDocKey:', uploadingDocKey, 'processing:', isProcessingFile);
+                            if (fileInput && !uploadingDocKey && !isProcessingFile) {
                               fileInput.click();
                             }
                           }}
@@ -558,13 +589,22 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
                               if (fileInput) fileInput.click();
                             }
                           }}
-                          className={`inline-flex items-center justify-center px-4 py-2 text-sm bg-blue-900 text-white transition-all duration-200 ${
-                            uploading || filePreviewModalOpen || isProcessingFile ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer hover:bg-blue-800'
+                          className={`inline-flex items-center justify-center px-4 py-2 text-xs text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200 ${
+                            uploadingDocKey === docType.key || filePreviewModalOpen || isProcessingFile ? 'opacity-60 cursor-not-allowed bg-white/20' : 'cursor-pointer bg-white/20 hover:bg-white/30'
                           }`}
                           style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                         >
-                          <Upload size={16} className="mr-2" />
-                          Choose File
+                          {uploadingDocKey === docType.key ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                              {Math.round(uploadProgress)}%
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={16} className="mr-2" />
+                              Choose File
+                            </>
+                          )}
                         </label>
                         <Button
                           size="sm"
@@ -572,8 +612,8 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
                             setCameraDocumentKey(docType.key);
                             setCameraOpen(true);
                           }}
-                          className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 text-sm transition-all duration-200"
-                          disabled={uploading}
+                          className="text-white/80 hover:text-white hover:bg-white/20 px-4 py-2 text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
+                          disabled={uploadingDocKey === docType.key || filePreviewModalOpen || isProcessingFile}
                           style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                         >
                           <Camera size={14} className="mr-2" />
@@ -589,27 +629,6 @@ export default function DocumentsManager({ userId }: DocumentsManagerProps) {
         })}
       </div>
 
-      {/* Upload Progress */}
-      {uploading && (
-        <Card className="p-6 bg-blue-50 border-blue-200">
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <h3 className="font-medium text-blue-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
-                Uploading Document...
-              </h3>
-              <span className="text-sm font-medium text-blue-700" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
-                {Math.round(uploadProgress)}%
-              </span>
-            </div>
-            <div className="w-full bg-blue-200 rounded-full h-3">
-              <div
-                className="bg-blue-900 h-3 rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-          </div>
-        </Card>
-      )}
 
       {/* Camera Modal */}
       {cameraOpen && (
