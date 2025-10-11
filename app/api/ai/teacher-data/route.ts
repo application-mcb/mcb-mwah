@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Helper function to get teachers
-async function getTeachers() {
+async function getTeachers(baseUrl: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/teachers`);
+    const response = await fetch(`${baseUrl}/api/teachers`);
     const data = await response.json();
 
     if (response.ok && data.teachers) {
@@ -17,9 +17,9 @@ async function getTeachers() {
 }
 
 // Helper function to get teacher assignments
-async function getTeacherAssignments(teacherId: string) {
+async function getTeacherAssignments(teacherId: string, baseUrl: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/teacher-assignments?teacherId=${encodeURIComponent(teacherId)}`);
+    const response = await fetch(`${baseUrl}/api/teacher-assignments?teacherId=${encodeURIComponent(teacherId)}`);
     const data = await response.json();
 
     if (response.ok && data.assignments) {
@@ -33,9 +33,9 @@ async function getTeacherAssignments(teacherId: string) {
 }
 
 // Helper function to get subjects
-async function getSubjects() {
+async function getSubjects(baseUrl: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/subjects`);
+    const response = await fetch(`${baseUrl}/api/subjects`);
     const data = await response.json();
 
     if (response.ok && data.subjects) {
@@ -49,9 +49,9 @@ async function getSubjects() {
 }
 
 // Helper function to get sections
-async function getSections() {
+async function getSections(baseUrl: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/sections`);
+    const response = await fetch(`${baseUrl}/api/sections`);
     const data = await response.json();
 
     if (response.ok && data.sections) {
@@ -69,9 +69,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const teacherId = searchParams.get('teacherId');
 
+    // Get base URL from request
+    const baseUrl = `${request.nextUrl.protocol}//${request.nextUrl.host}`;
+
     if (teacherId) {
       // Get specific teacher data
-      const teachers = await getTeachers();
+      const teachers = await getTeachers(baseUrl);
       const teacher = teachers.find((t: any) => t.id === teacherId);
 
       if (!teacher) {
@@ -79,9 +82,9 @@ export async function GET(request: NextRequest) {
       }
 
       const [assignments, subjects, sections] = await Promise.all([
-        getTeacherAssignments(teacherId),
-        getSubjects(),
-        getSections()
+        getTeacherAssignments(teacherId, baseUrl),
+        getSubjects(baseUrl),
+        getSections(baseUrl)
       ]);
 
       // Create subjects map
@@ -117,13 +120,13 @@ export async function GET(request: NextRequest) {
       });
     } else {
       // Get all teachers data
-      const teachers = await getTeachers();
+      const teachers = await getTeachers(baseUrl);
 
       // Get assignment data for all teachers
       const teachersWithAssignments = await Promise.all(
         teachers.map(async (teacher: any) => {
           try {
-            const assignments = await getTeacherAssignments(teacher.id);
+            const assignments = await getTeacherAssignments(teacher.id, baseUrl);
             const subjectsCount = Object.keys(assignments).length;
             const sectionsCount = Object.values(assignments).reduce((total: number, sectionIds: any) => {
               if (Array.isArray(sectionIds)) {
@@ -154,8 +157,8 @@ export async function GET(request: NextRequest) {
 
       // Get related data for context
       const [subjects, sections] = await Promise.all([
-        getSubjects(),
-        getSections()
+        getSubjects(baseUrl),
+        getSections(baseUrl)
       ]);
 
       // Create subjects map

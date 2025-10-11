@@ -3,9 +3,9 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase-server';
 
 // Helper function to get current academic year config
-async function getCurrentAYCode() {
+async function getCurrentAYCode(baseUrl: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/enrollment?getConfig=true`);
+    const response = await fetch(`${baseUrl}/api/enrollment?getConfig=true`);
     const configData = await response.json();
 
     if (!response.ok || !configData.ayCode) {
@@ -20,13 +20,13 @@ async function getCurrentAYCode() {
 }
 
 // Helper function to get student profiles
-async function getStudentProfiles(userIds: string[]) {
+async function getStudentProfiles(userIds: string[], baseUrl: string) {
   try {
     const profiles: Record<string, any> = {};
 
     for (const userId of userIds) {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/user/profile?uid=${userId}`);
+        const response = await fetch(`${baseUrl}/api/user/profile?uid=${userId}`);
         const data = await response.json();
 
         if (response.ok && data.success) {
@@ -45,13 +45,13 @@ async function getStudentProfiles(userIds: string[]) {
 }
 
 // Helper function to get student documents
-async function getStudentDocuments(userIds: string[]) {
+async function getStudentDocuments(userIds: string[], baseUrl: string) {
   try {
     const documents: Record<string, any> = {};
 
     for (const userId of userIds) {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/user/profile?uid=${userId}`);
+        const response = await fetch(`${baseUrl}/api/user/profile?uid=${userId}`);
         const data = await response.json();
 
         if (response.ok && data.success && data.user?.documents) {
@@ -70,9 +70,9 @@ async function getStudentDocuments(userIds: string[]) {
 }
 
 // Helper function to get subjects
-async function getSubjects() {
+async function getSubjects(baseUrl: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/subjects`);
+    const response = await fetch(`${baseUrl}/api/subjects`);
     const data = await response.json();
 
     if (response.ok && data.subjects) {
@@ -86,9 +86,9 @@ async function getSubjects() {
 }
 
 // Helper function to get subject sets
-async function getSubjectSets() {
+async function getSubjectSets(baseUrl: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/subject-sets`);
+    const response = await fetch(`${baseUrl}/api/subject-sets`);
     const data = await response.json();
 
     if (response.ok && data.subjectSets) {
@@ -102,9 +102,9 @@ async function getSubjectSets() {
 }
 
 // Helper function to get grades
-async function getGrades() {
+async function getGrades(baseUrl: string) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/grades`);
+    const response = await fetch(`${baseUrl}/api/grades`);
     const data = await response.json();
 
     if (response.ok && data.grades) {
@@ -119,7 +119,10 @@ async function getGrades() {
 
 export async function GET(request: NextRequest) {
   try {
-    const ayCode = await getCurrentAYCode();
+    // Get base URL from request
+    const baseUrl = `${request.nextUrl.protocol}//${request.nextUrl.host}`;
+    
+    const ayCode = await getCurrentAYCode(baseUrl);
 
     // Get all enrollments for current academic year
     const enrollmentsRef = collection(db, 'enrollments');
@@ -149,11 +152,11 @@ export async function GET(request: NextRequest) {
 
     // Get related data
     const [studentProfiles, studentDocuments, subjects, subjectSets, grades] = await Promise.all([
-      getStudentProfiles(userIds),
-      getStudentDocuments(userIds),
-      getSubjects(),
-      getSubjectSets(),
-      getGrades()
+      getStudentProfiles(userIds, baseUrl),
+      getStudentDocuments(userIds, baseUrl),
+      getSubjects(baseUrl),
+      getSubjectSets(baseUrl),
+      getGrades(baseUrl)
     ]);
 
     // Group subject sets by grade level

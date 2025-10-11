@@ -12,7 +12,7 @@ import { EnrollmentData } from '@/lib/enrollment-database';
 import { SubjectData } from '@/lib/subject-database';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase-server';
-import { Eye, MagnifyingGlass, Calendar, Phone, MapPin, FileText, User, GraduationCap, Circle, Gear, Clock, ArrowUp, ArrowDown, ArrowClockwise, User as UserIcon, FileText as FileTextIcon, GraduationCap as GraduationCapIcon, X, Printer, Check, Lightning, Trash, Users, BookOpen, ArrowLeft, ArrowRight } from '@phosphor-icons/react';
+import { Eye, MagnifyingGlass, Calendar, Phone, MapPin, FileText, User, GraduationCap, Circle, Gear, Clock, ArrowUp, ArrowDown, ArrowClockwise, User as UserIcon, FileText as FileTextIcon, GraduationCap as GraduationCapIcon, X, Printer, Check, Lightning, Trash, Users, BookOpen, ArrowLeft, ArrowRight, Shield } from '@phosphor-icons/react';
 import ViewHandler from './viewHandler';
 
 // Add custom CSS animations
@@ -146,6 +146,11 @@ interface StudentProfile {
   userId: string;
   photoURL?: string;
   email?: string;
+  guardianName?: string;
+  guardianPhone?: string;
+  guardianEmail?: string;
+  guardianRelationship?: string;
+  emergencyContact?: string;
 }
 
 interface StudentDocument {
@@ -366,7 +371,12 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
             profiles[enrollment.userId] = {
               userId: enrollment.userId,
               photoURL: studentData.user?.photoURL,
-              email: studentData.user?.email
+              email: studentData.user?.email,
+              guardianName: studentData.user?.guardianName,
+              guardianPhone: studentData.user?.guardianPhone,
+              guardianEmail: studentData.user?.guardianEmail,
+              guardianRelationship: studentData.user?.guardianRelationship,
+              emergencyContact: studentData.user?.emergencyContact
             };
           }
         } catch (error) {
@@ -1123,6 +1133,73 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
             </div>
           </div>
 
+          {/* Guardian Information Table */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2 flex items-center gap-2"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+              <div className="w-6 h-6 bg-blue-800 flex items-center justify-center">
+                <Shield size={14} weight="fill" className="text-white" />
+              </div>
+              Guardian Information
+            </h3>
+            <div className="overflow-hidden bg-white border border-gray-200">
+              <table className="min-w-full border-collapse border border-gray-200">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                      Guardian Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                      Relationship
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                      Phone Number
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                      Email Address
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  <tr>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 border-r border-gray-200"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                      {studentProfiles[viewingEnrollment?.userId || '']?.guardianName || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 border-r border-gray-200"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                      {studentProfiles[viewingEnrollment?.userId || '']?.guardianRelationship || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 border-r border-gray-200"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                      {studentProfiles[viewingEnrollment?.userId || '']?.guardianPhone || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                      {studentProfiles[viewingEnrollment?.userId || '']?.guardianEmail || 'N/A'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Emergency Contact */}
+            {(studentProfiles[viewingEnrollment?.userId || '']?.emergencyContact) && (
+              <div className="bg-gray-50 border border-gray-200 p-4">
+                <h4 className="text-xs font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  Emergency Contact
+                </h4>
+                <p className="text-xs text-gray-700" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {studentProfiles[viewingEnrollment?.userId || '']?.emergencyContact}
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Academic Information Table */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2 flex items-center gap-2"
@@ -1691,7 +1768,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                   </button>
                 </div>
               )}
-            </div>
+            </div>  
             <div className="grid grid-cols-2 gap-x-8 gap-y-2">
               {loadingCourses ? (
                 [...Array(4)].map((_, i) => (
