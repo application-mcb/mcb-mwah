@@ -62,7 +62,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = "lg" }: ModalPr
       />
       
       {/* Modal Content */}
-      <div className={`relative bg-white shadow-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden transform transition-all duration-300 ease-in-out ${
+      <div className={`relative bg-white shadow-lg w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden transform transition-all duration-300 ease-in-out ${
         isAnimating 
           ? 'scale-100 opacity-100 translate-y-0' 
           : 'scale-95 opacity-0 translate-y-4'

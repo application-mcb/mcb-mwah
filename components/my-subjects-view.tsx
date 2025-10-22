@@ -609,7 +609,7 @@ export default function MySubjectsView({ userId, onNavigateToEnrollment }: MySub
                   <button
                     key={subjectSet.id}
                     onClick={() => setSelectedSubjectSet(subjectSet.id)}
-                    className={`px-3 py-1 text-xs font-medium text-white transition-all duration-200 shadow-sm ${
+                    className={`px-3 py-1 text-xs font-medium text-white transition-all duration-200 shadow-lg ${
                       selectedSubjectSet === subjectSet.id
                         ? 'ring-2 ring-offset-2 ring-blue-500 shadow-lg scale-105'
                         : 'hover:scale-105'
@@ -689,7 +689,7 @@ export default function MySubjectsView({ userId, onNavigateToEnrollment }: MySub
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="flex items-center">
                         <div
-                          className="w-10 h-10 flex items-center justify-center shadow-sm mr-4"
+                          className="w-10 h-10 flex items-center justify-center shadow-lg mr-4"
                           style={{ backgroundColor: getSubjectColor(subject.color) }}
                         >
                           <BookOpen size={16} className="text-white" weight="fill" />
@@ -697,7 +697,7 @@ export default function MySubjectsView({ userId, onNavigateToEnrollment }: MySub
                         <div>
                           <div className="text-xs font-medium text-gray-900"
                                style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                            {subject.name}
+                            {subject.code} {subject.name}
                           </div>
                           {subject.code && (
                             <div className="text-xs text-gray-500 font-mono"

@@ -13,10 +13,24 @@ interface SubjectFormData {
   code: string;
   name: string;
   description: string;
-  gradeLevel: string;
+  gradeLevels: number[];
+  courseCodes: string[];
+  courseSelections: { code: string; year: number; semester: 'first-sem' | 'second-sem' }[];
   color: SubjectColor;
   lectureUnits: string;
   labUnits: string;
+}
+
+interface SubjectFormErrors {
+  code?: string;
+  name?: string;
+  description?: string;
+  gradeLevels?: string;
+  courseCodes?: string;
+  courseSelections?: string;
+  color?: string;
+  lectureUnits?: string;
+  labUnits?: string;
 }
 
 interface SubjectFormProps {
@@ -24,7 +38,9 @@ interface SubjectFormProps {
     code: string;
     name: string;
     description: string;
-    gradeLevel: number;
+    gradeLevels: number[];
+    courseCodes: string[];
+    courseSelections: { code: string; year: number; semester: 'first-sem' | 'second-sem' }[];
     color: SubjectColor;
     lectureUnits: number;
     labUnits: number;
@@ -46,19 +62,24 @@ export default function SubjectForm({
     code: initialData?.code || '',
     name: initialData?.name || '',
     description: initialData?.description || '',
-    gradeLevel: (initialData?.gradeLevel || 7).toString(),
+    gradeLevels: Array.isArray(initialData?.gradeLevels) ? initialData.gradeLevels : (initialData?.gradeLevels ? [initialData.gradeLevels as number] : [7]),
+    courseCodes: Array.isArray(initialData?.courseCodes) ? initialData.courseCodes : [],
+    courseSelections: Array.isArray(initialData?.courseSelections) ? initialData.courseSelections : [],
     color: initialData?.color || SUBJECT_COLORS[0],
     lectureUnits: (initialData?.lectureUnits || 1).toString(),
     labUnits: (initialData?.labUnits || 0).toString()
   });
 
-  const [errors, setErrors] = useState<Partial<SubjectFormData>>({});
+  const [errors, setErrors] = useState<SubjectFormErrors>({});
   const [grades, setGrades] = useState<GradeData[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [loadingGrades, setLoadingGrades] = useState(true);
+  const [loadingCourses, setLoadingCourses] = useState(true);
 
-  // Load available grades on component mount
+  // Load available grades and courses on component mount
   useEffect(() => {
     loadGrades();
+    loadCourses();
   }, []);
 
   const loadGrades = async () => {
@@ -76,8 +97,32 @@ export default function SubjectForm({
     }
   };
 
+  const loadCourses = async () => {
+    try {
+      setLoadingCourses(true);
+      console.log('Loading courses...');
+      const response = await fetch('/api/courses');
+      console.log('Courses API response:', response.status, response.ok);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Courses data:', data);
+        setCourses(data.courses || []);
+        console.log('Courses set:', data.courses?.length || 0, 'courses');
+      } else {
+        console.error('Failed to load courses:', response.status, response.statusText);
+        const errorData = await response.json();
+        console.error('Error details:', errorData);
+      }
+    } catch (error) {
+      console.error('Error loading courses:', error);
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
+
   const validateForm = (): boolean => {
-    const newErrors: Partial<SubjectFormData> = {};
+    const newErrors: SubjectFormErrors = {};
 
     if (!formData.code.trim()) {
       newErrors.code = 'Subject code is required';
@@ -99,9 +144,20 @@ export default function SubjectForm({
       newErrors.description = 'Subject description must not exceed 300 characters';
     }
 
-    const gradeLevelNum = parseInt(formData.gradeLevel);
-    if (!formData.gradeLevel || formData.gradeLevel === '' || isNaN(gradeLevelNum) || gradeLevelNum < 1 || gradeLevelNum > 12) {
-      newErrors.gradeLevel = 'Grade level must be between 1 and 12';
+    // Validate grade levels or course selections (at least one must be selected)
+    if ((!formData.gradeLevels || formData.gradeLevels.length === 0) &&
+        (!formData.courseCodes || formData.courseCodes.length === 0) &&
+        (!formData.courseSelections || formData.courseSelections.length === 0)) {
+      newErrors.gradeLevels = 'At least one grade level or college course must be selected';
+    } else if (formData.gradeLevels && formData.gradeLevels.length > 0) {
+      // Validate that all grade levels exist in the database
+      const invalidGrades = formData.gradeLevels.filter(level => {
+        const gradeExists = grades.some(g => g.gradeLevel === level);
+        return !gradeExists;
+      });
+      if (invalidGrades.length > 0) {
+        newErrors.gradeLevels = 'Selected grade levels do not exist in the system';
+      }
     }
 
     const lectureUnitsNum = parseInt(formData.lectureUnits);
@@ -126,15 +182,19 @@ export default function SubjectForm({
     }
 
     try {
-      await onSubmit({
+      const submitData = {
         code: formData.code.trim().toUpperCase(),
         name: formData.name.trim(),
         description: formData.description.trim(),
-        gradeLevel: parseInt(formData.gradeLevel) || 0,
+        gradeLevels: formData.gradeLevels,
+        courseCodes: formData.courseCodes,
+        courseSelections: formData.courseSelections,
         color: formData.color,
         lectureUnits: parseInt(formData.lectureUnits) || 0,
         labUnits: parseInt(formData.labUnits) || 0
-      });
+      };
+      console.log('Submitting subject data:', submitData);
+      await onSubmit(submitData);
     } catch (error) {
       // Error handling is done in the parent component
     }
@@ -145,6 +205,49 @@ export default function SubjectForm({
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleGradeLevelToggle = (gradeLevel: number) => {
+    setFormData(prev => ({
+      ...prev,
+      gradeLevels: prev.gradeLevels.includes(gradeLevel)
+        ? prev.gradeLevels.filter(level => level !== gradeLevel)
+        : [...prev.gradeLevels, gradeLevel]
+    }));
+    // Clear error when user makes selection
+    if (errors.gradeLevels) {
+      setErrors(prev => ({ ...prev, gradeLevels: undefined }));
+    }
+  };
+
+  const handleCourseToggle = (courseCode: string) => {
+    setFormData(prev => ({
+      ...prev,
+      courseCodes: prev.courseCodes.includes(courseCode)
+        ? prev.courseCodes.filter(code => code !== courseCode)
+        : [...prev.courseCodes, courseCode]
+    }));
+  };
+
+  const handleCourseSelectionToggle = (courseCode: string, year: number, semester: 'first-sem' | 'second-sem') => {
+    const selection = { code: courseCode, year, semester };
+    const selectionExists = formData.courseSelections.some(
+      sel => sel.code === courseCode && sel.year === year && sel.semester === semester
+    );
+
+    if (selectionExists) {
+      setFormData(prev => ({
+        ...prev,
+        courseSelections: prev.courseSelections.filter(
+          sel => !(sel.code === courseCode && sel.year === year && sel.semester === semester)
+        )
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        courseSelections: [...prev.courseSelections, selection]
+      }));
     }
   };
 
@@ -280,59 +383,143 @@ export default function SubjectForm({
           </div>
         </div>
 
-          {/* Grade Level */}
-          <div className="space-y-2">
-            <label
-              htmlFor="grade-level"
-              className="block text-sm font-medium text-gray-700"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-            >
-              Grade Level *
-            </label>
-            <div className="relative">
-              <select
-                id="grade-level"
-                value={formData.gradeLevel}
-                onChange={(e) => handleInputChange('gradeLevel', parseInt(e.target.value))}
-                disabled={loading || loadingGrades}
-                className={`w-full px-3 py-2 border-1 border-blue-900 rounded-none bg-white text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${errors.gradeLevel ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                aria-describedby={errors.gradeLevel ? 'grade-level-error' : undefined}
+          {/* Grade Levels & Courses */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label
+                className="block text-sm font-medium text-gray-700"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
+                Applicable Grade Levels *
+              </label>
+              <div className="flex flex-wrap gap-2">
                 {loadingGrades ? (
-                  <option>Loading grades...</option>
+                  <div className="text-sm text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                    Loading grade levels...
+                  </div>
                 ) : grades.length > 0 ? (
-                  grades.map((grade) => (
-                    <option key={grade.id} value={grade.gradeLevel}>
-                      {getGradeDisplayName(grade)}
-                    </option>
-                  ))
+                  grades.map((grade) => {
+                    const isSelected = formData.gradeLevels.includes(grade.gradeLevel);
+                    return (
+                      <button
+                        key={grade.id}
+                        type="button"
+                        onClick={() => handleGradeLevelToggle(grade.gradeLevel)}
+                        disabled={loading}
+                        className={`px-3 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+                          isSelected
+                            ? 'bg-blue-900 text-white border-blue-900 shadow-md'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        {getGradeDisplayName(grade)}
+                      </button>
+                    );
+                  })
                 ) : (
-                  <>
-                    <option value={7}>Grade 7</option>
-                    <option value={8}>Grade 8</option>
-                    <option value={9}>Grade 9</option>
-                    <option value={10}>Grade 10</option>
-                    <option value={11}>Grade 11</option>
-                    <option value={12}>Grade 12</option>
-                  </>
+                  <div className="text-sm text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                    No grade levels available
+                  </div>
                 )}
-              </select>
-              <Hash
-                size={18}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"
-                weight="duotone"
-              />
+              </div>
+              {formData.gradeLevels.length > 0 && (
+                <p className="text-xs text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                  Selected: {formData.gradeLevels.sort().map(level => {
+                    const grade = grades.find(g => g.gradeLevel === level);
+                    return grade ? getGradeDisplayName(grade) : `Grade ${level}`;
+                  }).join(', ')}
+                </p>
+              )}
+              {errors.gradeLevels && (
+                <p
+                  className="text-sm text-red-600"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  {errors.gradeLevels}
+                </p>
+              )}
             </div>
-            {errors.gradeLevel && (
-              <p
-                id="grade-level-error"
-                className="text-sm text-red-600"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+
+            <div className="space-y-2">
+              <label
+                className="block text-sm font-medium text-gray-700"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
-                {errors.gradeLevel}
-              </p>
-            )}
+                Applicable College Courses & Year Levels
+              </label>
+              <div className="space-y-3">
+                {loadingCourses ? (
+                  <div className="text-sm text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                    Loading courses...
+                  </div>
+                ) : courses.length > 0 ? (
+                  courses.map((course: any) => {
+                    const courseColor = course.color || 'emerald-800';
+                    return (
+                      <div key={course.code} className="border border-gray-200 rounded-md p-3 bg-gray-50">
+                        <div className="flex items-center mb-2">
+                          <div className={`w-4 h-4 bg-${courseColor} rounded-full mr-2`}></div>
+                          <span className="text-sm font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                            {course.code} - {course.name}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[1, 2, 3, 4].map(year => (
+                            <div key={year} className="space-y-1">
+                              <span className="text-xs text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                                Year {year}
+                              </span>
+                              <div className="flex gap-1">
+                                {(['first-sem', 'second-sem'] as const).map(semester => {
+                                  const isSelected = formData.courseSelections.some(
+                                    sel => sel.code === course.code && sel.year === year && sel.semester === semester
+                                  );
+                                  const semesterLabel = semester === 'first-sem' ? '1st Sem' : '2nd Sem';
+                                  return (
+                                    <button
+                                      key={semester}
+                                      type="button"
+                                      onClick={() => handleCourseSelectionToggle(course.code, year, semester)}
+                                      disabled={loading}
+                                      className={`px-2 py-1 text-xs font-medium rounded border transition-all duration-200 ${
+                                        isSelected
+                                          ? `bg-${courseColor} text-white border-${courseColor} shadow-sm`
+                                          : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                                    >
+                                      {semesterLabel}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="text-sm text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                    No courses available (Debug: {courses.length} courses loaded)
+                  </div>
+                )}
+              </div>
+              {formData.courseSelections.length > 0 && (
+                <p className="text-xs text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                  Selected: {formData.courseSelections.map(sel => `${sel.code} ${sel.year}${sel.semester === 'first-sem' ? 'Q1' : 'Q2'}`).join(', ')}
+                </p>
+              )}
+              {errors.courseSelections && (
+                <p
+                  className="text-sm text-red-600"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  {errors.courseSelections}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Units Row: Lecture | Lab | Total */}
@@ -452,7 +639,7 @@ export default function SubjectForm({
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 disabled={loading}
-                className={`border-1 border-blue-900 rounded-none flex min-h-[100px] w-full rounded-md bg-white pl-10 pr-3 py-2 text-base shadow-sm placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                className={`border-1 border-blue-900 rounded-none flex min-h-[100px] w-full rounded-md bg-white pl-10 pr-3 py-2 text-base shadow-lg placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 aria-describedby={errors.description ? 'description-error' : undefined}
                 maxLength={300}
@@ -518,7 +705,9 @@ export default function SubjectForm({
           </Button>
           <Button
             type="submit"
-            disabled={loading || !formData.code || !formData.name || !formData.description || (parseInt(formData.lectureUnits) || 0) < 1}
+            disabled={loading || !formData.code || !formData.name || !formData.description ||
+              (formData.gradeLevels.length === 0 && formData.courseCodes.length === 0 && formData.courseSelections.length === 0) ||
+              (parseInt(formData.lectureUnits) || 0) < 1}
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             {loading ? (

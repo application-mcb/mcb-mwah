@@ -189,7 +189,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onSwitchTo
 
 
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
+    <Card className="w-full max-w-lg mx-auto shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
       <CardHeader className="text-center pb-8">
         <CardTitle className="text-3xl font-light text-gray-900 mb-2">Welcome Back</CardTitle>
         <CardDescription className="text-gray-500 text-base">
@@ -395,7 +395,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onSwitchTo
               <Button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="w-full mt-4 bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm"
+                className="w-full mt-4 bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-lg"
                 loading={isLoading}
                 variant="outline"
               >

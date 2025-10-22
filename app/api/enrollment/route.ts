@@ -9,14 +9,32 @@ console.log('✅ Enrollment API route loaded using Firebase Client SDK');
 // POST /api/enrollment - Submit enrollment request
 export async function POST(request: NextRequest) {
   try {
-    const { userId, gradeId, gradeLevel, department, personalInfo, documents, studentType } = await request.json();
+    const { userId, gradeId, gradeLevel, department, personalInfo, documents, studentType, courseId, courseCode, courseName, yearLevel, semester, level } = await request.json();
 
-    // Validate required fields
-    if (!userId || !gradeId || !personalInfo) {
+    // Validate required fields based on level
+    if (!userId || !personalInfo) {
       return NextResponse.json(
-        { error: 'Missing required fields: userId, gradeId, personalInfo' },
+        { error: 'Missing required fields: userId, personalInfo' },
         { status: 400 }
       );
+    }
+
+    // Validate level-specific requirements
+    if (level === 'college') {
+      if (!courseId || !courseCode || !courseName || !yearLevel || !semester) {
+        return NextResponse.json(
+          { error: 'Missing required fields for college enrollment: courseId, courseCode, courseName, yearLevel, semester' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Default to high school level
+      if (!gradeId) {
+        return NextResponse.json(
+          { error: 'Missing required fields for high school enrollment: gradeId' },
+          { status: 400 }
+        );
+      }
     }
 
     // First check if student exists
@@ -55,11 +73,22 @@ export async function POST(request: NextRequest) {
         email: studentResult.data?.email || personalInfo.email,
       },
       enrollmentInfo: {
-        gradeLevel,
+        ...(level === 'college' ? {
+          courseId,
+          courseCode,
+          courseName,
+          yearLevel,
+          semester,
+          level: 'college'
+        } : {
+          gradeLevel,
+          department,
+          level: 'high-school'
+        }),
         schoolYear: ayCode,
         enrollmentDate: new Date().toISOString(),
         status: 'pending',
-        studentType: studentType || 'regular' // Default to regular if not specified
+        studentType: level === 'college' ? 'regular' : (studentType || 'regular') // College students are regular by default
       },
       documents: processedDocuments
     };

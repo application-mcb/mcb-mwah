@@ -45,7 +45,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, description, subjects, gradeLevel, color, registrarUid } = body;
+    const { name, description, subjects, gradeLevels, courseSelections, color, registrarUid } = body;
 
     // Validate registrar role if registrarUid is provided
     if (registrarUid) {
@@ -63,8 +63,16 @@ export async function PUT(
     if (name !== undefined) updateData.name = name.trim();
     if (description !== undefined) updateData.description = description.trim();
     if (subjects !== undefined) updateData.subjects = subjects;
-    if (gradeLevel !== undefined) updateData.gradeLevel = parseInt(gradeLevel);
     if (color !== undefined) updateData.color = color;
+
+    if (gradeLevels !== undefined) updateData.gradeLevels = gradeLevels;
+    if (courseSelections !== undefined) updateData.courseSelections = courseSelections;
+
+    // For backward compatibility, use the first grade level if available
+    // Otherwise, keep the existing grade level
+    if (gradeLevels !== undefined && gradeLevels.length > 0) {
+      updateData.gradeLevel = gradeLevels[0];
+    }
 
     const updatedSubjectSet = await SubjectSetDatabase.updateSubjectSet(id, updateData);
 

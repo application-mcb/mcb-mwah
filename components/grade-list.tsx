@@ -230,7 +230,7 @@ export default function GradeList({
           {grades.map((grade, index) => (
             <Card
               key={grade.id}
-              className="p-6 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
+              className="p-6 hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
               style={{
                 backgroundColor: getBgColor(grade.color),
                 animationDelay: `${index * 100}ms`,
@@ -238,61 +238,27 @@ export default function GradeList({
               }}
             >
               {/* Card Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-white flex items-center justify-center flex-shrink-0">
-                    <GraduationCap
-                      size={24}
-                      style={{ color: getIconColor(grade.color) }}
-                      weight="fill"
-                    />
-                  </div>
-                  <div>
-                    <h3
-                      className="text-lg font-medium text-white"
-                      style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                    >
-                      {formatGradeLevel(grade)}
-                    </h3>
-                    <div className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-none border border-white/30 bg-white/20 text-white">
-                      <Building size={12} className="mr-1" weight="duotone" />
-                      {grade.department === 'JHS' ? 'Junior HS' :
-                       grade.department === 'SHS' ? 'Senior HS' :
-                       'College'}
-                    </div>
-                  </div>
+              <div className="flex items-start gap-4 mb-4">
+                <div className="w-12 h-12 bg-white flex items-center justify-center flex-shrink-0">
+                  <GraduationCap
+                    size={24}
+                    style={{ color: getIconColor(grade.color) }}
+                    weight="fill"
+                  />
                 </div>
-                <div className="flex space-y-2 gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onViewGrade(grade)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                <div className="flex-1 min-w-0">
+                  <h3
+                    className="text-lg font-medium text-white mb-2"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                   >
-                    <Eye size={14} className="transition-transform duration-200 group-hover:scale-110" />
-                     Details
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEditGrade(grade)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    <Pencil size={14} className="transition-transform duration-200 group-hover:scale-110" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDeleteGrade(grade)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    <Trash size={14} className="transition-transform duration-200 group-hover:scale-110" />
-                    Delete
-                  </Button>
+                    {formatGradeLevel(grade)}
+                  </h3>
+                  <div className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-none border border-white/30 bg-white/20 text-white mb-3">
+                    <Building size={12} className="mr-1" weight="duotone" />
+                    {grade.department === 'JHS' ? 'Junior HS' :
+                     grade.department === 'SHS' ? 'Senior HS' :
+                     'College'}
+                  </div>
                 </div>
               </div>
 
@@ -304,8 +270,8 @@ export default function GradeList({
                 {grade.description}
               </p>
 
-              {/* Sections Count */}
-              <div className="flex items-center justify-between text-xs text-white/70 mb-3 border-t border-white/30 pt-3">
+              {/* Sections Count and Created Date */}
+              <div className="flex items-center justify-between text-xs text-white/70 mb-4 border-t border-white/30 pt-3">
                 <div className="flex items-center space-x-1">
                   <Users size={14} weight="duotone" />
                   <span style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
@@ -315,6 +281,40 @@ export default function GradeList({
                 <span style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                   Created {formatDate(grade.createdAt)}
                 </span>
+              </div>
+
+              {/* Action Buttons - moved to bottom */}
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onViewGrade(grade)}
+                  className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <Eye size={14} className="transition-transform duration-200 group-hover:scale-110" />
+                  Details
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEditGrade(grade)}
+                  className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <Pencil size={14} className="transition-transform duration-200 group-hover:scale-110" />
+                  Edit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDeleteGrade(grade)}
+                  className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <Trash size={14} className="transition-transform duration-200 group-hover:scale-110" />
+                  Delete
+                </Button>
               </div>
 
             </Card>

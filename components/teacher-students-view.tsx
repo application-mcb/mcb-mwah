@@ -37,6 +37,7 @@ interface StudentProfile {
   userId: string;
   photoURL?: string;
   email?: string;
+  studentId?: string;
 }
 
 interface Subject {
@@ -200,7 +201,8 @@ export default function TeacherStudentsView({ teacherId }: TeacherStudentsViewPr
                     profilesMap[user.uid] = {
                       userId: user.uid,
                       photoURL: user.photoURL,
-                      email: user.email
+                      email: user.email,
+                      studentId: user.studentId
                     };
                   }
                 });
@@ -222,7 +224,8 @@ export default function TeacherStudentsView({ teacherId }: TeacherStudentsViewPr
                     profilesMap[data.user.uid] = {
                       userId: data.user.uid,
                       photoURL: data.user.photoURL,
-                      email: data.user.email
+                      email: data.user.email,
+                      studentId: data.user.studentId
                     };
                   }
                 }
@@ -358,7 +361,7 @@ export default function TeacherStudentsView({ teacherId }: TeacherStudentsViewPr
     const query = searchQuery.toLowerCase();
     if (query) {
       const fullName = formatFullName(enrollment).toLowerCase();
-      const studentId = enrollment.enrollmentInfo?.studentId?.toLowerCase() || '';
+      const studentId = studentProfiles[enrollment.userId]?.studentId?.toLowerCase() || '';
       const email = enrollment.personalInfo?.email?.toLowerCase() || '';
 
       return fullName.includes(query) ||
@@ -503,15 +506,14 @@ export default function TeacherStudentsView({ teacherId }: TeacherStudentsViewPr
         {/* Search and Filter Controls */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4 flex-1">
-            <div className="relative flex-1 max-w-md">
-              <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <div className="flex-1 max-w-md">
               <input
                 type="text"
                 placeholder="Search students..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
-                 
+                className="w-full pr-4 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
+
               />
             </div>
           </div>
@@ -680,17 +682,16 @@ export default function TeacherStudentsView({ teacherId }: TeacherStudentsViewPr
       {/* Search and Filter Controls */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4 flex-1">
-          <div className="relative flex-1 max-w-md">
-            <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search students..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
-               
-            />
-          </div>
+            <div className="flex-1 max-w-md">
+              <input
+                type="text"
+                placeholder="Search students..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pr-4 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
+
+              />
+            </div>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -892,7 +893,7 @@ export default function TeacherStudentsView({ teacherId }: TeacherStudentsViewPr
                             </div>
                             <div className="text-xs text-gray-500 font-mono"
                                   >
-                              {enrollment.enrollmentInfo?.studentId || 'No ID'}
+                              {studentProfiles[enrollment.userId]?.studentId || 'No ID'}
                             </div>
                             <div className="text-xs text-gray-500"
                                   >

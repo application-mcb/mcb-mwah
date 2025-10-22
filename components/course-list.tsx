@@ -124,17 +124,13 @@ export default function CourseList({
       {/* Search Bar */}
       {onSearchChange && (
         <div className="mt-4">
-          <div className="relative max-w-md">
-            <MagnifyingGlass
-              size={20}
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            />
+          <div className="max-w-md">
             <input
               type="text"
               placeholder="Search courses by code, name, or description..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg focus:scale-105"
+              className="w-full pr-4 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg focus:scale-105"
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
             />
           </div>
@@ -270,29 +266,69 @@ export default function CourseList({
           {courses.map((course, index) => (
             <Card
               key={course.code}
-              className={`p-6 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 bg-${course.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
+              className={`p-6 hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 bg-${course.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
               style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'both' }}
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start gap-4 mb-4">
                 <div className="w-12 h-12 bg-white flex items-center justify-center flex-shrink-0">
                   <GraduationCap size={24} style={{ color: getColorValue(course.color) }} weight="fill" />
                 </div>
-                <div className="flex space-y-2 gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <h3
+                      className="text-lg font-semibold text-white"
+                      style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                    >
+                      {course.code}
+                    </h3>
+                    <div className="w-3 h-3 bg-white/30"></div>
+                    <div className="w-3 h-3 bg-white/20"></div>
+                    <div className="w-3 h-3 bg-white/10"></div>
+                  </div>
+                  <p
+                    className="text-sm text-white/90 line-clamp-2 mb-2"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    {course.name}
+                  </p>
+                  {course.description && (
+                    <p
+                      className="text-xs text-white/70 line-clamp-2 mb-3"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      {course.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="pt-2 border-t border-white/20">
+                  <p
+                    className="text-xs text-white/60 mb-3"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    Created {formatDate(course.createdAt)}
+                  </p>
+                </div>
+                
+                {/* Action Buttons - moved below created date */}
+                <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onViewCourse(course)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
+                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
                     style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   >
                     <Eye size={14} className="transition-transform duration-200" />
-                     Details
+                    Details
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onEditCourse(course)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
+                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
                     style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   >
                     <Pencil size={14} className="transition-transform duration-200" />
@@ -302,48 +338,12 @@ export default function CourseList({
                     variant="ghost"
                     size="sm"
                     onClick={() => onDeleteCourse(course)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
+                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
                     style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   >
                     <Trash size={14} className="transition-transform duration-200" />
                     Delete
                   </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <h3
-                    className="text-lg font-semibold text-white"
-                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                  >
-                    {course.code}
-                  </h3>
-                  <div className="w-3 h-3 bg-white/30"></div>
-                  <div className="w-3 h-3 bg-white/20"></div>
-                  <div className="w-3 h-3 bg-white/10"></div>
-                </div>
-                <p
-                  className="text-sm text-white/90 line-clamp-2"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                >
-                  {course.name}
-                </p>
-                {course.description && (
-                  <p
-                    className="text-xs text-white/70 line-clamp-2"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    {course.description}
-                  </p>
-                )}
-                <div className="pt-2 border-t border-white/20">
-                  <p
-                    className="text-xs text-white/60"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    Created {formatDate(course.createdAt)}
-                  </p>
                 </div>
               </div>
             </Card>

@@ -248,7 +248,7 @@ export default function GradeForm({
                 value={formData.gradeLevel}
                 onChange={(e) => handleInputChange('gradeLevel', e.target.value)}
                 disabled={loading || isEditing || (!isEditing && !hasAvailableGrades)} // Can't change grade level when editing or no grades available
-                className={`w-full pl-10 pr-3 py-2 border-l-5 border-blue-900 border-r-0 border-t-0 border-b-0 rounded-none bg-white text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.gradeLevel ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
+                className={`w-full pl-10 pr-3 py-2 border-l-5 border-blue-900 border-r-0 border-t-0 border-b-0 rounded-none bg-white text-base shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.gradeLevel ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 aria-describedby={errors.gradeLevel ? 'grade-level-error' : undefined}
               >
@@ -337,7 +337,7 @@ export default function GradeForm({
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 disabled={loading || (!isEditing && !hasAvailableGrades)}
-                className={`border-l-5 border-blue-900 border-r-0 border-t-0 border-b-0 rounded-none flex min-h-[100px] w-full bg-white pl-10 pr-3 py-2 text-base shadow-sm placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
+                className={`border-l-5 border-blue-900 border-r-0 border-t-0 border-b-0 rounded-none flex min-h-[100px] w-full bg-white pl-10 pr-3 py-2 text-base shadow-lg placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 aria-describedby={errors.description ? 'description-error' : undefined}
                 maxLength={150}

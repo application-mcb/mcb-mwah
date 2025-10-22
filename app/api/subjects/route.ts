@@ -6,6 +6,7 @@ import { RegistrarDatabase } from '@/lib/registrar-database';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const gradeLevel = searchParams.get('gradeLevel');
+  const courseCode = searchParams.get('courseCode');
   const color = searchParams.get('color');
   const search = searchParams.get('search');
 
@@ -18,6 +19,9 @@ export async function GET(request: NextRequest) {
     } else if (gradeLevel) {
       // Get subjects by grade level
       subjects = await SubjectDatabase.getSubjectsByGradeLevel(parseInt(gradeLevel));
+    } else if (courseCode) {
+      // Get subjects by course code
+      subjects = await SubjectDatabase.getSubjectsByCourseCode(courseCode);
     } else if (color) {
       // Get subjects by color - validate color is in SUBJECT_COLORS
       const { SUBJECT_COLORS } = await import('@/lib/subject-database');
@@ -39,11 +43,12 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching subjects:', error);
     console.error('Grade level param:', gradeLevel);
+    console.error('Course code param:', courseCode);
     console.error('Color param:', color);
     console.error('Search param:', search);
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch subjects';
     return NextResponse.json(
-      { error: errorMessage, details: { gradeLevel, color, search } },
+      { error: errorMessage, details: { gradeLevel, courseCode, color, search } },
       { status: 500 }
     );
   }
@@ -52,12 +57,23 @@ export async function GET(request: NextRequest) {
 // POST /api/subjects - Create a new subject
 export async function POST(request: NextRequest) {
   try {
-    const { code, name, description, gradeLevel, color, lectureUnits, labUnits, registrarUid } = await request.json();
+    const requestBody = await request.json();
+    console.log('Subject creation request body:', requestBody);
+    
+    const { code, name, description, gradeLevels, courseCodes, courseSelections, color, lectureUnits, labUnits, registrarUid } = requestBody;
 
     // Validate required fields
-    if (!code || !name || !description || gradeLevel === undefined || !color || lectureUnits === undefined || labUnits === undefined || !registrarUid) {
+    if (!code || !name || !description || !color || lectureUnits === undefined || labUnits === undefined || !registrarUid) {
       return NextResponse.json(
-        { error: 'Missing required fields: code, name, description, gradeLevel, color, lectureUnits, labUnits, registrarUid' },
+        { error: 'Missing required fields: code, name, description, color, lectureUnits, labUnits, registrarUid' },
+        { status: 400 }
+      );
+    }
+
+    // Validate that at least one grade level or course selection is provided
+    if ((!gradeLevels || gradeLevels.length === 0) && (!courseCodes || courseCodes.length === 0) && (!courseSelections || courseSelections.length === 0)) {
+      return NextResponse.json(
+        { error: 'At least one grade level or college course must be selected' },
         { status: 400 }
       );
     }
@@ -75,7 +91,9 @@ export async function POST(request: NextRequest) {
       code: code.toUpperCase().trim(),
       name: name.trim(),
       description: description.trim(),
-      gradeLevel: parseInt(gradeLevel),
+      gradeLevels: gradeLevels ? gradeLevels.map((level: any) => parseInt(level)) : [],
+      courseCodes: courseCodes || [],
+      courseSelections: courseSelections || [],
       color: color as SubjectColor,
       lectureUnits: parseInt(lectureUnits),
       labUnits: parseInt(labUnits),
@@ -85,7 +103,9 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(),
     };
 
+    console.log('Creating subject with data:', subjectData);
     const subject = await SubjectDatabase.createSubject(subjectData);
+    console.log('Subject created successfully:', subject);
 
     return NextResponse.json({
       subject,

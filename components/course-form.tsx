@@ -232,7 +232,7 @@ export default function CourseForm({
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 disabled={loading}
-                className={`border-1 border-blue-900 rounded-none flex min-h-[100px] w-full rounded-md bg-white pl-10 pr-3 py-2 text-base shadow-sm placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${
+                className={`border-1 border-blue-900 rounded-none flex min-h-[100px] w-full rounded-md bg-white pl-10 pr-3 py-2 text-base shadow-lg placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${
                   errors.description ? 'border-red-500 focus-visible:ring-red-500' : ''
                 }`}
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -306,7 +306,7 @@ export default function CourseForm({
           >
             {loading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <div className="animate-spin rounded-full aspect-square h-4 w-4 border-b-2 border-white mr-2"></div>
                 {isEditing ? 'Updating...' : 'Creating...'}
               </>
             ) : (

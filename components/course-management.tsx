@@ -364,7 +364,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-md w-full p-6">
+            <div className="bg-white shadow-lg max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-red-100 flex items-center justify-center">
@@ -463,7 +463,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-2xl w-full p-6">
+            <div className="bg-white shadow-lg max-w-2xl w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className={`w-10 h-10 bg-${viewingCourse.color} flex items-center justify-center`}>

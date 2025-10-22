@@ -146,7 +146,7 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
     return filtered;
   }, [subjectSets, searchQuery, selectedGradeLevel]);
 
-  const handleCreateSubjectSet = async (subjectSetData: { name: string; description: string; gradeLevel: number; color: any; subjects: string[] }) => {
+  const handleCreateSubjectSet = async (subjectSetData: { name: string; description: string; gradeLevels: number[]; courseSelections: { code: string; year: number; semester: 'first-sem' | 'second-sem' }[]; color: any; subjects: string[] }) => {
     try {
       setActionLoading(true);
       setError('');
@@ -182,7 +182,7 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
     }
   };
 
-  const handleUpdateSubjectSet = async (subjectSetData: { name: string; description: string; gradeLevel: number; color: any; subjects: string[] }) => {
+  const handleUpdateSubjectSet = async (subjectSetData: { name: string; description: string; gradeLevels: number[]; courseSelections: { code: string; year: number; semester: 'first-sem' | 'second-sem' }[]; color: any; subjects: string[] }) => {
     try {
       setActionLoading(true);
       setError('');
@@ -490,7 +490,7 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
             {filteredSubjectSets.map((subjectSet) => (
               <Card
                 key={subjectSet.id}
-                className={`group p-6 border-none hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 bg-${subjectSet.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
+                className={`group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 bg-${subjectSet.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
               >
                 <div className="space-y-4 flex flex-col justify-between h-full">
                   {/* Header */}
@@ -637,7 +637,7 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-md w-full p-6">
+            <div className="bg-white shadow-lg max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-red-100 flex items-center justify-center">
@@ -735,7 +735,7 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-4xl h-[80vh] overflow-auto w-full p-6">
+            <div className="bg-white shadow-lg max-w-4xl h-[80vh] overflow-auto w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className={`w-10 h-10 ${colorMap[viewingSubjectSet.color]?.bg || 'bg-gray-400'} flex items-center justify-center`}>

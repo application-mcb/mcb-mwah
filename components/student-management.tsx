@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { EnrollmentData } from '@/lib/enrollment-database';
+import { EnrollmentData, EnrollmentDatabase } from '@/lib/enrollment-database';
 import { SubjectData } from '@/lib/subject-database';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase-server';
@@ -146,6 +146,7 @@ interface StudentProfile {
   userId: string;
   photoURL?: string;
   email?: string;
+  studentId?: string;
   guardianName?: string;
   guardianPhone?: string;
   guardianEmail?: string;
@@ -212,6 +213,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
   const [loading, setLoading] = useState(true);
   const [loadingGrades, setLoadingGrades] = useState(true);
   const [loadingCourses, setLoadingCourses] = useState(true);
+  const [allDataLoaded, setAllDataLoaded] = useState(false);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showViewModal, setShowViewModal] = useState(false);
@@ -268,6 +270,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
   const setupRealtimeListener = async () => {
     try {
       setLoading(true);
+      setAllDataLoaded(false);
       setError('');
 
       // Get system config to determine current AY code
@@ -298,10 +301,33 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
         for (const doc of snapshot.docs) {
           const enrollmentDoc = doc.data();
           if (enrollmentDoc.enrollmentData) {
-            enrollments.push({
-              ...enrollmentDoc.enrollmentData,
-              id: doc.id
-            });
+            // Get the userId from the document ID (format: userId_ayCode)
+            const userId = doc.id.split('_')[0];
+
+            try {
+              // Fetch the detailed enrollment data from the students collection
+              const detailedEnrollmentResult = await EnrollmentDatabase.getEnrollment(userId, ayCode);
+
+              if (detailedEnrollmentResult.success && detailedEnrollmentResult.data) {
+                enrollments.push({
+                  ...detailedEnrollmentResult.data,
+                  id: doc.id
+                });
+              } else {
+                // Fallback to top-level data if detailed data is not available
+                enrollments.push({
+                  ...enrollmentDoc.enrollmentData,
+                  id: doc.id
+                });
+              }
+            } catch (error) {
+              console.warn(`Failed to load detailed enrollment for user ${userId}:`, error);
+              // Fallback to top-level data
+              enrollments.push({
+                ...enrollmentDoc.enrollmentData,
+                id: doc.id
+              });
+            }
           }
         }
 
@@ -318,15 +344,22 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
         setError('');
 
         // Update related data when enrollments change
-        await Promise.all([
-          loadStudentProfiles(enrollments),
-          loadStudentDocuments(enrollments),
-          loadSubjectSets(),
-          loadSubjects(),
-          loadGrades(),
-          loadSections(),
-          loadCourses()
-        ]);
+        try {
+          await Promise.all([
+            loadStudentProfiles(enrollments),
+            loadStudentDocuments(enrollments),
+            loadSubjectSets(),
+            loadSubjects(),
+            loadGrades(),
+            loadSections(),
+            loadCourses()
+          ]);
+          console.log('✅ All data loaded successfully');
+          setAllDataLoaded(true);
+        } catch (dataError) {
+          console.error('❌ Error loading related data:', dataError);
+          setError('Failed to load all required data');
+        }
       }, (error) => {
         console.error('❌ Real-time listener error:', error);
         setError('Failed to listen for real-time updates');
@@ -372,6 +405,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
               userId: enrollment.userId,
               photoURL: studentData.user?.photoURL,
               email: studentData.user?.email,
+              studentId: studentData.user?.studentId,
               guardianName: studentData.user?.guardianName,
               guardianPhone: studentData.user?.guardianPhone,
               guardianEmail: studentData.user?.guardianEmail,
@@ -1489,7 +1523,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                           return (
                             <div key={subjectId} className="text-xs text-gray-700 flex items-center gap-2">
                               <div className={`w-2 h-2 border-2 border-${subject.color} bg-${subject.color} flex-shrink-0`}></div>
-                              <span className="truncate">{subject.name}</span>
+                              <span className="truncate">{subject.code} {subject.name}</span>
                             </div>
                           );
                         })}
@@ -1598,37 +1632,8 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
     }
   ], [viewingEnrollment, studentProfiles, studentDocuments, subjectSets, subjects, showUnenrollModal, unenrollCountdown, unenrollingStudent]);
 
-  if (loading) {
-    return (
-      <div className="p-6 space-y-6">
-        {/* Header Skeleton */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="space-y-2">
-            <div className="h-8 bg-gray-200 rounded w-48 animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded w-64 animate-pulse"></div>
-          </div>
-        </div>
-
-        {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <SkeletonCard key={index} />
-          ))}
-        </div>
-
-        {/* Search and Controls Skeleton */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="h-10 bg-gray-200 rounded flex-1 max-w-md animate-pulse"></div>
-          </div>
-          <div className="h-10 bg-gray-200 rounded w-24 animate-pulse"></div>
-        </div>
-
-        {/* Table Skeleton */}
-        <SkeletonTable />
-      </div>
-    );
-  }
+  // Show loading skeleton only for table during data loading
+  const showTableSkeleton = loading || !allDataLoaded;
 
   return (
     <div className="p-6 space-y-6">
@@ -1658,7 +1663,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Junior High School */}
-        <Card className="p-6 bg-white border border-gray-200 shadow-sm">
+        <Card className="p-6 bg-white border border-gray-200 shadow-lg">
           <div className="space-y-4">
             <h3 className="text-xs font-medium text-gray-900 flex items-center gap-2" >
               <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
@@ -1698,7 +1703,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
         </Card>
 
         {/* Senior High School */}
-        <Card className="p-6 bg-white border border-gray-200 shadow-sm">
+        <Card className="p-6 bg-white border border-gray-200 shadow-lg">
           <div className="space-y-4">
             <h3 className="text-xs font-medium text-gray-900 flex items-center gap-2" >
               <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
@@ -1738,7 +1743,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
         </Card>
 
         {/* College Level */}
-        <Card className="p-6 bg-white border border-gray-200 shadow-sm">
+        <Card className="p-6 bg-white border border-gray-200 shadow-lg">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-medium text-gray-900 flex items-center gap-2" >
@@ -1804,15 +1809,14 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
       {/* Controls Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
         <div className="flex items-center gap-4 flex-1">
-          <div className="relative flex-1 max-w-md">
-            <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <div className="flex-1 max-w-md">
             <Input
               type="text"
               placeholder="Search enrolled students..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-full"
-              
+              className="pr-4 py-2 w-full"
+
             />
           </div>
         </div>
@@ -1853,67 +1857,70 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
 
       {/* Students Table */}
       <Card className="overflow-hidden pt-0 mt-0 mb-0 pb-0">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-100 border-b-2 border-gray-300">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                  >
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <User size={12} weight="bold" className="text-white" />
-                    </div>
-                    Student
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                  >
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <Users size={12} weight="bold" className="text-white" />
-                    </div>
-                    Student ID
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                  >
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <GraduationCap size={12} weight="bold" className="text-white" />
-                    </div>
-                    Grade Level
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                  >
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <Users size={12} weight="bold" className="text-white" />
-                    </div>
-                    Section
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <Gear size={12} weight="bold" className="text-white" />
-                    </div>
-                    Actions
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAndSortedEnrollments.length === 0 ? (
+        {showTableSkeleton ? (
+          <SkeletonTable />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-100 border-b-2 border-gray-300">
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500 border-t border-gray-200"
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
                     >
-                    {searchQuery ? 'No enrolled students match your search.' : 'No enrolled students found.'}
-                  </td>
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
+                        <User size={12} weight="bold" className="text-white" />
+                      </div>
+                      Student
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                    >
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
+                        <Users size={12} weight="bold" className="text-white" />
+                      </div>
+                      Student ID
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                    >
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
+                        <GraduationCap size={12} weight="bold" className="text-white" />
+                      </div>
+                      Grade Level
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                    >
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
+                        <Users size={12} weight="bold" className="text-white" />
+                      </div>
+                      Section
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
+                        <Gear size={12} weight="bold" className="text-white" />
+                      </div>
+                      Actions
+                    </div>
+                  </th>
                 </tr>
-              ) : (
-                filteredAndSortedEnrollments.map((enrollment) => (
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredAndSortedEnrollments.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500 border-t border-gray-200"
+                      >
+                      {searchQuery ? 'No enrolled students match your search.' : 'No enrolled students found.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAndSortedEnrollments.map((enrollment) => (
                   <tr key={enrollment.userId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="flex items-center">
@@ -1963,7 +1970,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="text-xs font-mono text-gray-900 uppercase" style={{ fontWeight: 400 }}>
-                        ID: {(enrollment.enrollmentInfo?.studentId || 'N/A').substring(0, 10)}
+                        ID: {(studentProfiles[enrollment.userId]?.studentId || 'N/A').substring(0, 10)}
                       </div>
                       <div className="text-xs font-mono text-gray-500 uppercase" style={{ fontWeight: 300 }}>
                         #{(enrollment.id || 'N/A').substring(0, 10)}
@@ -2088,6 +2095,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
             </tbody>
           </table>
         </div>
+        )}
       </Card>
 
       {/* View Student Modal */}

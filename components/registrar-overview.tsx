@@ -603,7 +603,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
                     {navigationItems.slice(groupIndex * 3, (groupIndex + 1) * 3).map((item, itemIndex) => (
                       <div
                         key={item.id}
-                        className="group p-4 border-none hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                        className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
                         style={{ 
                           animationDelay: `${(groupIndex * 150) + (itemIndex * 75) + 200}ms`,
                           animationFillMode: 'both'
@@ -690,7 +690,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
                     return (
                     <div
                       key={enrollment.id || studentIndex}
-                      className="group p-4 border-none hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                      className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
                       style={{ 
                         animationDelay: `${(groupIndex * 150) + (studentIndex * 75) + 200}ms`,
                         animationFillMode: 'both'
@@ -836,7 +836,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
                       return (
                         <div
                           key={teacher.id || teacherIndex}
-                          className="group p-4 border-none hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                          className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
                           style={{ 
                             animationDelay: `${(groupIndex * 150) + (teacherIndex * 75) + 200}ms`,
                             animationFillMode: 'both'
@@ -957,7 +957,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
                       return (
                         <div
                           key={grade.id || gradeIndex}
-                          className="group p-4 border-none hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                          className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
                           style={{ 
                             animationDelay: `${(groupIndex * 150) + (gradeIndex * 75) + 200}ms`,
                             animationFillMode: 'both'

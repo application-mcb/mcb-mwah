@@ -368,7 +368,7 @@ export default function TeacherScheduleView({ teacherId }: TeacherScheduleViewPr
                   {/* Subject Name */}
                   <div className="text-xs text-gray-700 mb-2"
                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-                    {item.subject.name}
+                    {item.subject.code} {item.subject.name}
                   </div>
 
                   {/* Section and Grade */}

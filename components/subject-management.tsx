@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import SubjectForm from '@/components/subject-form';
 import SubjectList from '@/components/subject-list';
 import SubjectSetForm from '@/components/subject-set-form';
+import SubjectAssignmentForm from '@/components/subject-assignment-form';
 import { LoaderOverlay } from '@/components/loader-overlay';
 import { SubjectData, SubjectColor, SubjectSetData } from '@/lib/subject-database';
 import { GradeData } from '@/lib/grade-section-database';
@@ -17,7 +18,7 @@ interface SubjectManagementProps {
   registrarUid: string;
 }
 
-type ActiveTab = 'subjects' | 'subject-sets';
+type ActiveTab = 'subjects' | 'subject-sets' | 'subject-assignments';
 
 export default function SubjectManagement({ registrarUid }: SubjectManagementProps) {
   const [activeTab, setActiveTab] = useState<ActiveTab>('subjects');
@@ -40,6 +41,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGradeLevel, setSelectedGradeLevel] = useState<number | undefined>(undefined);
   const [grades, setGrades] = useState<GradeData[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
 
   // Subject Set states
   const [subjectSets, setSubjectSets] = useState<SubjectSetData[]>([]);
@@ -59,13 +61,33 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
   const [subjectSetSearchQuery, setSubjectSetSearchQuery] = useState('');
   const [selectedSubjectSetGradeLevel, setSelectedSubjectSetGradeLevel] = useState<number | null>(null);
 
+  // Subject Assignment states
+  const [subjectAssignments, setSubjectAssignments] = useState<any[]>([]);
+  const [subjectAssignmentLoading, setSubjectAssignmentLoading] = useState(true);
+  const [subjectAssignmentActionLoading, setSubjectAssignmentActionLoading] = useState(false);
+  const [subjectAssignmentError, setSubjectAssignmentError] = useState('');
+  const [subjectAssignmentSuccess, setSubjectAssignmentSuccess] = useState('');
+  const [showCreateSubjectAssignmentModal, setShowCreateSubjectAssignmentModal] = useState(false);
+  const [showEditSubjectAssignmentModal, setShowEditSubjectAssignmentModal] = useState(false);
+  const [showDeleteSubjectAssignmentModal, setShowDeleteSubjectAssignmentModal] = useState(false);
+  const [editingSubjectAssignment, setEditingSubjectAssignment] = useState<any>(null);
+  const [deletingSubjectAssignment, setDeletingSubjectAssignment] = useState<any>(null);
+  const [subjectAssignmentCountdown, setSubjectAssignmentCountdown] = useState(5);
+  const [subjectAssignmentIsConfirmed, setSubjectAssignmentIsConfirmed] = useState(false);
+  const [showViewSubjectAssignmentModal, setShowViewSubjectAssignmentModal] = useState(false);
+  const [viewingSubjectAssignment, setViewingSubjectAssignment] = useState<any>(null);
+  const [subjectAssignmentSearchQuery, setSubjectAssignmentSearchQuery] = useState('');
+  const [selectedSubjectAssignmentCourse, setSelectedSubjectAssignmentCourse] = useState<string | null>(null);
+
   const { user } = useAuth();
 
-  // Load subjects, subject sets and grades on component mount
+  // Load subjects, subject sets, grades, courses and subject assignments on component mount
   useEffect(() => {
     loadSubjects();
     loadSubjectSets();
     loadGrades();
+    loadCourses();
+    loadSubjectAssignments();
   }, []);
 
   // Countdown timer for delete confirmation
@@ -89,6 +111,17 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
       if (timer) clearTimeout(timer);
     };
   }, [showDeleteSubjectSetModal, subjectSetCountdown]);
+
+  // Countdown timer for subject assignment delete confirmation
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showDeleteSubjectAssignmentModal && subjectAssignmentCountdown > 0) {
+      timer = setTimeout(() => setSubjectAssignmentCountdown(subjectAssignmentCountdown - 1), 1000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showDeleteSubjectAssignmentModal, subjectAssignmentCountdown]);
 
   // Handle grade level selection/deselection
   const handleGradeLevelChange = (gradeLevel: number | undefined) => {
@@ -128,6 +161,38 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
     }
   };
 
+  const loadCourses = async () => {
+    try {
+      const response = await fetch('/api/courses');
+      if (response.ok) {
+        const data = await response.json();
+        setCourses(data.courses || []);
+      }
+    } catch (error) {
+      console.error('Error loading courses:', error);
+    }
+  };
+
+  const loadSubjectAssignments = async () => {
+    try {
+      setSubjectAssignmentLoading(true);
+      setSubjectAssignmentError('');
+
+      const response = await fetch('/api/subject-assignments');
+
+      if (!response.ok) {
+        throw new Error('Failed to load subject assignments');
+      }
+
+      const data = await response.json();
+      setSubjectAssignments(data.subjectAssignments || []);
+    } catch (error: any) {
+      setSubjectAssignmentError('Failed to load subject assignments: ' + error.message);
+    } finally {
+      setSubjectAssignmentLoading(false);
+    }
+  };
+
   const loadSubjectSets = async () => {
     try {
       setSubjectSetLoading(true);
@@ -148,7 +213,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
     }
   };
 
-  const handleCreateSubject = async (subjectData: { name: string; description: string; gradeLevel: number; color: SubjectColor; lectureUnits: number; labUnits: number }) => {
+  const handleCreateSubject = async (subjectData: { code: string; name: string; description: string; gradeLevels: number[]; courseCodes: string[]; color: SubjectColor; lectureUnits: number; labUnits: number }) => {
     try {
       setActionLoading(true);
       setError('');
@@ -184,7 +249,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
     }
   };
 
-  const handleUpdateSubject = async (subjectData: { name: string; description: string; gradeLevel: number; color: SubjectColor; lectureUnits: number; labUnits: number }) => {
+  const handleUpdateSubject = async (subjectData: { code: string; name: string; description: string; gradeLevels: number[]; courseCodes: string[]; color: SubjectColor; lectureUnits: number; labUnits: number }) => {
     try {
       setActionLoading(true);
       setError('');
@@ -274,7 +339,8 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
   const handleEditSubject = (subject: SubjectData) => {
     setEditingSubject({
       ...subject,
-      gradeLevel: subject.gradeLevel.toString(),
+      gradeLevels: subject.gradeLevels || [subject.gradeLevel || 7], // Fallback for old data
+      courseCodes: subject.courseCodes || [],
       lectureUnits: subject.lectureUnits.toString(),
       labUnits: subject.labUnits.toString()
     });
@@ -303,7 +369,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
   };
 
   // Subject Set Handlers
-  const handleCreateSubjectSet = async (subjectSetData: { name: string; description: string; gradeLevel: number; color: any; subjects: string[] }) => {
+  const handleCreateSubjectSet = async (subjectSetData: { name: string; description: string; gradeLevels: number[]; courseSelections: { code: string; year: number; semester: 'first-sem' | 'second-sem' }[]; color: any; subjects: string[] }) => {
     try {
       setSubjectSetActionLoading(true);
       setSubjectSetError('');
@@ -339,7 +405,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
     }
   };
 
-  const handleUpdateSubjectSet = async (subjectSetData: { name: string; description: string; gradeLevel: number; color: any; subjects: string[] }) => {
+  const handleUpdateSubjectSet = async (subjectSetData: { name: string; description: string; gradeLevels: number[]; courseSelections: { code: string; year: number; semester: 'first-sem' | 'second-sem' }[]; color: any; subjects: string[] }) => {
     try {
       setSubjectSetActionLoading(true);
       setSubjectSetError('');
@@ -459,6 +525,151 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
     setSelectedSubjectSetGradeLevel(null);
   };
 
+  const clearSubjectAssignmentFilters = () => {
+    setSubjectAssignmentSearchQuery('');
+    setSelectedSubjectAssignmentCourse(null);
+  };
+
+  // Subject Assignment Handlers
+  const handleCreateSubjectAssignment = async (assignmentData: {
+    level: 'high-school' | 'college';
+    gradeLevel?: number;
+    courseCode?: string;
+    courseName?: string;
+    yearLevel?: number;
+    semester?: 'first-sem' | 'second-sem';
+    subjectSetId: string;
+  }) => {
+    try {
+      setSubjectAssignmentActionLoading(true);
+      setSubjectAssignmentError('');
+      setSubjectAssignmentSuccess('');
+
+      const response = await fetch('/api/subject-assignments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...assignmentData,
+          registrarUid
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create subject assignment');
+      }
+
+      setSubjectAssignments(prev => [...prev, data.subjectAssignment]);
+      setSubjectAssignmentSuccess('Subject assignment created successfully!');
+      setShowCreateSubjectAssignmentModal(false);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSubjectAssignmentSuccess(''), 3000);
+    } catch (error: any) {
+      setSubjectAssignmentError(error.message);
+    } finally {
+      setSubjectAssignmentActionLoading(false);
+    }
+  };
+
+  const handleUpdateSubjectAssignment = async (assignmentData: {
+    level: 'high-school' | 'college';
+    gradeLevel?: number;
+    courseCode?: string;
+    courseName?: string;
+    yearLevel?: number;
+    semester?: 'first-sem' | 'second-sem';
+    subjectSetId: string;
+  }) => {
+    try {
+      setSubjectAssignmentActionLoading(true);
+      setSubjectAssignmentError('');
+      setSubjectAssignmentSuccess('');
+
+      if (!editingSubjectAssignment) return;
+
+      const response = await fetch(`/api/subject-assignments/${editingSubjectAssignment.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...assignmentData,
+          registrarUid
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update subject assignment');
+      }
+
+      setSubjectAssignments(prev =>
+        prev.map(assignment =>
+          assignment.id === editingSubjectAssignment.id ? data.subjectAssignment : assignment
+        )
+      );
+      setSubjectAssignmentSuccess('Subject assignment updated successfully!');
+      setShowEditSubjectAssignmentModal(false);
+      setEditingSubjectAssignment(null);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSubjectAssignmentSuccess(''), 3000);
+    } catch (error: any) {
+      setSubjectAssignmentError(error.message);
+    } finally {
+      setSubjectAssignmentActionLoading(false);
+    }
+  };
+
+  const handleDeleteSubjectAssignment = async () => {
+    if (!deletingSubjectAssignment) return;
+
+    try {
+      setSubjectAssignmentActionLoading(true);
+      setSubjectAssignmentError('');
+      setSubjectAssignmentSuccess('');
+
+      const response = await fetch(`/api/subject-assignments/${deletingSubjectAssignment.id}?registrarUid=${registrarUid}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete subject assignment');
+      }
+
+      setSubjectAssignments(prev => prev.filter(a => a.id !== deletingSubjectAssignment.id));
+      setSubjectAssignmentSuccess(`Subject assignment "${deletingSubjectAssignment.name}" deleted successfully!`);
+      setShowDeleteSubjectAssignmentModal(false);
+      setDeletingSubjectAssignment(null);
+
+      setTimeout(() => setSubjectAssignmentSuccess(''), 3000);
+    } catch (error: any) {
+      setSubjectAssignmentError(error.message || 'Failed to delete subject assignment');
+    } finally {
+      setSubjectAssignmentActionLoading(false);
+    }
+  };
+
+  const handleSubjectAssignmentCancel = () => {
+    setShowCreateSubjectAssignmentModal(false);
+    setShowEditSubjectAssignmentModal(false);
+    setShowDeleteSubjectAssignmentModal(false);
+    setShowViewSubjectAssignmentModal(false);
+    setEditingSubjectAssignment(null);
+    setDeletingSubjectAssignment(null);
+    setViewingSubjectAssignment(null);
+    setSubjectAssignmentCountdown(5);
+    setSubjectAssignmentIsConfirmed(false);
+    setSubjectAssignmentError('');
+    setSubjectAssignmentSuccess('');
+  };
+
   // Function to get appropriate icon based on subject content
   const getSubjectIcon = (subject: SubjectData) => {
     const subjectName = subject.name.toLowerCase();
@@ -538,6 +749,28 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
     return filtered;
   }, [subjectSets, subjectSetSearchQuery, selectedSubjectSetGradeLevel]);
 
+  // Filter subject assignments based on search query and course
+  const filteredSubjectAssignments = useMemo(() => {
+    let filtered = subjectAssignments;
+
+    // Apply search filter
+    if (subjectAssignmentSearchQuery.trim()) {
+      const searchTerm = subjectAssignmentSearchQuery.toLowerCase();
+      filtered = filtered.filter((assignment) => (
+        assignment.courseCode.toLowerCase().includes(searchTerm) ||
+        assignment.courseName.toLowerCase().includes(searchTerm) ||
+        assignment.name.toLowerCase().includes(searchTerm)
+      ));
+    }
+
+    // Apply course filter
+    if (selectedSubjectAssignmentCourse) {
+      filtered = filtered.filter((assignment) => assignment.courseCode === selectedSubjectAssignmentCourse);
+    }
+
+    return filtered;
+  }, [subjectAssignments, subjectAssignmentSearchQuery, selectedSubjectAssignmentCourse]);
+
   // Helper function to get actual color value from subject set color
   const getColorValue = (color: string): string => {
     const colorMap: Record<string, string> = {
@@ -582,8 +815,8 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
 
   // Show success/error messages
   const renderMessages = () => {
-    const currentError = activeTab === 'subjects' ? error : subjectSetError;
-    const currentSuccess = activeTab === 'subjects' ? success : subjectSetSuccess;
+    const currentError = activeTab === 'subjects' ? error : activeTab === 'subject-sets' ? subjectSetError : subjectAssignmentError;
+    const currentSuccess = activeTab === 'subjects' ? success : activeTab === 'subject-sets' ? subjectSetSuccess : subjectAssignmentSuccess;
 
     if (!currentError && !currentSuccess) return null;
 
@@ -713,26 +946,123 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
                 {subjectSets.length}
               </span>
             </button>
+            <button
+              onClick={() => setActiveTab('subject-assignments')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === 'subject-assignments'
+                  ? 'bg-blue-900 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
+              <div className={`w-6 h-6 flex items-center justify-center ${
+                activeTab === 'subject-assignments' ? 'bg-white/20' : 'bg-gray-200'
+              }`}>
+                <Calculator
+                  size={14}
+                  className={activeTab === 'subject-assignments' ? 'text-white' : 'text-gray-600'}
+                  weight="fill"
+                />
+              </div>
+              Subject Assignments
+              <span className={`ml-1 px-1.5 py-0.5 text-xs font-medium ${
+                activeTab === 'subject-assignments'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-gray-200 text-gray-600'
+              }`}>
+                {subjectAssignments.length}
+              </span>
+            </button>
           </div>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'subjects' ? (
-          <SubjectList
-            subjects={subjects}
-            grades={grades}
-            onEditSubject={handleEditSubject}
-            onDeleteSubject={handleDeleteSubject}
-            onViewSubject={handleViewSubject}
-            onCreateNew={handleCreateNew}
-            loading={loading}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            totalSubjectsCount={subjects.length}
-            selectedGradeLevel={selectedGradeLevel}
-            onGradeLevelChange={handleGradeLevelChange}
-          />
-        ) : (
+          <div className="space-y-6">
+            {/* Search and Filters */}
+            <div className="bg-white p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="relative flex-1 max-w-md">
+                    <input
+                      type="text"
+                      placeholder="Search subjects..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full px-3 py-2 pl-10 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    />
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <select
+                    value={selectedGradeLevel || ''}
+                    onChange={(e) => setSelectedGradeLevel(e.target.value ? parseInt(e.target.value) : undefined)}
+                    className="px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    <option value="">All Grades</option>
+                    {[7, 8, 9, 10, 11, 12].map(grade => (
+                      <option key={grade} value={grade}>Grade {grade}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  {(searchQuery || selectedGradeLevel) && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedGradeLevel(undefined);
+                      }}
+                      className="text-gray-500 hover:text-gray-700"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleCreateNew}
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    <Plus size={16} className="mr-2" />
+                    Add Subject
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Results Summary */}
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                Showing {subjects.filter(subject =>
+                  (!searchQuery || subject.name.toLowerCase().includes(searchQuery.toLowerCase())) &&
+                  (!selectedGradeLevel || subject.gradeLevel === selectedGradeLevel)
+                ).length} of {subjects.length} subjects
+              </span>
+            </div>
+
+            <SubjectList
+              subjects={subjects}
+              grades={grades}
+              courses={courses}
+              onEditSubject={handleEditSubject}
+              onDeleteSubject={handleDeleteSubject}
+              onViewSubject={handleViewSubject}
+              onCreateNew={handleCreateNew}
+              loading={loading}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              totalSubjectsCount={subjects.length}
+              selectedGradeLevel={selectedGradeLevel}
+              onGradeLevelChange={handleGradeLevelChange}
+            />
+          </div>
+        ) : activeTab === 'subject-sets' ? (
           <div className="space-y-6">
             {/* Search and Filters */}
             <div className="bg-white p-6 border border-gray-200">
@@ -847,7 +1177,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
                 {filteredSubjectSets.map((subjectSet) => (
                   <Card
                     key={subjectSet.id}
-                    className={`group p-6 border-none hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 bg-${subjectSet.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
+                    className={`group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 bg-${subjectSet.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
                   >
                     <div className="space-y-4 flex flex-col justify-between h-full">
                       {/* Header */}
@@ -905,7 +1235,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
                                 <div className="w-4 h-4 bg-white/30 flex items-center justify-center">
                                   <IconComponent size={10} className="text-white" weight="fill" />
                                 </div>
-                                <span className="truncate">{subject.name}</span>
+                                <span className="truncate">{subject.code} {subject.name}</span>
                               </div>
                             );
                           })}
@@ -956,8 +1286,216 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
               </div>
             )}
           </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Search and Filters */}
+            <div className="bg-white p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="relative flex-1 max-w-md">
+                    <input
+                      type="text"
+                      placeholder="Search subject assignments..."
+                      value={subjectAssignmentSearchQuery}
+                      onChange={(e) => setSubjectAssignmentSearchQuery(e.target.value)}
+                      className="w-full px-3 py-2 pl-10 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    />
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <select
+                    value={selectedSubjectAssignmentCourse || ''}
+                    onChange={(e) => setSelectedSubjectAssignmentCourse(e.target.value || null)}
+                    className="px-3 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    <option value="">All Courses</option>
+                    {courses.map(course => (
+                      <option key={course.code} value={course.code}>{course.code} - {course.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  {(subjectAssignmentSearchQuery || selectedSubjectAssignmentCourse) && (
+                    <Button
+                      variant="ghost"
+                      onClick={clearSubjectAssignmentFilters}
+                      className="text-gray-500 hover:text-gray-700"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => setShowCreateSubjectAssignmentModal(true)}
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    <Plus size={16} className="mr-2" />
+                    Create Assignment
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Results Summary */}
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                Showing {filteredSubjectAssignments.length} of {subjectAssignments.length} subject assignments
+              </span>
+            </div>
+
+            {/* Subject Assignments Grid */}
+            {subjectAssignmentLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i} className="p-6 bg-gray-50 border-l-0 border-r-0 border-b-0">
+                    <div className="animate-pulse space-y-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gray-200"></div>
+                        <div className="space-y-2 flex-1">
+                          <div className="h-5 bg-gray-200 w-3/4"></div>
+                          <div className="h-4 bg-gray-100 w-1/2"></div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-100 w-full"></div>
+                        <div className="h-4 bg-gray-100 w-2/3"></div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : filteredSubjectAssignments.length === 0 ? (
+              <div className="text-center py-12">
+                <Calculator size={64} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+                <h3
+                  className="text-lg font-medium text-gray-900 mb-2"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  No subject assignments found
+                </h3>
+                <p
+                  className="text-sm text-gray-600 mb-6"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  {subjectAssignmentSearchQuery || selectedSubjectAssignmentCourse
+                    ? 'Try adjusting your search or filters'
+                    : 'Get started by creating your first subject assignment'
+                  }
+                </p>
+                <Button
+                  onClick={() => setShowCreateSubjectAssignmentModal(true)}
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <Plus size={16} className="mr-2" />
+                  Create Assignment
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredSubjectAssignments.map((assignment) => (
+                  <Card
+                    key={assignment.id}
+                    className="group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 bg-blue-900 text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
+                  >
+                    <div className="space-y-4 flex flex-col justify-between h-full">
+                      {/* Header */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-14 h-14 bg-white flex items-center justify-center">
+                            <Calculator size={28} style={{ color: '#1e3a8a' }} weight="fill" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3
+                              className="text-lg font-medium text-white truncate"
+                              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                            >
+                              {assignment.name}
+                            </h3>
+                            <p
+                              className="text-sm text-white/90"
+                              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                            >
+                              {assignment.courseCode} Year {assignment.yearLevel} {assignment.semester === 'first-sem' ? 'Q1' : 'Q2'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+
+                      {/* Subject Sets Preview */}
+                      <div className="space-y-2">
+                    
+                        <div className="flex flex-wrap gap-2">
+                          {(() => {
+                            const subjectSet = subjectSets.find(ss => ss.id === assignment.subjectSetId);
+                            if (!subjectSet) return null;
+
+                            return (
+                              <div
+                                className="flex items-center gap-2 px-3 py-2 bg-white/20 text-white text-xs rounded-lg border border-white/30"
+                                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                              >
+                                <div className="w-4 h-4 bg-white/30 flex items-center justify-center">
+                                  <Books size={10} className="text-white" weight="fill" />
+                                </div>
+                                <span className="truncate">{subjectSet.name}</span>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex justify-end space-x-2 pt-2 border-t border-white/20">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setViewingSubjectAssignment(assignment);
+                            setShowViewSubjectAssignmentModal(true);
+                          }}
+                          className="text-white/80 hover:text-white hover:bg-white/10"
+                        >
+                          <Eye size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingSubjectAssignment(assignment);
+                            setShowEditSubjectAssignmentModal(true);
+                          }}
+                          className="text-white/80 hover:text-white hover:bg-white/10"
+                        >
+                          <Pencil size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setDeletingSubjectAssignment(assignment);
+                            setShowDeleteSubjectAssignmentModal(true);
+                            setSubjectAssignmentCountdown(5);
+                            setSubjectAssignmentIsConfirmed(false);
+                          }}
+                          className="text-white/80 hover:text-white hover:bg-white/10"
+                        >
+                          <Trash size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         )}
-      </div>
 
       {/* Create Subject Modal */}
       {showCreateModal && (
@@ -1005,7 +1543,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-md w-full p-6">
+            <div className="bg-white shadow-lg max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-red-100 flex items-center justify-center">
@@ -1103,7 +1641,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-2xl w-full p-6">
+            <div className="bg-white shadow-lg max-w-2xl w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className={`w-10 h-10 bg-${viewingSubject.color} flex items-center justify-center`}>
@@ -1270,6 +1808,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
               initialData={undefined}
               isEditing={false}
               loading={subjectSetActionLoading}
+              onSubjectsRefresh={loadSubjects}
             />
           </div>
         </div>
@@ -1289,6 +1828,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
               initialData={editingSubjectSet}
               isEditing={true}
               loading={subjectSetActionLoading}
+              onSubjectsRefresh={loadSubjects}
             />
           </div>
         </div>
@@ -1302,7 +1842,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
             onClick={() => !subjectSetActionLoading && handleSubjectSetCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-md w-full p-6">
+            <div className="bg-white shadow-lg max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-red-100 flex items-center justify-center">
@@ -1400,7 +1940,7 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
             onClick={() => !subjectSetActionLoading && handleSubjectSetCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-4xl h-[80vh] overflow-auto w-full p-6">
+            <div className="bg-white shadow-lg max-w-4xl h-[80vh] overflow-auto w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className={`w-10 h-10 ${colorMap[viewingSubjectSet.color]?.bg || 'bg-gray-400'} flex items-center justify-center`}>
@@ -1600,11 +2140,265 @@ export default function SubjectManagement({ registrarUid }: SubjectManagementPro
         </div>
       )}
 
+      {/* Create Subject Assignment Modal */}
+      {showCreateSubjectAssignmentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => !subjectAssignmentActionLoading && handleSubjectAssignmentCancel()}
+          ></div>
+          <div className="relative animate-in fade-in duration-300">
+            <SubjectAssignmentForm
+              onSubmit={handleCreateSubjectAssignment}
+              onCancel={handleSubjectAssignmentCancel}
+              initialData={undefined}
+              isEditing={false}
+              loading={subjectAssignmentActionLoading}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Edit Subject Assignment Modal */}
+      {showEditSubjectAssignmentModal && editingSubjectAssignment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => !subjectAssignmentActionLoading && handleSubjectAssignmentCancel()}
+          ></div>
+          <div className="relative animate-in fade-in duration-300">
+            <SubjectAssignmentForm
+              onSubmit={handleUpdateSubjectAssignment}
+              onCancel={handleSubjectAssignmentCancel}
+              initialData={editingSubjectAssignment}
+              isEditing={true}
+              loading={subjectAssignmentActionLoading}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Delete Subject Assignment Modal */}
+      {showDeleteSubjectAssignmentModal && deletingSubjectAssignment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => !subjectAssignmentActionLoading && setShowDeleteSubjectAssignmentModal(false)}
+          ></div>
+          <div className="relative animate-in fade-in duration-300">
+            <div className="bg-white shadow-lg max-w-md w-full p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-red-100 flex items-center justify-center">
+                    <Warning size={20} className="text-red-600" weight="fill" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                    Delete Subject Assignment
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowDeleteSubjectAssignmentModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={subjectAssignmentActionLoading}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 bg-red-50 border-l-5 border-red-600">
+                  <p className="text-sm text-red-800 font-medium mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                    You are about to delete:
+                  </p>
+                  <p className="text-sm text-red-700 font-semibold" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                    {deletingSubjectAssignment.name}
+                  </p>
+                  <p className="text-xs text-red-600 mt-2" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                    This action cannot be undone and will permanently remove the subject assignment from the system.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="confirm-delete-assignment"
+                      checked={subjectAssignmentIsConfirmed}
+                      onChange={(e) => setSubjectAssignmentIsConfirmed(e.target.checked)}
+                      className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
+                      disabled={subjectAssignmentCountdown > 0}
+                    />
+                    <label
+                      htmlFor="confirm-delete-assignment"
+                      className={`text-sm ${subjectAssignmentCountdown > 0 ? 'text-gray-400' : 'text-gray-700'}`}
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      I understand this action cannot be undone
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+                <button
+                  onClick={handleSubjectAssignmentCancel}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  disabled={subjectAssignmentActionLoading}
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteSubjectAssignment}
+                  disabled={subjectAssignmentCountdown > 0 || !subjectAssignmentIsConfirmed || subjectAssignmentActionLoading}
+                  className={`px-4 py-2 text-sm font-medium text-white transition-colors ${
+                    subjectAssignmentCountdown > 0 || !subjectAssignmentIsConfirmed || subjectAssignmentActionLoading
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  {subjectAssignmentActionLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash size={16} className="mr-2 inline" />
+                      Delete Assignment {subjectAssignmentCountdown > 0 && `(${subjectAssignmentCountdown})`}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Subject Assignment Modal */}
+      {showViewSubjectAssignmentModal && viewingSubjectAssignment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => !subjectAssignmentActionLoading && setShowViewSubjectAssignmentModal(false)}
+          ></div>
+          <div className="relative animate-in fade-in duration-300">
+            <div className="bg-white shadow-lg max-w-2xl w-full p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                    <Calculator size={20} className="text-white" weight="fill" />
+                  </div>
+                  <h3
+                    className="text-lg font-semibold text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
+                    Subject Assignment Details
+                  </h3>
+                </div>
+                <button
+                  onClick={handleSubjectAssignmentCancel}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={subjectAssignmentActionLoading}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <label
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    >
+                      Assignment Name
+                    </label>
+                    <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                      <span
+                        className="text-sm text-gray-900 font-medium"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        {viewingSubjectAssignment.name}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    >
+                      Course & Year Level
+                    </label>
+                    <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                      <span
+                        className="text-sm text-gray-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        {viewingSubjectAssignment.courseCode} Year {viewingSubjectAssignment.yearLevel} {viewingSubjectAssignment.semester === 'first-sem' ? 'Q1' : 'Q2'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+
+                <div>
+                  <label
+                    className="block text-sm font-medium text-gray-700 mb-3"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Subject Set
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(() => {
+                      const subjectSet = subjectSets.find(ss => ss.id === viewingSubjectAssignment.subjectSetId);
+                      return (
+                        <div className="flex items-center space-x-4 p-4 bg-gray-50 border border-gray-200">
+                          <div className={`w-10 h-10 ${subjectSet ? `bg-${subjectSet.color}` : 'bg-gray-400'} flex items-center justify-center`}>
+                            <Books size={16} className="text-white" weight="fill" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className="text-sm font-medium text-gray-900 truncate"
+                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            >
+                              {subjectSet?.name || 'Unknown Subject Set'}
+                            </p>
+                            <p
+                              className="text-xs text-gray-600"
+                              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                            >
+                              {subjectSet ? `${subjectSet.subjects.length} subjects` : 'Subject set details unavailable'}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end mt-8 pt-4 border-t border-gray-200">
+                <button
+                  onClick={handleSubjectAssignmentCancel}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Loading Overlay */}
       <LoaderOverlay
-        isVisible={actionLoading || subjectSetActionLoading}
-        message={actionLoading ? "Processing subject..." : "Processing subject set..."}
+        isVisible={actionLoading || subjectSetActionLoading || subjectAssignmentActionLoading}
+        message={actionLoading ? "Processing subject..." : subjectSetActionLoading ? "Processing subject set..." : "Processing subject assignment..."}
       />
-    </>
-  );
+    </div>
+  </>
+);
 }

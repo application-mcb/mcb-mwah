@@ -457,7 +457,7 @@ export default function TeacherAssignmentModal({
         </div>
 
         {/* Progress indicator */}
-        <div className="bg-white p-6 border border-gray-200 shadow-sm mb-6">
+        <div className="bg-white p-6 border border-gray-200 shadow-lg mb-6">
           <div className="relative">
             {/* Progress Steps Container */}
             <div className="flex justify-between items-start relative">
@@ -863,7 +863,7 @@ export default function TeacherAssignmentModal({
                           <BookOpen size={16} style={{ color: getColorValue(subject.color) }} weight="fill" />
                       </div>
                         <div>
-                          <h5 className="text-sm font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>{subject.name}</h5>
+                          <h5 className="text-sm font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>{subject.code} {subject.name}</h5>
                         <p className="text-xs text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                             {new Set([...(selectedForThis), ...(assignedForThis)]).size} section(s) selected
                           </p>

@@ -574,8 +574,8 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
               onClick={() => setViewMode('grades')}
               className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] transform ${
                 viewMode === 'grades'
-                  ? 'bg-gray-200 border-blue-900 border-l-4'
-                  : 'bg-white border-gray-200 hover:border-blue-300 border-l-4 border-l-gray-200'
+                  ? 'bg-gray-200'
+                  : 'bg-white border-gray-200 hover:border-blue-300'
               } border-t-0 border-r-0 border-b-0`}
             >
               <div className="p-6">
@@ -811,7 +811,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-md w-full p-6">
+            <div className="bg-white shadow-lg max-w-md w-full p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 mb-5" >
                   <div className="w-10 h-10 bg-blue-100 flex items-center justify-center">
@@ -910,7 +910,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-md w-full p-6">
+            <div className="bg-white shadow-lg max-w-md w-full p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="w-10 h-10 bg-blue-100 flex items-center justify-center">
@@ -1008,7 +1008,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-2xl w-full p-6">
+            <div className="bg-white shadow-lg max-w-2xl w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
@@ -1147,7 +1147,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-xl max-w-2xl w-full p-6">
+            <div className="bg-white shadow-lg max-w-2xl w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">

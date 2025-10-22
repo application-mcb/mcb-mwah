@@ -365,13 +365,12 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">First Name <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <Input
                       id="firstName"
                       type="text"
                       placeholder="First Name"
-                      className="w-full pl-10 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.firstName}
                       onChange={(e) => handleInputChange('firstName', e.target.value)}
                     />
@@ -380,13 +379,12 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                 <div className="space-y-2">
                   <Label htmlFor="middleName" className="text-sm font-medium text-gray-700">Middle Name</Label>
-                  <div className="relative">
-                    <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <Input
                       id="middleName"
                       type="text"
                       placeholder="Middle Name"
-                      className="w-full pl-10 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.middleName}
                       onChange={(e) => handleInputChange('middleName', e.target.value)}
                     />
@@ -395,13 +393,12 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                 <div className="space-y-2">
                   <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">Last Name <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <Input
                       id="lastName"
                       type="text"
                       placeholder="Last Name"
-                      className="w-full pl-10 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.lastName}
                       onChange={(e) => handleInputChange('lastName', e.target.value)}
                     />
@@ -410,13 +407,12 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                 <div className="space-y-2">
                   <Label htmlFor="nameExtension" className="text-sm font-medium text-gray-700">Name Extension</Label>
-                  <div className="relative">
-                    <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <Input
                       id="nameExtension"
                       type="text"
                       placeholder="Jr., Sr., III, etc."
-                      className="w-full pl-10 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.nameExtension}
                       onChange={(e) => handleInputChange('nameExtension', e.target.value)}
                     />
@@ -427,27 +423,25 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
-                  <div className="relative">
-                    <Envelope size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <Input
                       id="email"
                       type="email"
                       value={user?.email || ''}
                       disabled
-                      className="w-full pl-10 py-2 h-10 bg-gray-50 border-2 border-gray-200 text-gray-500"
+                      className="w-full px-3 py-2 h-10 bg-gray-50 border-2 border-gray-200 text-gray-500"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="phoneNumber" className="text-sm font-medium text-gray-700">Phone Number <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <Phone size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <Input
                       id="phoneNumber"
                       type="tel"
                       placeholder="+63962 781 1434"
-                      className="w-full pl-10 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.phoneNumber}
                       onChange={(e) => handlePhoneNumberChange(e.target.value)}
                     />
@@ -457,10 +451,9 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">Date of Birth <span className="text-red-500">*</span></Label>
                   <div className="grid grid-cols-3 gap-2">
-                    <div className="relative">
-                      <Calendar size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                    <div>
                       <select
-                        className="w-full pl-10 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                        className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
                         value={formData.birthMonth || ''}
                         onChange={(e) => handleInputChange('birthMonth', e.target.value)}
                       >
@@ -479,7 +472,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                         <option value="12">December</option>
                       </select>
                     </div>
-                    <div className="relative">
+                    <div>
                       <select
                         className="w-full px-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
                         value={formData.birthDay || ''}
@@ -493,7 +486,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                         ))}
                       </select>
                     </div>
-                    <div className="relative">
+                    <div>
                       <select
                         className="w-full px-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
                         value={formData.birthYear || ''}
@@ -512,11 +505,10 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                 <div className="space-y-2">
                   <Label htmlFor="gender" className="text-sm font-medium text-gray-700">Gender <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <select
                       id="gender"
-                      className="w-full pl-10 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                      className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
                       value={formData.gender}
                       onChange={(e) => handleInputChange('gender', e.target.value)}
                     >
@@ -529,11 +521,10 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                 <div className="space-y-2">
                   <Label htmlFor="civilStatus" className="text-sm font-medium text-gray-700">Civil Status <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <IdentificationCard size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <div>
                     <select
                       id="civilStatus"
-                      className="w-full pl-10 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                      className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
                       value={formData.civilStatus}
                       onChange={(e) => handleInputChange('civilStatus', e.target.value)}
                     >
@@ -567,13 +558,13 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="streetName" className="text-sm font-medium text-gray-700">Street Name <span className="text-red-500">*</span></Label>
-                  <div className="relative">
+                  <div>
                     <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                     <Input
                       id="streetName"
                       type="text"
                       placeholder="Street Name"
-                      className="w-full pl-10 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.streetName}
                       onChange={(e) => handleInputChange('streetName', e.target.value)}
                     />
@@ -583,11 +574,11 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="province" className="text-sm font-medium text-gray-700">Province <span className="text-red-500">*</span></Label>
-                    <div className="relative">
+                    <div>
                       <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                       <select
                         id="province"
-                        className="w-full pl-10 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                        className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
                         value={selectedProvince?.code || ''}
                         onChange={(e) => handleProvinceChange(e.target.value)}
                       >
@@ -603,11 +594,11 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                   <div className="space-y-2">
                     <Label htmlFor="municipality" className="text-sm font-medium text-gray-700">Municipality <span className="text-red-500">*</span></Label>
-                    <div className="relative">
+                    <div>
                       <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                       <select
                         id="municipality"
-                        className="w-full pl-10 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                        className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
                         value={selectedMunicipality?.code || ''}
                         onChange={(e) => handleMunicipalityChange(e.target.value)}
                         disabled={!selectedProvince}
@@ -626,11 +617,11 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="barangay" className="text-sm font-medium text-gray-700">Barangay <span className="text-red-500">*</span></Label>
-                    <div className="relative">
+                    <div>
                       <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                       <select
                         id="barangay"
-                        className="w-full pl-10 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                        className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
                         value={selectedBarangay?.code || ''}
                         onChange={(e) => handleBarangayChange(e.target.value)}
                         disabled={!selectedMunicipality}
@@ -647,13 +638,13 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                   <div className="space-y-2">
                     <Label htmlFor="zipCode" className="text-sm font-medium text-gray-700">ZIP/Postal Code <span className="text-red-500">*</span></Label>
-                    <div className="relative">
+                    <div>
                       <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                       <Input
                         id="zipCode"
                         type="text"
                         placeholder="ZIP Code"
-                        className="w-full pl-10 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                        className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                         value={formData.zipCode}
                         onChange={(e) => handleInputChange('zipCode', e.target.value)}
                       />
@@ -681,13 +672,12 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="guardianName" className="text-sm font-medium text-gray-700">Guardian/Contact Name <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <User size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <Input
                       id="guardianName"
                       type="text"
                       placeholder="Guardian Name"
-                      className="w-full pl-10 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.guardianName}
                       onChange={(e) => handleInputChange('guardianName', e.target.value)}
                     />
@@ -696,11 +686,11 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                 <div className="space-y-2">
                   <Label htmlFor="guardianRelationship" className="text-sm font-medium text-gray-700">Relationship <span className="text-red-500">*</span></Label>
-                  <div className="relative">
+                  <div>
                     <Shield size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                     <select
                       id="guardianRelationship"
-                      className="w-full pl-10 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                      className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
                       value={formData.guardianRelationship}
                       onChange={(e) => handleInputChange('guardianRelationship', e.target.value)}
                     >
@@ -716,13 +706,12 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                 <div className="space-y-2">
                   <Label htmlFor="guardianPhone" className="text-sm font-medium text-gray-700">Guardian Phone <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <Phone size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <Input
                       id="guardianPhone"
                       type="tel"
                       placeholder="+63962 781 1434"
-                      className="w-full pl-10 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.guardianPhone}
                       onChange={(e) => handleGuardianPhoneChange(e.target.value)}
                     />
@@ -731,13 +720,12 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                 <div className="space-y-2">
                   <Label htmlFor="guardianEmail" className="text-sm font-medium text-gray-700">Guardian Email</Label>
-                  <div className="relative">
-                    <Envelope size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <Input
                       id="guardianEmail"
                       type="email"
                       placeholder="Guardian Email"
-                      className="w-full pl-10 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.guardianEmail}
                       onChange={(e) => handleInputChange('guardianEmail', e.target.value)}
                     />
@@ -746,13 +734,12 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                 <div className="md:col-span-2 space-y-2">
                   <Label htmlFor="emergencyContact" className="text-sm font-medium text-gray-700">Additional Emergency Contact</Label>
-                  <div className="relative">
-                    <Phone size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <Input
                       id="emergencyContact"
                       type="text"
                       placeholder="Emergency Contact"
-                      className="w-full pl-10 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.emergencyContact}
                       onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
                     />
@@ -791,7 +778,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
             <div className="pt-4 flex gap-4">
               <Button
                 onClick={handleSave}
-                className="flex-1 bg-blue-900 hover:bg-blue-900 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="flex-1 bg-blue-900 hover:bg-blue-900 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-lg"
                 loading={isLoading}
                 disabled={!agreedToAcademicUse}
               >

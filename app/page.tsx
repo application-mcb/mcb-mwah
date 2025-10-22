@@ -59,7 +59,7 @@ export default function Home() {
       </div>
      
       {/* Right Panel - Auth Forms */}
-      <div className="flex items-center justify-center p-4 lg:p-8 min-h-screen z-10 shadow-xl relative">
+      <div className="flex items-center justify-center p-4 lg:p-8 min-h-screen z-10 shadow-lg relative">
       <div className="z-0 absolute inset-0 opacity-50 bg-[linear-gradient(rgba(30,58,138,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(30,58,138,0.1)_1px,transparent_1px)] bg-[length:20px_20px]"></div>
         <div className="w-full max-w-lg space-y-4 z-10">
           {loading ? (

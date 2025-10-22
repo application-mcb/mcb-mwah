@@ -11,6 +11,7 @@ import { Plus, MagnifyingGlass, BookOpen, Eye, Pencil, Trash, Calculator, Gear, 
 interface SubjectListProps {
   subjects: SubjectData[];
   grades: GradeData[]; // Add grades prop for color inheritance
+  courses: any[]; // Add courses prop for color inheritance
   onEditSubject: (subject: SubjectData) => void;
   onDeleteSubject: (subject: SubjectData) => void;
   onViewSubject: (subject: SubjectData) => void;
@@ -156,6 +157,7 @@ const getSubjectIcon = (subject: SubjectData) => {
 export default function SubjectList({
   subjects,
   grades,
+  courses,
   onEditSubject,
   onDeleteSubject,
   onViewSubject,
@@ -167,6 +169,7 @@ export default function SubjectList({
   selectedGradeLevel,
   onGradeLevelChange = () => {}
 }: SubjectListProps) {
+  
 
   // Filter subjects based on search query and grade level
   const filteredSubjects = useMemo(() => {
@@ -181,23 +184,56 @@ export default function SubjectList({
       ));
     }
 
-    // Apply grade level filter
+    // Apply grade level filter (supports both old and new data structure)
     if (selectedGradeLevel) {
-      filtered = filtered.filter((subject) => subject.gradeLevel === selectedGradeLevel);
+      filtered = filtered.filter((subject) => {
+        // Support both old structure (gradeLevel) and new structure (gradeLevels)
+        if (subject.gradeLevels && Array.isArray(subject.gradeLevels)) {
+          return subject.gradeLevels.includes(selectedGradeLevel);
+        } else if (subject.gradeLevel) {
+          return subject.gradeLevel === selectedGradeLevel;
+        }
+        return false;
+      });
     }
 
     return filtered;
   }, [subjects, searchQuery, selectedGradeLevel]);
 
-  // Group subjects by grade
+  // Group subjects by grade and course (supports both old and new data structure)
   const groupSubjectsByGrade = () => {
-    const grouped: { [gradeLevel: number]: SubjectData[] } = {};
+    const grouped: { [key: string]: SubjectData[] } = {};
 
     filteredSubjects.forEach((subject: SubjectData) => {
-      if (!grouped[subject.gradeLevel]) {
-        grouped[subject.gradeLevel] = [];
+      // Support both old structure (gradeLevel) and new structure (gradeLevels)
+      if (subject.gradeLevels && Array.isArray(subject.gradeLevels) && subject.gradeLevels.length > 0) {
+        // New structure: subject has multiple grade levels
+        subject.gradeLevels.forEach((gradeLevel: number) => {
+          const key = `grade-${gradeLevel}`;
+          if (!grouped[key]) {
+            grouped[key] = [];
+          }
+          grouped[key].push(subject);
+        });
+      } else if (subject.gradeLevel) {
+        // Old structure: subject has single grade level
+        const key = `grade-${subject.gradeLevel}`;
+        if (!grouped[key]) {
+          grouped[key] = [];
+        }
+        grouped[key].push(subject);
       }
-      grouped[subject.gradeLevel].push(subject);
+      
+      // Handle course codes
+      if (subject.courseCodes && Array.isArray(subject.courseCodes) && subject.courseCodes.length > 0) {
+        subject.courseCodes.forEach((courseCode: string) => {
+          const key = `course-${courseCode}`;
+          if (!grouped[key]) {
+            grouped[key] = [];
+          }
+          grouped[key].push(subject);
+        });
+      }
     });
 
     return grouped;
@@ -208,10 +244,21 @@ export default function SubjectList({
     return grades.find((grade: GradeData) => grade.gradeLevel === gradeLevel);
   };
 
-  // Get sorted grade levels (lowest to highest)
-  const getSortedGradeLevels = (): number[] => {
+  // Get course info for a course code
+  const getCourseInfo = (courseCode: string) => {
+    return courses.find((course: any) => course.code === courseCode);
+  };
+
+  // Get sorted grade levels and course codes
+  const getSortedKeys = (): string[] => {
     const grouped = groupSubjectsByGrade();
-    return Object.keys(grouped).map(Number).sort((a, b) => a - b);
+    const keys = Object.keys(grouped);
+    
+    // Separate grade levels and course codes
+    const gradeKeys = keys.filter(key => key.startsWith('grade-')).map(key => key.replace('grade-', '')).map(Number).sort((a, b) => a - b).map(num => `grade-${num}`);
+    const courseKeys = keys.filter(key => key.startsWith('course-')).sort();
+    
+    return [...gradeKeys, ...courseKeys];
   };
 
   const clearFilters = () => {
@@ -271,19 +318,14 @@ export default function SubjectList({
       <div className="bg-white p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className="relative flex-1 max-w-md">
+            <div className="flex-1 max-w-md">
               <Input
                 type="text"
                 placeholder="Search subjects..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-10 border-1 border-blue-900 rounded-none"
+                className="pr-4 py-2 border-1 border-blue-900 rounded-none"
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-              />
-              <MagnifyingGlass
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                weight="duotone"
               />
             </div>
           </div>
@@ -383,14 +425,31 @@ export default function SubjectList({
         </Card>
       ) : (
         <div className="space-y-8">
-          {getSortedGradeLevels().map((gradeLevel, gradeIndex) => {
-            const gradeSubjects = groupSubjectsByGrade()[gradeLevel];
-            const gradeInfo = getGradeInfo(gradeLevel);
-            const gradeColor = gradeInfo?.color || 'blue-800';
+          {getSortedKeys().map((key, keyIndex) => {
+            const gradeSubjects = groupSubjectsByGrade()[key];
+            
+            // Determine if this is a grade level or course code
+            const isGradeLevel = key.startsWith('grade-');
+            const isCourseCode = key.startsWith('course-');
+            
+            let displayName = '';
+            let gradeColor = 'blue-800';
+            
+            if (isGradeLevel) {
+              const gradeLevel = parseInt(key.replace('grade-', ''));
+              const gradeInfo = getGradeInfo(gradeLevel);
+              displayName = gradeInfo ? formatGradeLevel(gradeInfo) : `Grade ${gradeLevel}`;
+              gradeColor = gradeInfo?.color || 'blue-800';
+            } else if (isCourseCode) {
+              const courseCode = key.replace('course-', '');
+              const courseInfo = getCourseInfo(courseCode);
+              displayName = courseCode;
+              gradeColor = courseInfo?.color || 'emerald-800'; // Use course color from database
+            }
 
             return (
-              <div key={gradeLevel} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${gradeIndex * 150}ms` }}>
-                {/* Grade Header */}
+              <div key={key} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${keyIndex * 150}ms` }}>
+                {/* Grade/Course Header */}
                 <div className="mb-6">
                   <div className="flex items-center space-x-3 mb-2">
                     <div
@@ -411,129 +470,152 @@ export default function SubjectList({
                       className="text-xl font-semibold text-gray-900"
                       style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                     >
-                      {gradeInfo ? formatGradeLevel(gradeInfo) : `Grade ${gradeLevel}`}
+                      {displayName}
                     </h2>
                   </div>
-                  {gradeInfo && (
+                  {isGradeLevel && (() => {
+                    const gradeLevel = parseInt(key.replace('grade-', ''));
+                    const gradeInfo = getGradeInfo(gradeLevel);
+                    return gradeInfo ? (
+                      <p
+                        className="text-sm text-gray-600 ml-7 leading-relaxed text-justify"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        {gradeInfo.description}
+                      </p>
+                    ) : null;
+                  })()}
+                  {isCourseCode && (
                     <p
                       className="text-sm text-gray-600 ml-7 leading-relaxed text-justify"
                       style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                     >
-                      {gradeInfo.description}
+                      Subjects applicable to {key.replace('course-', '')} students
                     </p>
                   )}
                 </div>
 
                 {/* Subjects Grid for this Grade */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ml-7">
-                  {gradeSubjects.map((subject, subjectIndex) => (
+                  {gradeSubjects && gradeSubjects.length > 0 ? gradeSubjects.map((subject, subjectIndex) => (
                     <Card
                       key={subject.id}
-                      className={`group p-6 border-none hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 bg-${subject.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
+                      className={`group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 bg-${subject.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 h-full flex flex-col`}
                       style={{
-                        animationDelay: `${(gradeIndex * 150) + (subjectIndex * 75) + 200}ms`,
+                        animationDelay: `${(keyIndex * 150) + (subjectIndex * 75) + 200}ms`,
                         animationFillMode: 'both'
                       }}
                     >
-              {/* Card Header */}
-              <div className="flex items-start justify-between">
-                <div className="flex items-center justify-center gap-4">
-                <div className="w-16 h-16 bg-white flex items-center justify-center flex-shrink-0">
-                  {(() => {
-                    const IconComponent = getSubjectIcon(subject);
-                    return (
-                      <IconComponent
-                        size={32}
-                        style={{ color: getIconColor(subject.color) }}
-                        weight="fill"
-                      />
-                    );
-                  })()}
-                </div>
-                <div>
-                <div className="flex items-center gap-3">
-                  <h3
-                    className="text-lg font-medium text-white"
-                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                  >
-                    {subject.code}
-                  </h3>
-                
-                </div>
+                      {/* Card Header */}
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="w-16 h-16 bg-white flex items-center justify-center flex-shrink-0">
+                          {(() => {
+                            const IconComponent = getSubjectIcon(subject);
+                            return (
+                              <IconComponent
+                                size={32}
+                                style={{ color: getIconColor(subject.color) }}
+                                weight="fill"
+                              />
+                            );
+                          })()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3
+                              className="text-lg font-medium text-white"
+                              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                            >
+                              {subject.code}
+                            </h3>
+                            <div className="flex gap-1">
+                              <div className="w-3 h-3 bg-white"></div>
+                              <div className="w-3 h-3 bg-white/80"></div>
+                              <div className="w-3 h-3 bg-white/60"></div>
+                            </div>
+                          </div>
+                          
+                          {/* Units badge */}
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center px-2 py-1 text-xs font-medium rounded-none border border-white/30 bg-white/20 text-white">
+                              <Calculator size={12} className="mr-1" weight="duotone" />
+                              {subject.lectureUnits + subject.labUnits} units
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
-                <div className="flex gap-1">
-              <div className="w-3 h-3 bg-white">
-              </div>
-              <div className="w-3 h-3 bg-white/80">
-              </div>
-              <div className="w-3 h-3 bg-white/60">
-              </div>
-              </div>
+                      {/* Content Section - Flexible height */}
+                      <div className="flex-1 flex flex-col">
+                        {/* Subject Name and Description */}
+                        <div className="mb-4">
+                          <h4 className="text-white text-sm font-medium mb-1" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                            {subject.code} {subject.name}
+                          </h4>
+                          <div className="text-white/70 text-xs mb-2" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                            Lab: {subject.labUnits}, Lecture: {subject.lectureUnits}
+                          </div>
+                          <div 
+                            className="text-white/80 leading-relaxed text-sm" 
+                            style={{
+                              fontFamily: 'Poppins',
+                              fontWeight: 300,
+                              display: '-webkit-box',
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              minHeight: '3.6rem' // Ensure consistent height for 3 lines
+                            }}
+                          >
+                            {subject.description}
+                          </div>
+                        </div>
 
-                </div>
-                </div>
-                <div className="space-y-2 mb-4 flex items-center justify-center gap-4">
-                
-                 <div className="flex items-center p-1 text-xs font-medium rounded-none border border-white/30 bg-white/20 text-white">
-                   <BookOpen size={12} className="mr-1" weight="duotone" />
-                   Grade {subject.gradeLevel}
-                 </div>
-
-                 <div className="flex items-center p-1 text-xs font-medium rounded-none border border-white/30 bg-white/20 text-white">
-                   <Calculator size={12} className="mr-1" weight="duotone" />
-                   {subject.lectureUnits + subject.labUnits} units
-                 </div>
-                
-               
-                <div className="flex gap-1 items-center justify-center cursor-pointer">
-                 
-                </div>
-                
-
-                
-              </div>
-
-              </div>  
-
-              <div className="flex flex-col text-xs truncate-2-lines font-light text-justify">
-              <span className="text-white text-sm font-medium">{subject.name}</span>
-                {subject.description}
-              </div>
-
-              <div className="flex space-y-2 gap-2 opacity-0 opacity-100 transition-opacity duration-200">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onViewSubject(subject)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    <Eye size={14} className="transition-transform duration-200" />
-                     Details
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEditSubject(subject)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    <Pencil size={14} className="transition-transform duration-200" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDeleteSubject(subject)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    <Trash size={14} className="transition-transform duration-200" />
-                    Delete
-                  </Button>
+                        {/* Action Buttons - Fixed at bottom */}
+                        <div className="mt-auto">
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onViewSubject(subject)}
+                              className="text-white/80 hover:text-white hover:bg-white/20 justify-center text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
+                              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                            >
+                              <Eye size={14} className="mr-1" weight="duotone" />
+                              Details
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onEditSubject(subject)}
+                              className="text-white/80 hover:text-white hover:bg-white/20 justify-center text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
+                              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                            >
+                              <Pencil size={14} className="mr-1" weight="duotone" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onDeleteSubject(subject)}
+                              className="text-white/80 hover:text-white hover:bg-white/20 justify-center text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
+                              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                            >
+                              <Trash size={14} className="mr-1" weight="duotone" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </Card>
-                  ))}
+                  )) : (
+                    <div className="col-span-full text-center py-8 text-white/70">
+                      <BookOpen size={32} className="mx-auto mb-2" weight="duotone" />
+                      <p style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                        No subjects found for this grade level
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             );

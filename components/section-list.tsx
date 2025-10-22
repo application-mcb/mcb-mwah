@@ -371,7 +371,7 @@ export default function SectionList({
                     .map((section, sectionIndex) => (
                     <Card
                       key={section.id}
-                      className="p-6 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
+                      className="p-6 hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
                       style={{
                         backgroundColor: getBgColor(gradeColor),
                         animationDelay: `${(gradeIndex * 150) + (sectionIndex * 75) + 200}ms`,
@@ -379,64 +379,29 @@ export default function SectionList({
                       }}
                     >
               {/* Card Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-white flex items-center justify-center">
-                    <Users
-                      size={20}
-                      style={{ color: getIconColor(gradeColor) }}
-                      weight="fill"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3
-                      className="text-lg font-medium text-white"
-                      style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                    >
-                      {section.sectionName}
-                    </h3>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <span
-                        className="text-sm text-white/90"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
-                        {gradeInfo ? formatGradeLevel(gradeInfo) : section.grade}
-                      </span>
-                      
-                    </div>
-                  </div>
+              <div className="flex items-start gap-4 mb-4">
+                <div className="w-12 h-12 bg-white flex items-center justify-center flex-shrink-0">
+                  <Users
+                    size={20}
+                    style={{ color: getIconColor(gradeColor) }}
+                    weight="fill"
+                  />
                 </div>
-                <div className="flex space-y-2 gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onViewSection(section)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                <div className="flex-1 min-w-0">
+                  <h3
+                    className="text-lg font-medium text-white mb-2"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                   >
-                    <Eye size={14} className="transition-transform duration-200" />
-                     Details
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEditSection(section)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    <Pencil size={14} className="transition-transform duration-200" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDeleteSection(section)}
-                    className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    <Trash size={14} className="transition-transform duration-200" />
-                    Delete
-                  </Button>
+                    {section.sectionName}
+                  </h3>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <span
+                      className="text-sm text-white/90"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      {gradeInfo ? formatGradeLevel(gradeInfo) : section.grade}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -449,20 +414,52 @@ export default function SectionList({
               </p>
 
               {/* Metadata */}
-              <div className="flex items-center justify-between text-xs text-white/70 mb-3">
+              <div className="flex items-center justify-between text-xs text-white/70 mb-4 border-t border-white/30 pt-3">
                 <span style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                   Created {formatDate(section.createdAt)}
                 </span>
-
-
                 <div className="flex items-center space-x-2">
-                <span className="bg-white/20 px-2 py-1 font-light text-xs">
-                {section.rank}
-                </span>
-                <span className="bg-white/20 px-2 py-1 font-light text-xs">
-                {section.department}
-                </span>
+                  <span className="bg-white/20 px-2 py-1 font-light text-xs">
+                    {section.rank}
+                  </span>
+                  <span className="bg-white/20 px-2 py-1 font-light text-xs">
+                    {section.department}
+                  </span>
                 </div>
+              </div>
+
+              {/* Action Buttons - moved to bottom */}
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onViewSection(section)}
+                  className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <Eye size={14} className="transition-transform duration-200" />
+                  Details
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEditSection(section)}
+                  className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <Pencil size={14} className="transition-transform duration-200" />
+                  Edit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDeleteSection(section)}
+                  className="text-white/80 hover:text-white hover:bg-white/20 justify-start text-xs bg-white/20 transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <Trash size={14} className="transition-transform duration-200" />
+                  Delete
+                </Button>
               </div>
 
                     </Card>

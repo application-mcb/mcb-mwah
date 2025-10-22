@@ -1173,7 +1173,7 @@ export default function Dashboard() {
                               return (
                                 <div
                                   key={subject.id}
-                                  className="group p-6 border-none hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
+                                  className="group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
                                   style={{ 
                                     backgroundColor: getSubjectColor(subject.color),
                                     borderLeftColor: getSubjectColor(subject.color),

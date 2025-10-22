@@ -231,7 +231,7 @@ export default function SectionForm({
                 value={formData.gradeId}
                 onChange={(e) => handleGradeChange(e.target.value)}
                 disabled={loading || isEditing} // Can't change grade when editing
-                className={`w-full pl-10 pr-3 py-2 border-1 border-blue-900 rounded-none bg-white text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.gradeId ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
+                className={`w-full pl-10 pr-3 py-2 border-1 border-blue-900 rounded-none bg-white text-base shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.gradeId ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 aria-describedby={errors.gradeId ? 'grade-error' : undefined}
               >
@@ -320,7 +320,7 @@ export default function SectionForm({
                 value={formData.rank}
                 onChange={(e) => handleInputChange('rank', e.target.value as SectionRank)}
                 disabled={loading || getAvailableRanks().length === 0}
-                className={`w-full pl-10 pr-3 py-2 border-1 border-blue-900 rounded-none bg-white text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.rank ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
+                className={`w-full pl-10 pr-3 py-2 border-1 border-blue-900 rounded-none bg-white text-base shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.rank ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 aria-describedby={errors.rank ? 'rank-error' : undefined}
               >
@@ -426,7 +426,7 @@ export default function SectionForm({
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 disabled={loading}
-                className={`border-1 border-blue-900 rounded-none flex min-h-[100px] w-full bg-white pl-10 pr-3 py-2 text-base shadow-sm placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
+                className={`border-1 border-blue-900 rounded-none flex min-h-[100px] w-full bg-white pl-10 pr-3 py-2 text-base shadow-lg placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 aria-describedby={errors.description ? 'description-error' : undefined}
                 maxLength={200}

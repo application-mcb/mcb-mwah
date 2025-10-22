@@ -36,12 +36,20 @@ export async function GET(request: NextRequest) {
 // POST /api/subject-sets - Create a new subject set
 export async function POST(request: NextRequest) {
   try {
-    const { name, description, subjects, gradeLevel, color, registrarUid } = await request.json();
+    const { name, description, subjects, gradeLevels, courseSelections, color, registrarUid } = await request.json();
 
     // Validate required fields
-    if (!name || !description || !subjects || !Array.isArray(subjects) || gradeLevel === undefined || !color || !registrarUid) {
+    if (!name || !description || !subjects || !Array.isArray(subjects) || !color || !registrarUid) {
       return NextResponse.json(
-        { error: 'Missing required fields: name, description, subjects (array), gradeLevel, color, registrarUid' },
+        { error: 'Missing required fields: name, description, subjects (array), color, registrarUid' },
+        { status: 400 }
+      );
+    }
+
+    // Validate that at least one grade level or course selection is provided
+    if ((!gradeLevels || gradeLevels.length === 0) && (!courseSelections || courseSelections.length === 0)) {
+      return NextResponse.json(
+        { error: 'At least one grade level or college course must be selected' },
         { status: 400 }
       );
     }
@@ -63,15 +71,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // For backward compatibility, use the first grade level if available
+    // Otherwise, use a default grade level (7) for college-only subject sets
+    const primaryGradeLevel = gradeLevels && gradeLevels.length > 0 ? gradeLevels[0] : 7;
+
     const subjectSetData: CreateSubjectSetData = {
       name: name.trim(),
       description: description.trim(),
       subjects,
-      gradeLevel: parseInt(gradeLevel),
+      gradeLevels: gradeLevels || [],
+      courseSelections: courseSelections || [],
       color,
       createdBy: registrarUid,
       createdAt: new Date(),
       updatedAt: new Date(),
+      // Backward compatibility
+      gradeLevel: primaryGradeLevel,
     };
 
     const subjectSet = await SubjectSetDatabase.createSubjectSet(subjectSetData);

@@ -71,7 +71,7 @@ const getSubjectIcon = (subject: any) => {
 const getIconColor = (color: string): string => {
   const colorMap: Record<string, string> = {
     'blue-700': '#1d4ed8',
-    'blue-800': '#1e40af',
+    'blue-900': '#1e40af',
     'red-700': '#b91c1c',
     'red-800': '#991b1b',
     'emerald-700': '#047857',
@@ -93,7 +93,7 @@ const getIconColor = (color: string): string => {
 // Helper function to get color value
 const getColorValue = (color: string): string => {
   const colorMap: Record<string, string> = {
-    'blue-800': '#1e40af',
+    'blue-900': '#1e40af',
     'red-800': '#991b1b',
     'emerald-800': '#065f46',
     'yellow-800': '#92400e',
@@ -115,14 +115,19 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
   const [grades, setGrades] = useState<GradeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGrade, setSelectedGrade] = useState<GradeData | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<'high-school' | 'college' | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedSemester, setSelectedSemester] = useState<'first-sem' | 'second-sem' | null>(null);
   const [complianceChecked, setComplianceChecked] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'compliance' | 'grade-selection' | 'personal-info' | 'confirmation'>('compliance');
+  const [currentStep, setCurrentStep] = useState<'compliance' | 'level-selection' | 'grade-selection' | 'course-selection' | 'year-selection' | 'semester-selection' | 'personal-info' | 'confirmation'>('compliance');
   const [animatingStep, setAnimatingStep] = useState(false);
   const [selectingGrade, setSelectingGrade] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
   const [showDataPreserved, setShowDataPreserved] = useState(false);
   const [existingEnrollment, setExistingEnrollment] = useState<any>(null);
+  const [submittedEnrollment, setSubmittedEnrollment] = useState<any>(null);
   const [checkingEnrollment, setCheckingEnrollment] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingEnrollment, setDeletingEnrollment] = useState(false);
@@ -136,6 +141,8 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
     uploadedDocuments?: any[];
   } | null>(null);
   const [checkingDocuments, setCheckingDocuments] = useState(true);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loadingSubjects, setLoadingSubjects] = useState(true);
   const [subjectsCarouselIndex, setSubjectsCarouselIndex] = useState(0);
@@ -169,13 +176,14 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
   }, []);
 
   useEffect(() => {
-    if (existingEnrollment && 
-        existingEnrollment.enrollmentInfo?.status === 'enrolled' && 
+    const enrollmentToCheck = submittedEnrollment || existingEnrollment;
+    if (enrollmentToCheck &&
+        enrollmentToCheck.enrollmentInfo?.status === 'enrolled' &&
         !subjectsLoadedRef.current) {
       subjectsLoadedRef.current = true;
       loadStudentSubjects();
     }
-  }, [existingEnrollment?.enrollmentInfo?.status]);
+  }, [submittedEnrollment?.enrollmentInfo?.status, existingEnrollment?.enrollmentInfo?.status]);
 
   // Countdown effect for submit modal
   useEffect(() => {
@@ -436,9 +444,14 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
           autoClose: 6000,
         });
         setExistingEnrollment(null);
+        setSubmittedEnrollment(null);
         setShowDeleteModal(false);
         // Reset form to initial state
         setSelectedGrade(null);
+        setSelectedCourse(null);
+        setSelectedLevel(null);
+        setSelectedYear(null);
+        setSelectedSemester(null);
         setPersonalInfo({
           firstName: '',
           middleName: '',
@@ -481,7 +494,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
     setComplianceChecked(!complianceChecked);
   };
 
-  const changeStep = (newStep: 'compliance' | 'grade-selection' | 'personal-info' | 'confirmation') => {
+  const changeStep = (newStep: 'compliance' | 'level-selection' | 'grade-selection' | 'course-selection' | 'year-selection' | 'semester-selection' | 'personal-info' | 'confirmation') => {
     setAnimatingStep(true);
     setTimeout(() => {
       setCurrentStep(newStep);
@@ -491,7 +504,8 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
   // Helper function to check if personal info is completed
   const isPersonalInfoCompleted = () => {
-    return selectedGrade !== null && 
+    const hasSelection = selectedGrade !== null || (selectedCourse !== null && selectedYear !== null && selectedSemester !== null);
+    return hasSelection &&
            personalInfo.firstName?.trim() && 
            personalInfo.lastName?.trim() && 
            personalInfo.email?.trim() && 
@@ -501,8 +515,17 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
   };
 
 
-  const handleProgressStepClick = (step: 'compliance' | 'grade-selection' | 'personal-info' | 'confirmation') => {
-    const stepOrder = ['compliance', 'grade-selection', 'personal-info', 'confirmation'];
+  const handleProgressStepClick = (step: 'compliance' | 'level-selection' | 'grade-selection' | 'course-selection' | 'year-selection' | 'semester-selection' | 'personal-info' | 'confirmation') => {
+    // Dynamic step order based on selected level
+    let stepOrder: string[];
+    if (selectedLevel === 'college') {
+      stepOrder = ['compliance', 'level-selection', 'course-selection', 'year-selection', 'semester-selection', 'personal-info', 'confirmation'];
+    } else if (selectedLevel === 'high-school') {
+      stepOrder = ['compliance', 'level-selection', 'grade-selection', 'personal-info', 'confirmation'];
+    } else {
+      stepOrder = ['compliance', 'level-selection'];
+    }
+
     const currentStepIndex = stepOrder.indexOf(currentStep);
     const targetStepIndex = stepOrder.indexOf(step);
     
@@ -511,8 +534,16 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
       switch (targetStep) {
         case 'compliance':
           return complianceChecked;
+        case 'level-selection':
+          return selectedLevel !== null;
         case 'grade-selection':
           return selectedGrade !== null;
+        case 'course-selection':
+          return selectedCourse !== null;
+        case 'year-selection':
+          return selectedYear !== null;
+        case 'semester-selection':
+          return selectedSemester !== null;
         case 'personal-info':
           return isPersonalInfoCompleted();
         case 'confirmation':
@@ -586,20 +617,39 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
       setEnrolling(true);
 
       // Submit enrollment without documents (they'll be referenced from the Documents section)
+      const enrollmentData = {
+        userId,
+        personalInfo,
+        studentType,
+        documents: {} // Empty documents object - documents will be referenced separately
+      };
+
+      if (selectedLevel === 'college' && selectedCourse && selectedYear && selectedSemester) {
+        // College enrollment
+        Object.assign(enrollmentData, {
+          courseId: selectedCourse.code, // Use code as the identifier since courses don't have id field
+          courseCode: selectedCourse.code,
+          courseName: selectedCourse.name,
+          yearLevel: selectedYear,
+          semester: selectedSemester,
+          level: 'college'
+        });
+      } else if (selectedLevel === 'high-school' && selectedGrade) {
+        // High school enrollment
+        Object.assign(enrollmentData, {
+          gradeId: selectedGrade.id,
+          gradeLevel: selectedGrade.gradeLevel,
+          department: selectedGrade.department,
+          level: 'high-school'
+        });
+      }
+
       const response = await fetch('/api/enrollment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userId,
-          gradeId: selectedGrade?.id,
-          gradeLevel: selectedGrade?.gradeLevel,
-          department: selectedGrade?.department,
-          personalInfo,
-          studentType,
-          documents: {} // Empty documents object - documents will be referenced separately
-        }),
+        body: JSON.stringify(enrollmentData),
       });
 
       const data = await response.json();
@@ -614,8 +664,39 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
       toast.success('Enrollment submitted successfully!');
 
+      // Set the submitted enrollment as existing enrollment to show status
+      const submittedEnrollment = {
+        enrollmentInfo: {
+          status: 'enrolled',
+          gradeLevel: selectedLevel === 'college' ? null : selectedGrade?.gradeLevel,
+          courseId: selectedLevel === 'college' ? selectedCourse?.code : null,
+          courseCode: selectedLevel === 'college' ? selectedCourse?.code : null,
+          courseName: selectedLevel === 'college' ? selectedCourse?.name : null,
+          yearLevel: selectedLevel === 'college' ? selectedYear : null,
+          semester: selectedLevel === 'college' ? selectedSemester : null,
+          level: selectedLevel,
+          schoolYear: new Date().getFullYear().toString(),
+          enrollmentDate: new Date().toISOString(),
+          studentType: selectedLevel === 'college' ? 'regular' : (studentType || 'regular')
+        },
+        personalInfo: personalInfo,
+        selectedSubjects: selectedLevel === 'college' ? [] : [],
+        documents: {}
+      };
+
+      setSubmittedEnrollment({
+        enrollmentInfo: submittedEnrollment.enrollmentInfo,
+        personalInfo: submittedEnrollment.personalInfo,
+        selectedSubjects: submittedEnrollment.selectedSubjects,
+        documents: submittedEnrollment.documents
+      });
+
       // Reset form after successful submission
       setSelectedGrade(null);
+      setSelectedCourse(null);
+      setSelectedLevel(null);
+      setSelectedYear(null);
+      setSelectedSemester(null);
       setPersonalInfo({
         firstName: '',
         middleName: '',
@@ -640,12 +721,60 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
     }
   };
 
-  const handleProceedToGradeSelection = () => {
+  const handleProceedToLevelSelection = () => {
     if (!complianceChecked) {
       toast.error('Please check the compliance box to proceed');
       return;
     }
+    changeStep('level-selection');
+  };
+
+  const handleLevelSelect = (level: 'high-school' | 'college') => {
+    setSelectedLevel(level);
+    setSelectedGrade(null);
+    setSelectedCourse(null);
+    setSelectedYear(null);
+    if (level === 'high-school') {
     changeStep('grade-selection');
+    } else {
+      loadCourses();
+      changeStep('course-selection');
+    }
+  };
+
+  const loadCourses = async () => {
+    try {
+      setLoadingCourses(true);
+      const response = await fetch('/api/courses');
+      if (!response.ok) {
+        throw new Error('Failed to load courses');
+      }
+      const data = await response.json();
+      setCourses(data.courses || []);
+    } catch (error: any) {
+      toast.error('Failed to load available courses');
+    } finally {
+      setLoadingCourses(false);
+    }
+  };
+
+  const handleCourseSelect = (course: any) => {
+    setSelectedCourse(course);
+    if (selectedLevel === 'college') {
+      changeStep('year-selection');
+    } else {
+      changeStep('personal-info');
+    }
+  };
+
+  const handleYearSelect = (year: number) => {
+    setSelectedYear(year);
+    changeStep('semester-selection');
+  };
+
+  const handleSemesterSelect = (semester: 'first-sem' | 'second-sem') => {
+    setSelectedSemester(semester);
+    changeStep('personal-info');
   };
 
 
@@ -745,9 +874,26 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
  
 
+   const handleBackToLevelSelection = () => {
+    setSelectedLevel(null);
+    setSelectedGrade(null);
+    setSelectedCourse(null);
+    changeStep('level-selection');
+  };
+
    const handleBackToGradeSelection = () => {
     setSelectedGrade(null);
     changeStep('grade-selection');
+  };
+
+  const handleBackToCourseSelection = () => {
+    setSelectedCourse(null);
+    changeStep('course-selection');
+  };
+
+  const handleBackToSemesterSelection = () => {
+    setSelectedSemester(null);
+    changeStep('semester-selection');
   };
 
   const handleBackToPersonalInfo = () => {
@@ -757,6 +903,8 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
   const handleBackToCompliance = () => {
     setSelectedGrade(null);
+    setSelectedCourse(null);
+    setSelectedLevel(null);
     changeStep('compliance');
   };
 
@@ -1074,7 +1222,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                 onClick={() => {
                   toast.info('Navigate to the Documents section in your dashboard sidebar to upload required documents.');
                 }}
-                className="bg-blue-900 hover:bg-blue-800 text-white"
+                className="bg-blue-900 hover:bg-blue-900 text-white"
                  
               >
                 <FileText size={16} className="mr-2" />
@@ -1108,7 +1256,8 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
   }
 
   // Show enrollment summary if student already has an enrollment with 'enrolled' status
-  if (existingEnrollment && existingEnrollment.enrollmentInfo?.status === 'enrolled') {
+  const enrollmentToShow = submittedEnrollment || existingEnrollment;
+  if (enrollmentToShow && enrollmentToShow.enrollmentInfo?.status === 'enrolled') {
     const formatDate = (dateInput: any) => {
       try {
         let date: Date;
@@ -1283,7 +1432,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                             return (
                               <div
                                 key={subject.id}
-                                className="group p-6 border-none hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
+                                className="group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
                                 style={{ 
                                   backgroundColor: getColorValue(subject.color),
                                   borderLeftColor: getColorValue(subject.color),
@@ -1331,7 +1480,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                                 </div>
 
                                 <div className="flex flex-col text-xs truncate-2-lines font-light text-justify">
-                                  <span className="text-white text-sm font-medium">{subject.name}</span>
+                                  <span className="text-white text-sm font-medium">{subject.code} {subject.name}</span>
                                   <span className="text-white">{subject.description}</span>
                                 </div>
                               </div>
@@ -1422,7 +1571,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                 className={`flex-1 ${
                   deletingEnrollment || deleteCountdown > 0
                     ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-900 hover:bg-blue-800'
+                    : 'bg-blue-900 hover:bg-blue-900'
                 }`}
                  
               >
@@ -1451,7 +1600,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
       <div className="bg-white p-6 border border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-800 flex items-center justify-center">
+            <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
               <GraduationCap size={24} className="text-white" weight="fill" />
             </div>
             <div>
@@ -1473,25 +1622,49 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
       </div>
 
       {/* Enhanced Progress Indicator */}
-      <div className="bg-white p-6 border border-gray-200 shadow-sm">
+      <div className="bg-white p-6 border border-gray-200 shadow-lg">
         <div className="relative">
           {/* Progress Steps Container */}
           <div className="flex justify-between items-start relative">
             {/* Progress Line Background - positioned behind circles */}
-            <div className="absolute top-6 left-6 right-6 h-0.5 bg-gray-200 z-0"></div>
+            <div className="absolute top-6 left-6 right-6 h-1 bg-gray-200 z-0"></div>
             
             {/* Animated Progress Line - positioned behind circles */}
             <div 
-              className="absolute top-6 left-6 h-0.5 bg-gradient-to-r from-blue-600 to-blue-800 transition-all duration-1000 ease-out z-10"
+              className="absolute top-6 left-6 h-1 bg-gradient-to-r from-blue-600 to-blue-900 transition-all duration-1000 ease-out z-10"
               style={{
-                width: currentStep === 'compliance' ? '0%' :
-                       currentStep === 'grade-selection' ? '33%' :
-                       currentStep === 'personal-info' ? '66%' :
-                       currentStep === 'confirmation' ? 'calc(100% - 48px)' : '0%'
+                width: (() => {
+                  let steps: string[];
+                  if (selectedLevel === 'college') {
+                    steps = ['compliance', 'level-selection', 'course-selection', 'year-selection', 'personal-info', 'confirmation'];
+                  } else {
+                    steps = ['compliance', 'level-selection', 'grade-selection', 'personal-info', 'confirmation'];
+                  }
+
+                  let stepIndex = steps.indexOf(currentStep);
+
+                  // Handle course-selection as grade-selection for high school
+                  if (stepIndex === -1 && currentStep === 'course-selection' && selectedLevel === 'high-school') {
+                    stepIndex = steps.indexOf('grade-selection');
+                  }
+
+                  // Calculate based on step position with proper spacing
+                  if (stepIndex >= 0) {
+                  // Define progress positions as variables for easy editing
+                  const collegePositions = [0, 15, 30, 45, 60, 75, 93]; // 7 steps
+                  const highSchoolPositions = [0, 22.5, 45, 69, 93]; // 5 steps
+
+                    const positions = selectedLevel === 'college' ? collegePositions : highSchoolPositions;
+                    return `${positions[stepIndex]}%`;
+                  }
+
+                  return '0%';
+                })()
               }}
             ></div>
             {/* Step 1: Compliance */}
             <div 
+              key="compliance-step"
               className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
                 currentStep === 'compliance' ? 'scale-110' : 'hover:scale-105'
               }`}
@@ -1499,7 +1672,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             >
               <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
                 currentStep === 'compliance' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
-                complianceChecked ? 'bg-blue-800 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
+                complianceChecked ? 'bg-blue-900 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
               }`}>
                 <Check size={18} weight="bold" className="transition-all duration-300" />
                 {/* Pulse animation for current step */}
@@ -1509,39 +1682,125 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             </div>
               <span className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
                 currentStep === 'compliance' ? 'text-blue-900 font-semibold' :
-                complianceChecked ? 'text-blue-800' : 'text-gray-400 group-hover:text-gray-600'
+                complianceChecked ? 'text-blue-900' : 'text-gray-400 group-hover:text-gray-600'
               }`} style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
               Compliance
             </span>
           </div>
 
-            {/* Step 2: Grade Selection */}
+            {/* Step 2: Level Selection */}
             <div 
+              key="level-selection-step"
               className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
-                currentStep === 'grade-selection' ? 'scale-110' : 'hover:scale-105'
+                currentStep === 'level-selection' ? 'scale-110' : 'hover:scale-105'
               }`}
-              onClick={() => handleProgressStepClick('grade-selection')}
+              onClick={() => handleProgressStepClick('level-selection')}
             >
               <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
-                currentStep === 'grade-selection' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
-                selectedGrade !== null ? 'bg-blue-800 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
+                currentStep === 'level-selection' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
+                selectedLevel !== null ? 'bg-blue-900 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
               }`}>
-                <GraduationCap size={18} weight="bold" className="transition-all duration-300" />
+                <User size={18} weight="bold" className="transition-all duration-300" />
                 {/* Pulse animation for current step */}
-                {currentStep === 'grade-selection' && (
+                {currentStep === 'level-selection' && (
                   <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
                 )}
             </div>
               <span className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
-                currentStep === 'grade-selection' ? 'text-blue-900 font-semibold' :
-                selectedGrade !== null ? 'text-blue-800' : 'text-gray-400 group-hover:text-gray-600'
+                currentStep === 'level-selection' ? 'text-blue-900 font-semibold' :
+                selectedLevel !== null ? 'text-blue-900' : 'text-gray-400 group-hover:text-gray-600'
               }`} style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-              Grade Selection
+              Level Selection
             </span>
           </div>
 
-            {/* Step 3: Personal Info */}
-            <div 
+            {/* Step 3: Grade/Course Selection */}
+            <div
+              key="selection-step"
+              className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
+                (currentStep === 'grade-selection' || currentStep === 'course-selection') ? 'scale-110' : 'hover:scale-105'
+              }`}
+              onClick={() => handleProgressStepClick(selectedLevel === 'high-school' ? 'grade-selection' : 'course-selection')}
+            >
+              <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
+                (currentStep === 'grade-selection' || currentStep === 'course-selection') ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
+                (selectedGrade !== null || selectedCourse !== null) ? 'bg-blue-900 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
+              }`}>
+                <GraduationCap size={18} weight="bold" className="transition-all duration-300" />
+                {/* Pulse animation for current step */}
+                {(currentStep === 'grade-selection' || currentStep === 'course-selection') && (
+                  <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
+                )}
+            </div>
+              <span className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
+                (currentStep === 'grade-selection' || currentStep === 'course-selection') ? 'text-blue-900 font-semibold' :
+                (selectedGrade !== null || selectedCourse !== null) ? 'text-blue-900' : 'text-gray-400 group-hover:text-gray-600'
+              }`} style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                {selectedLevel === 'high-school' ? 'Grade Selection' :
+                 selectedLevel === 'college' ? 'Course Selection' :
+                 'Selection'}
+            </span>
+          </div>
+
+            {/* Step 4: Year Selection (College only) */}
+            {selectedLevel === 'college' && (
+              <div
+                key="year-selection-step"
+                className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
+                  currentStep === 'year-selection' ? 'scale-110' : 'hover:scale-105'
+                }`}
+                onClick={() => handleProgressStepClick('year-selection')}
+              >
+                <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
+                  currentStep === 'year-selection' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
+                  selectedYear !== null ? 'bg-blue-900 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
+                }`}>
+                  <User size={18} weight="bold" className="transition-all duration-300" />
+                  {/* Pulse animation for current step */}
+                  {currentStep === 'year-selection' && (
+                    <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
+                  )}
+                </div>
+                <span className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
+                  currentStep === 'year-selection' ? 'text-blue-900 font-semibold' :
+                  selectedYear !== null ? 'text-blue-900' : 'text-gray-400 group-hover:text-gray-600'
+                }`} style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  Year Level
+                </span>
+              </div>
+            )}
+
+            {/* Step 5: Semester Selection (College only) */}
+            {selectedLevel === 'college' && (
+              <div
+                key="semester-selection-step"
+                className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
+                  currentStep === 'semester-selection' ? 'scale-110' : 'hover:scale-105'
+                }`}
+                onClick={() => handleProgressStepClick('semester-selection')}
+              >
+                <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
+                  currentStep === 'semester-selection' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
+                  selectedSemester !== null ? 'bg-blue-900 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
+                }`}>
+                  <Calendar size={18} weight="bold" className="transition-all duration-300" />
+                  {/* Pulse animation for current step */}
+                  {currentStep === 'semester-selection' && (
+                    <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
+                  )}
+                </div>
+                <span className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
+                  currentStep === 'semester-selection' ? 'text-blue-900 font-semibold' :
+                  selectedSemester !== null ? 'text-blue-900' : 'text-gray-400 group-hover:text-gray-600'
+                }`} style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  Semester
+                </span>
+              </div>
+            )}
+
+            {/* Step 6/5: Personal Info */}
+            <div
+              key="personal-info-step"
               className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
                 currentStep === 'personal-info' ? 'scale-110' : 'hover:scale-105'
               }`}
@@ -1549,7 +1808,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             >
               <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
                 currentStep === 'personal-info' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
-                isPersonalInfoCompleted() ? 'bg-blue-800 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
+                isPersonalInfoCompleted() ? 'bg-blue-900 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
               }`}>
                 <User size={18} weight="bold" className="transition-all duration-300" />
                 {/* Pulse animation for current step */}
@@ -1559,14 +1818,15 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             </div>
               <span className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
                 currentStep === 'personal-info' ? 'text-blue-900 font-semibold' :
-                isPersonalInfoCompleted() ? 'text-blue-800' : 'text-gray-400 group-hover:text-gray-600'
+                isPersonalInfoCompleted() ? 'text-blue-900' : 'text-gray-400 group-hover:text-gray-600'
               }`} style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
               Personal Info
             </span>
           </div>
 
-            {/* Step 4: Confirmation */}
+            {/* Step 7/6: Confirmation */}
             <div 
+              key="confirmation-step"
               className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
                 currentStep === 'confirmation' ? 'scale-110' : 'hover:scale-105'
               }`}
@@ -1574,7 +1834,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             >
               <div className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
                 currentStep === 'confirmation' ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30' :
-                isPersonalInfoCompleted() ? 'bg-blue-800 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
+                isPersonalInfoCompleted() ? 'bg-blue-900 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
               }`}>
                 <Check size={18} weight="bold" className="transition-all duration-300" />
                 {/* Pulse animation for current step */}
@@ -1584,7 +1844,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             </div>
               <span className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
                 currentStep === 'confirmation' ? 'text-blue-900 font-semibold' :
-                isPersonalInfoCompleted() ? 'text-blue-800' : 'text-gray-400 group-hover:text-gray-600'
+                isPersonalInfoCompleted() ? 'text-blue-900' : 'text-gray-400 group-hover:text-gray-600'
               }`} style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
               Confirmation
             </span>
@@ -1651,15 +1911,188 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             </div>
 
             <Button
-              onClick={handleProceedToGradeSelection}
+              onClick={handleProceedToLevelSelection}
               disabled={!complianceChecked}
-              className={`bg-blue-900 hover:bg-blue-800 transition-all duration-300 hover:shadow-lg ${!complianceChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`bg-blue-900 hover:bg-blue-900 transition-all duration-300 hover:shadow-lg ${!complianceChecked ? 'opacity-50 cursor-not-allowed' : ''}`}
                
             >
-              Proceed to Grade Selection
+              Proceed to Level Selection
             </Button>
           </div>
         </Card>
+      )}
+
+      {userProfile && currentStep === 'level-selection' && (
+        <div className={`space-y-6 transition-all duration-500 ${animatingStep ? 'opacity-0 transform -translate-x-4' : 'opacity-100 transform translate-x-0'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                  <User size={20} className="text-white" weight="bold" />
+                </div>
+                <div>
+                  <h2
+                    className="text-xl font-medium text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Select Your Education Level
+                  </h2>
+                  <p
+                    className="text-sm text-gray-600"
+
+                  >
+                    Choose whether you're enrolling for high school or college
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={handleBackToCompliance}
+
+            >
+              Back
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* High School Option */}
+            <Card
+              className="group p-8 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300"
+              onClick={() => handleLevelSelect('high-school')}
+            >
+              <div className="space-y-6 flex flex-col justify-between h-full">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-16 h-16 bg-blue-900 flex items-center justify-center">
+                      <GraduationCap size={32} weight="fill" className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        className="text-xl font-medium text-gray-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        High School
+                      </h3>
+                      <p
+                        className="text-sm text-gray-600"
+
+                      >
+                        Grades 7-12
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <p
+                  className="text-sm text-gray-700"
+
+                >
+                  Select this option if you're enrolling for junior high school (Grade 7-10) or senior high school (Grade 11-12) programs.
+                </p>
+
+                {/* Features */}
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <Check size={16} className="text-blue-900" weight="bold" />
+                    <span>Grade-based curriculum</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <Check size={16} className="text-blue-900" weight="bold" />
+                    <span>Subject sets by grade level</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <Check size={16} className="text-blue-900" weight="bold" />
+                    <span>Regular/Irregular student options</span>
+                  </div>
+                </div>
+
+                {/* Action */}
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="text-sm text-gray-600"
+
+                    >
+                      Click to select
+                    </span>
+                    <div className="w-6 h-6 border-2 border-blue-900"></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* College Option */}
+            <Card
+              className="group p-8 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300"
+              onClick={() => handleLevelSelect('college')}
+            >
+              <div className="space-y-6 flex flex-col justify-between h-full">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-16 h-16 bg-blue-900 flex items-center justify-center">
+                      <GraduationCap size={32} weight="fill" className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        className="text-xl font-medium text-gray-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        College
+                      </h3>
+                      <p
+                        className="text-sm text-gray-600"
+
+                      >
+                        Degree Programs
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <p
+                  className="text-sm text-gray-700"
+
+                >
+                  Select this option if you're enrolling for college degree programs and courses.
+                </p>
+
+                {/* Features */}
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <Check size={16} className="text-blue-900" weight="bold" />
+                    <span>Course-based curriculum</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <Check size={16} className="text-blue-900" weight="bold" />
+                    <span>Degree program enrollment</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <Check size={16} className="text-blue-900" weight="bold" />
+                    <span>Subject selection by course</span>
+                  </div>
+                </div>
+
+                {/* Action */}
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="text-sm text-gray-600"
+
+                    >
+                      Click to select
+                    </span>
+                    <div className="w-6 h-6 border-2 border-blue-900"></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
       )}
 
       {userProfile && currentStep === 'grade-selection' && (
@@ -1688,7 +2121,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             </div>
             <Button
               variant="ghost"
-              onClick={handleBackToCompliance}
+              onClick={handleBackToLevelSelection}
                
             >
               Back
@@ -1776,7 +2209,545 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
         </div>
       )}
 
-      {userProfile && currentStep === 'personal-info' && selectedGrade && (
+      {userProfile && currentStep === 'course-selection' && selectedLevel === 'college' && (
+        <div className={`space-y-6 transition-all duration-500 ${animatingStep ? 'opacity-0 transform translate-x-4' : 'opacity-100 transform translate-x-0'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                  <GraduationCap size={20} className="text-white" weight="bold" />
+                </div>
+                <div>
+                  <h2
+                    className="text-xl font-medium text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Select Your Course
+                  </h2>
+                  <p
+                    className="text-sm text-gray-600"
+
+                  >
+                    Choose the college course you wish to enroll in
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={handleBackToLevelSelection}
+
+            >
+              Back
+            </Button>
+          </div>
+
+          {loadingCourses ? (
+            <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+              <div className="animate-spin rounded-none h-8 w-8 border-2 border-blue-900/30 border-t-blue-900 mx-auto mb-4"></div>
+              <h3
+                className="text-lg font-medium text-gray-900 mb-2"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Loading courses...
+              </h3>
+              <p
+                className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+
+              >
+                Please wait while we load available college courses.
+              </p>
+            </Card>
+          ) : courses.length === 0 ? (
+            <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+              <GraduationCap size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+              <h3
+                className="text-lg font-medium text-gray-900 mb-2"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                No courses available
+              </h3>
+              <p
+                className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+
+              >
+                There are currently no college courses available for enrollment. Please contact your registrar or try again later.
+              </p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {courses.map((course, index) => (
+                <Card
+                  key={`course-${course.id}-${index}`}
+                  className={`group p-6 border-none border-l-5 bg-gray-50 hover:border-blue-900 cursor-pointer ${
+                    selectedCourse?.id === course.id ? 'shadow-lg border-blue-900' : ''
+                  }`}
+                  style={{
+                    backgroundColor: getColorValue(course.color)
+                  }}
+                  onClick={() => handleCourseSelect(course)}
+                >
+                  <div className="space-y-4 flex flex-col justify-between h-full">
+                    {/* Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-10 h-10 flex items-center justify-center bg-white`}>
+                          <GraduationCap size={20} weight="fill" style={{ color: getColorValue(course.color) }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3
+                            className="text-lg font-medium text-white"
+                            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                          >
+                            {course.code}
+                          </h3>
+                          <p
+                            className="text-sm text-white"
+
+                          >
+                            {course.name}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Description */}
+                    <p
+                      className="text-xs text-white line-clamp-3"
+
+                    >
+                      {course.description}
+                    </p>
+
+                    {/* Action */}
+                    <div className="pt-2 border-t border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <span
+                          className="text-xs text-white"
+
+                        >
+                          Click to select
+                        </span>
+                        <div className={`w-4 h-4 border-2 border-white transition-colors`}></div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {userProfile && currentStep === 'year-selection' && selectedLevel === 'college' && selectedCourse && (
+        <div className={`space-y-6 transition-all duration-500 ${animatingStep ? 'opacity-0 transform translate-x-4' : 'opacity-100 transform translate-x-0'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                  <User size={20} className="text-white" weight="bold" />
+                </div>
+                <div>
+                  <h2
+                    className="text-xl font-medium text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Select Your Year Level
+                  </h2>
+                  <p
+                    className="text-sm text-gray-600"
+
+                  >
+                    Choose your current year level in college
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={() => changeStep('course-selection')}
+
+            >
+              Back
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            {/* First Year */}
+            <Card
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+                selectedYear === 1 ? 'shadow-lg border-blue-900' : ''
+              }`}
+              style={{
+                backgroundColor: selectedYear === 1 ? getColorValue('blue-900') : getColorValue('blue-800')
+              }}
+              onClick={() => handleYearSelect(1)}
+            >
+              <div className="space-y-4 flex flex-col justify-between h-full">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 flex items-center justify-center bg-white`}>
+                      <GraduationCap size={20} weight="fill" className={`${selectedYear === 1 ? 'text-blue-900' : 'text-blue-800'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        className={`text-lg font-medium ${selectedYear === 1 ? 'text-white' : 'text-white'}`}
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        First Year
+                      </h3>
+                      <p
+                        className={`text-sm ${selectedYear === 1 ? 'text-white' : 'text-white'}`}
+
+                      >
+                        Freshman Level
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <p
+                  className={`text-sm ${selectedYear === 1 ? 'text-white' : 'text-white'}`}
+
+                >
+                  First year college students beginning their academic journey.
+                </p>
+
+                {/* Action */}
+                <div className="pt-2 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-sm ${selectedYear === 1 ? 'text-white' : 'text-white'}`}
+
+                    >
+                      Click to select
+                    </span>
+                    <div className={`w-4 h-4 border-2 ${selectedYear === 1 ? 'border-white bg-white' : 'border-white'}`}></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Second Year */}
+            <Card
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+                selectedYear === 2 ? 'shadow-lg border-blue-900' : ''
+              }`}
+              style={{
+                backgroundColor: selectedYear === 2 ? getColorValue('blue-900') : getColorValue('blue-800')
+              }}
+              onClick={() => handleYearSelect(2)}
+            >
+              <div className="space-y-4 flex flex-col justify-between h-full">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 flex items-center justify-center bg-white`}>
+                      <GraduationCap size={20} weight="fill" className={`${selectedYear === 2 ? 'text-blue-900' : 'text-blue-800'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        className={`text-lg font-medium ${selectedYear === 2 ? 'text-white' : 'text-white'}`}
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        Second Year
+                      </h3>
+                      <p
+                        className={`text-sm ${selectedYear === 2 ? 'text-white' : 'text-white'}`}
+
+                      >
+                        Sophomore Level
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <p
+                  className={`text-sm ${selectedYear === 2 ? 'text-white' : 'text-white'}`}
+
+                >
+                  Second year college students continuing their studies.
+                </p>
+
+                {/* Action */}
+                <div className="pt-2 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-sm ${selectedYear === 2 ? 'text-white' : 'text-white'}`}
+
+                    >
+                      Click to select
+                    </span>
+                    <div className={`w-4 h-4 border-2 ${selectedYear === 2 ? 'border-white bg-white' : 'border-white'}`}></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Third Year */}
+            <Card
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+                selectedYear === 3 ? 'shadow-lg border-blue-900' : ''
+              }`}
+              style={{
+                backgroundColor: selectedYear === 3 ? getColorValue('blue-900') : getColorValue('blue-800')
+              }}
+              onClick={() => handleYearSelect(3)}
+            >
+              <div className="space-y-4 flex flex-col justify-between h-full">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 flex items-center justify-center bg-white`}>
+                      <GraduationCap size={20} weight="fill" className={`${selectedYear === 3 ? 'text-blue-900' : 'text-blue-800'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        className={`text-lg font-medium ${selectedYear === 3 ? 'text-white' : 'text-white'}`}
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        Third Year
+                      </h3>
+                      <p
+                        className={`text-sm ${selectedYear === 3 ? 'text-white' : 'text-white'}`}
+
+                      >
+                        Junior Level
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <p
+                  className={`text-sm ${selectedYear === 3 ? 'text-white' : 'text-white'}`}
+
+                >
+                  Third year college students advancing in their major studies.
+                </p>
+
+                {/* Action */}
+                <div className="pt-2 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-sm ${selectedYear === 3 ? 'text-white' : 'text-white'}`}
+
+                    >
+                      Click to select
+                    </span>
+                    <div className={`w-4 h-4 border-2 ${selectedYear === 3 ? 'border-white bg-white' : 'border-white'}`}></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Fourth Year */}
+            <Card
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+                selectedYear === 4 ? 'shadow-lg border-blue-900' : ''
+              }`}
+              style={{
+                backgroundColor: selectedYear === 4 ? getColorValue('blue-900') : getColorValue('blue-800')
+              }}
+              onClick={() => handleYearSelect(4)}
+            >
+              <div className="space-y-4 flex flex-col justify-between h-full">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 flex items-center justify-center bg-white`}>
+                      <GraduationCap size={20} weight="fill" className={`${selectedYear === 4 ? 'text-blue-900' : 'text-blue-800'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        className={`text-lg font-medium ${selectedYear === 4 ? 'text-white' : 'text-white'}`}
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        Fourth Year
+                      </h3>
+                      <p
+                        className={`text-sm ${selectedYear === 4 ? 'text-white' : 'text-white'}`}
+
+                      >
+                        Senior Level
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <p
+                  className={`text-sm ${selectedYear === 4 ? 'text-white' : 'text-white'}`}
+
+                >
+                  Fourth year college students completing their degree requirements.
+                </p>
+
+                {/* Action */}
+                <div className="pt-2 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-sm ${selectedYear === 4 ? 'text-white' : 'text-white'}`}
+
+                    >
+                      Click to select
+                    </span>
+                    <div className={`w-4 h-4 border-2 ${selectedYear === 4 ? 'border-white bg-white' : 'border-white'}`}></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {userProfile && currentStep === 'semester-selection' && selectedLevel === 'college' && selectedCourse && selectedYear && (
+        <div className={`space-y-6 transition-all duration-500 ${animatingStep ? 'opacity-0 transform translate-x-4' : 'opacity-100 transform translate-x-0'}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                  <Calendar size={20} className="text-white" weight="bold" />
+                </div>
+                <div>
+                  <h2
+                    className="text-xl font-medium text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Select Your Semester
+                  </h2>
+                  <p
+                    className="text-sm text-gray-600"
+                  >
+                    Choose the semester you wish to enroll in
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={() => changeStep('year-selection')}
+            >
+              Back
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* First Semester */}
+            <Card
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+                selectedSemester === 'first-sem' ? 'shadow-lg border-blue-900' : ''
+              }`}
+              style={{
+                backgroundColor: selectedSemester === 'first-sem' ? getColorValue('blue-900') : getColorValue('blue-800')
+              }}
+              onClick={() => handleSemesterSelect('first-sem')}
+            >
+              <div className="space-y-4 flex flex-col justify-between h-full">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 flex items-center justify-center bg-white`}>
+                      <Calendar size={20} weight="fill" className={`${selectedSemester === 'first-sem' ? 'text-blue-900' : 'text-blue-800'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        className={`text-lg font-medium ${selectedSemester === 'first-sem' ? 'text-white' : 'text-white'}`}
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        First Semester
+                      </h3>
+                      <p
+                        className={`text-sm ${selectedSemester === 'first-sem' ? 'text-white' : 'text-white'}`}
+                      >
+                        August - December
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <p
+                  className={`text-sm ${selectedSemester === 'first-sem' ? 'text-white' : 'text-white'}`}
+                >
+                  First semester enrollment for the academic year.
+                </p>
+
+                {/* Action */}
+                <div className="pt-2 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-sm ${selectedSemester === 'first-sem' ? 'text-white' : 'text-white'}`}
+                    >
+                      Click to select
+                    </span>
+                    <div className={`w-4 h-4 border-2 ${selectedSemester === 'first-sem' ? 'border-white bg-white' : 'border-white'}`}></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Second Semester */}
+            <Card
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+                selectedSemester === 'second-sem' ? 'shadow-lg border-blue-900' : ''
+              }`}
+              style={{
+                backgroundColor: selectedSemester === 'second-sem' ? getColorValue('blue-900') : getColorValue('blue-800')
+              }}
+              onClick={() => handleSemesterSelect('second-sem')}
+            >
+              <div className="space-y-4 flex flex-col justify-between h-full">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 flex items-center justify-center bg-white`}>
+                      <Calendar size={20} weight="fill" className={`${selectedSemester === 'second-sem' ? 'text-blue-900' : 'text-blue-800'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3
+                        className={`text-lg font-medium ${selectedSemester === 'second-sem' ? 'text-white' : 'text-white'}`}
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        Second Semester
+                      </h3>
+                      <p
+                        className={`text-sm ${selectedSemester === 'second-sem' ? 'text-white' : 'text-white'}`}
+                      >
+                        January - May
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <p
+                  className={`text-sm ${selectedSemester === 'second-sem' ? 'text-white' : 'text-white'}`}
+                >
+                  Second semester enrollment for the academic year.
+                </p>
+
+                {/* Action */}
+                <div className="pt-2 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-sm ${selectedSemester === 'second-sem' ? 'text-white' : 'text-white'}`}
+                    >
+                      Click to select
+                    </span>
+                    <div className={`w-4 h-4 border-2 ${selectedSemester === 'second-sem' ? 'border-white bg-white' : 'border-white'}`}></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {userProfile && currentStep === 'personal-info' && (selectedGrade || (selectedCourse && selectedYear && selectedSemester)) && (
         <div className={`space-y-6 transition-all duration-500 ${animatingStep ? 'opacity-0 transform translate-x-4' : 'opacity-100 transform translate-x-0'}`}>
           <div className="flex items-center justify-between">
             <div>
@@ -1802,7 +2773,13 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             </div>
             <Button
               variant="ghost"
-              onClick={handleBackToGradeSelection}
+              onClick={() => {
+                if (selectedLevel === 'college') {
+                  changeStep('semester-selection');
+                } else {
+                  handleBackToGradeSelection();
+                }
+              }}
                
             >
               Back
@@ -1956,13 +2933,12 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
                     </label>
                     <div className="grid grid-cols-4 gap-2 items-end">
-                      <div className="relative">
-                        <Calendar size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                      <div>
                         <select
                           value={personalInfo.birthMonth || ''}
                           onChange={(e) => handlePersonalInfoChange('birthMonth', e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 h-10 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
-                           
+                          className="w-full px-3 py-2 h-10 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
+
                         >
                           <option value="">Month</option>
                           <option value="01">January</option>
@@ -2121,7 +3097,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
               <div className="flex justify-end pt-4 border-t border-gray-200">
                 <Button
                   onClick={handleProceedToConfirmation}
-                  className="bg-blue-900 hover:bg-blue-800 transition-all duration-300  hover:shadow-lg"
+                  className="bg-blue-900 hover:bg-blue-900 transition-all duration-300  hover:shadow-lg"
                    
                 >
                   Proceed to Confirmation
@@ -2134,7 +3110,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
 
 
-      {userProfile && currentStep === 'confirmation' && selectedGrade && (
+      {userProfile && currentStep === 'confirmation' && (selectedGrade || selectedCourse) && (
         <div className={`space-y-6 transition-all duration-500 ${animatingStep ? 'opacity-0 transform translate-x-4' : 'opacity-100 transform translate-x-0'}`}>
           <div className="flex items-center justify-between">
             <div>
@@ -2184,7 +3160,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                         <label className="text-sm font-medium text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                           Full Name
                         </label>
-                        <p className="text-sm text-gray-900 mt-1"  >
+                        <p className="text-sm text-gray-900 mt-1 font-mono"  >
                           {personalInfo.firstName} {personalInfo.middleName} {personalInfo.lastName} {personalInfo.extension}
                         </p>
                       </div>
@@ -2193,7 +3169,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                         <label className="text-sm font-medium text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                           Email Address
                         </label>
-                          <p className="text-sm text-gray-900 mt-1"  >
+                          <p className="text-sm text-gray-900 mt-1 font-mono"  >
                             {personalInfo.email || 'Not provided'}
                           </p>
                         </div>
@@ -2201,19 +3177,19 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                           <label className="text-sm font-medium text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                             Phone Number
                           </label>
-                          <p className="text-sm text-gray-900 mt-1"  >
+                          <p className="text-sm text-gray-900 mt-1 font-mono"  >
                             {personalInfo.phone || 'Not provided'}
                           </p>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="text-sm font-medium text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                          <label className="text-sm font-medium text-gray-600">
                             Date of Birth
                           </label>
-                          <p className="text-sm text-gray-900 mt-1"  >
+                          <p className="text-sm text-gray-900 mt-1 font-mono"  >
                             {personalInfo.birthMonth && personalInfo.birthDay && personalInfo.birthYear
-                              ? `${personalInfo.birthMonth}/${personalInfo.birthDay}/${personalInfo.birthYear}${calculatedAge ? ` (Age: ${calculatedAge} Years Old)` : ''}`
+                                ? `${personalInfo.birthMonth}/${personalInfo.birthDay}/${personalInfo.birthYear}`
                               : 'Not provided'
                             }
                           </p>
@@ -2222,7 +3198,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                           <label className="text-sm font-medium text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                             Place of Birth
                           </label>
-                          <p className="text-sm text-gray-900 mt-1"  >
+                          <p className="text-sm text-gray-900 mt-1 font-mono"  >
                             {personalInfo.placeOfBirth || 'Not provided'}
                           </p>
                         </div>
@@ -2232,7 +3208,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                           <label className="text-sm font-medium text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                             Gender
                           </label>
-                          <p className="text-sm text-gray-900 mt-1"  >
+                          <p className="text-sm text-gray-900 mt-1 font-mono"  >
                             {personalInfo.gender || 'Not provided'}
                           </p>
                         </div>
@@ -2240,7 +3216,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                           <label className="text-sm font-medium text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                             Civil Status
                           </label>
-                          <p className="text-sm text-gray-900 mt-1"  >
+                          <p className="text-sm text-gray-900 mt-1 font-mono"  >
                             {personalInfo.civilStatus || 'Not provided'}
                           </p>
                         </div>
@@ -2250,7 +3226,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                           <label className="text-sm font-medium text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                             Citizenship
                           </label>
-                          <p className="text-sm text-gray-900 mt-1"  >
+                          <p className="text-sm text-gray-900 mt-1 font-mono"  >
                             {personalInfo.citizenship || 'Not provided'}
                           </p>
                         </div>
@@ -2258,7 +3234,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                           <label className="text-sm font-medium text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                             Religion
                           </label>
-                          <p className="text-sm text-gray-900 mt-1"  >
+                          <p className="text-sm text-gray-900 mt-1 font-mono  "  >
                             {personalInfo.religion || 'Not provided'}
                           </p>
                         </div>
@@ -2275,25 +3251,49 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                   Enrollment Details
                 </h4>
                   
-                  {/* Selected Grade Card */}
+                  {/* Selected Grade/Course Card */}
                   <div className="mb-4">
                     <div
                       className="p-4 border border-gray-200 bg-white shadow-inner"
                       style={{
-                        backgroundColor: getColorValue(selectedGrade.color)
+                        backgroundColor: selectedLevel === 'high-school' && selectedGrade
+                          ? getColorValue(selectedGrade.color)
+                          : selectedLevel === 'college' && selectedCourse
+                          ? getColorValue(selectedCourse.color)
+                          : '#1e40af'
                       }}
                     >
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-white flex items-center justify-center">
-                          <GraduationCap size={16} weight="fill" style={{ color: getColorValue(selectedGrade.color) }} />
+                          <GraduationCap size={16} weight="fill" style={{
+                            color: selectedLevel === 'high-school' && selectedGrade
+                              ? getColorValue(selectedGrade.color)
+                              : selectedLevel === 'college' && selectedCourse
+                              ? getColorValue(selectedCourse.color)
+                              : '#1e40af'
+                          }} />
                   </div>
                         <div className="flex-1">
+                          {selectedLevel === 'high-school' && selectedGrade && (
+                            <>
                           <h5 className="font-medium text-white text-sm" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                             Grade {selectedGrade.gradeLevel} {selectedGrade.strand}
                           </h5>
                           <p className="text-xs text-white"  >
                             {selectedGrade.department} Department
                           </p>
+                            </>
+                          )}
+                          {selectedLevel === 'college' && selectedCourse && selectedYear && selectedSemester && (
+                            <>
+                              <h5 className="font-medium text-white text-sm" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                                {selectedCourse.code} {selectedYear} {selectedSemester === 'first-sem' ? 'Q1' : 'Q2'}
+                              </h5>
+                              <p className="text-xs text-white"  >
+                                {selectedCourse.name}
+                              </p>
+                            </>
+                          )}
                   </div>
                         <div className="flex items-center space-x-2">
                           <Check size={14} className="text-white" weight="bold" />
@@ -2434,7 +3434,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                 <Button
                   onClick={handleOpenSubmitModal}
                   disabled={enrolling}
-                  className={`bg-blue-900 hover:bg-blue-800 transition-all duration-300  hover:shadow-lg transform ${
+                  className={`bg-blue-900 hover:bg-blue-900 transition-all duration-300  hover:shadow-lg transform ${
                     enrolling ? 'animate-pulse scale-110' : ''
                   }`}
                    
@@ -2514,7 +3514,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             </Button>
             <Button
               onClick={confirmIrregularStudent}
-              className="flex-1 bg-blue-900 hover:bg-blue-800 text-white border-blue-900"
+              className="flex-1 bg-blue-900 hover:bg-blue-900 text-white border-blue-900"
                
             >
               Yes, I'm a Transferee
@@ -2531,10 +3531,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
         size="sm"
       >
         <div className="p-6 text-center">
-          {/* Warning Icon */}
-          <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-6">
-            <Warning size={32} className="text-blue-600" weight="bold" />
-          </div>
+        
           
           {/* Warning Message */}
           <p className="text-gray-600 mb-6"  >
@@ -2558,7 +3555,7 @@ Cancel
               className={`flex-1 ${
                 enrolling || countdown > 0
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-900 hover:bg-blue-800'
+                  : 'bg-blue-900 hover:bg-blue-900'
               }`}
                
             >

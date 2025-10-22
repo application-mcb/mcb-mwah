@@ -121,7 +121,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
+    <Card className="w-full max-w-md mx-auto shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
       <CardHeader className="text-center pb-8">
         <CardTitle className="text-3xl font-light text-gray-900">Create Account</CardTitle>
         <CardDescription className="text-gray-500 text-base">
@@ -133,7 +133,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           <Button
             type="button"
             onClick={handleGoogleSignUp}
-            className="w-full bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm"
+            className="w-full bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-lg"
             loading={isLoading}
             variant="outline"
           >
@@ -154,8 +154,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
         <form onSubmit={handleSubmit(handleRegistration)} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
-            <div className="relative">
-              <Envelope size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <div>
               <Input
                 id="email"
                 type="email"
@@ -167,7 +166,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                     message: "Invalid email address",
                   },
                 })}
-                className="w-full pl-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                className="w-full px-3 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                 aria-describedby={errors.email ? "email-error" : undefined}
               />
             </div>
@@ -181,7 +180,6 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
             <div className="relative">
-              <Lock size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
@@ -193,7 +191,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                     message: "Password must be at least 6 characters",
                   },
                 })}
-                className="w-full pl-10 pr-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                className="w-full pr-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                 aria-describedby={errors.password ? "password-error" : undefined}
               />
               <button
@@ -214,7 +212,6 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           <div className="space-y-2">
             <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm Password</Label>
             <div className="relative">
-              <Lock size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
                 id="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
@@ -224,7 +221,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                   validate: (value) =>
                     value === password || "Passwords do not match",
                 })}
-                className="w-full pl-10 pr-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                className="w-full pr-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                 aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
               />
               <button
@@ -252,7 +249,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
 
           <Button
             type="submit"
-            className="w-full bg-blue-900 hover:bg-blue-900 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full bg-blue-900 hover:bg-blue-900 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-lg"
             loading={isLoading}
             aria-describedby={isLoading ? "loading-status" : undefined}
           >

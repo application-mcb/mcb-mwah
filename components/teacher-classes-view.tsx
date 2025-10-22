@@ -537,7 +537,7 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
                   <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                     <div className="flex items-center">
                       <div
-                        className="w-10 h-10 flex items-center justify-center shadow-sm mr-4"
+                        className="w-10 h-10 flex items-center justify-center shadow-lg mr-4"
                         style={{ backgroundColor: getSubjectColor(subject.color) }}
                       >
                         <BookOpen size={16} className="text-white" weight="fill" />
@@ -545,7 +545,7 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
                       <div>
                         <div className="text-xs font-medium text-gray-900"
                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                          {subject.name}
+                          {subject.code} {subject.name}
                         </div>
                         <div className="text-xs text-gray-500 font-mono"
                              style={{ fontFamily: 'Poppins', fontWeight: 300 }}>

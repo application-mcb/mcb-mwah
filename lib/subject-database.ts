@@ -13,7 +13,8 @@ import {
   Timestamp,
   query,
   orderBy,
-  where
+  where,
+  deleteField
 } from 'firebase/firestore';
 import { db } from './firebase-server';
 
@@ -70,7 +71,9 @@ export interface SubjectData {
   code: string; // Subject code (e.g., "MATH101", "ENG202")
   name: string; // Subject name (e.g., "Mathematics", "English")
   description: string; // Detailed description of the subject
-  gradeLevel: number; // Grade level this subject belongs to (7, 8, 9, 10, 11, 12)
+  gradeLevels: number[]; // Grade levels this subject belongs to (7, 8, 9, 10, 11, 12)
+  courseCodes: string[]; // College course codes this subject applies to (legacy)
+  courseSelections: { code: string; year: number; semester: 'first-sem' | 'second-sem' }[]; // College course selections with year and semester
   color: SubjectColor; // Color theme for the subject
   lectureUnits: number; // Number of lecture units for this subject
   labUnits: number; // Number of lab units for this subject
@@ -79,6 +82,9 @@ export interface SubjectData {
   createdAt: string; // ISO string (serialized from Firestore timestamp)
   updatedAt: string; // ISO string (serialized from Firestore timestamp)
   createdBy: string; // UID of the registrar who created it
+
+  // Backward compatibility fields (optional)
+  gradeLevel?: number; // Legacy field for old subjects
 }
 
 // Input type for creating subjects (allows FieldValue for timestamps)
@@ -92,9 +98,9 @@ export class SubjectDatabase {
   private static collectionName = 'subjects';
 
   // Generate subject ID
-  private static generateSubjectId(code: string, gradeLevel: number): string {
+  private static generateSubjectId(code: string): string {
     const cleanCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    return `subject-${cleanCode}-grade-${gradeLevel}`;
+    return `subject-${cleanCode}`;
   }
 
   // Create a new subject document
@@ -105,9 +111,19 @@ export class SubjectDatabase {
         throw new Error(`Invalid subject color. Must be one of: ${SUBJECT_COLORS.join(', ')}`);
       }
 
-      // Validate grade level
-      if (subjectData.gradeLevel < 1 || subjectData.gradeLevel > 12) {
-        throw new Error('Grade level must be between 1 and 12');
+      // Validate that at least one grade level or course code is provided
+      if ((!subjectData.gradeLevels || subjectData.gradeLevels.length === 0) && 
+          (!subjectData.courseCodes || subjectData.courseCodes.length === 0)) {
+        throw new Error('At least one grade level or college course must be specified');
+      }
+
+      // Validate grade levels if provided
+      if (subjectData.gradeLevels && subjectData.gradeLevels.length > 0) {
+        for (const gradeLevel of subjectData.gradeLevels) {
+          if (gradeLevel < 1 || gradeLevel > 12) {
+            throw new Error('All grade levels must be between 1 and 12');
+          }
+        }
       }
 
       // Validate units
@@ -128,7 +144,7 @@ export class SubjectDatabase {
         throw new Error('Description must not exceed 300 characters');
       }
 
-      const subjectId = this.generateSubjectId(subjectData.code, subjectData.gradeLevel);
+      const subjectId = this.generateSubjectId(subjectData.code);
       const subjectRef = doc(collection(db, this.collectionName), subjectId);
 
       const subject: any = {
@@ -181,8 +197,20 @@ export class SubjectDatabase {
 
       const subjects = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        console.log('Processing subject:', doc.id, data.name);
-        return serializeFirestoreData(data) as SubjectData;
+        // Handle backward compatibility for old subjects
+        const serializedData = serializeFirestoreData(data) as any;
+        
+        // If old structure (gradeLevel), convert to new structure (gradeLevels)
+        if (serializedData.gradeLevel && !serializedData.gradeLevels) {
+          serializedData.gradeLevels = [serializedData.gradeLevel];
+          delete serializedData.gradeLevel;
+        }
+        
+        // Ensure courseCodes exists
+        if (!serializedData.courseCodes) {
+          serializedData.courseCodes = [];
+        }
+        return serializedData as SubjectData;
       });
 
       console.log(`Successfully processed ${subjects.length} subjects`);
@@ -194,37 +222,43 @@ export class SubjectDatabase {
     }
   }
 
-  // Get subjects by grade level
+  // Get subjects by grade level (supports both old and new data structure)
   static async getSubjectsByGradeLevel(gradeLevel: number): Promise<SubjectData[]> {
     try {
-      // First try with composite index (where + orderBy)
-      try {
-        const q = query(
-          collection(db, this.collectionName),
-          where('gradeLevel', '==', gradeLevel),
-          orderBy('createdAt', 'desc')
-        );
-        const querySnapshot = await getDocs(q);
-
-        const subjects = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return serializeFirestoreData(data) as SubjectData;
-        });
-
-        // Sort by name after fetching (client-side sort)
-        return subjects.sort((a, b) => a.name.localeCompare(b.name));
-      } catch (indexError) {
-        console.warn('Composite index not available, falling back to client-side filtering');
-
-        // Fallback: Get all subjects and filter client-side
-        const allSubjects = await this.getAllSubjects();
-        return allSubjects
-          .filter(subject => subject.gradeLevel === gradeLevel)
-          .sort((a, b) => a.name.localeCompare(b.name));
-      }
+      // Get all subjects and filter client-side since we now use arrays
+      const allSubjects = await this.getAllSubjects();
+      
+      const filteredSubjects = allSubjects
+        .filter(subject => {
+          // Support both old structure (gradeLevel) and new structure (gradeLevels)
+          if (subject.gradeLevels && Array.isArray(subject.gradeLevels)) {
+            return subject.gradeLevels.includes(gradeLevel);
+          } else if (subject.gradeLevel) {
+            return subject.gradeLevel === gradeLevel;
+          }
+          return false;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+      
+      return filteredSubjects;
     } catch (error) {
       console.error('Error getting subjects by grade level:', error);
       throw new Error('Failed to get subjects by grade level');
+    }
+  }
+
+  // Get subjects by course code
+  static async getSubjectsByCourseCode(courseCode: string): Promise<SubjectData[]> {
+    try {
+      const allSubjects = await this.getAllSubjects();
+      return allSubjects
+        .filter(subject => {
+          return subject.courseCodes && subject.courseCodes.includes(courseCode);
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+      console.error('Error getting subjects by course code:', error);
+      throw new Error('Failed to get subjects by course code');
     }
   }
 
@@ -256,9 +290,30 @@ export class SubjectDatabase {
         throw new Error(`Invalid subject color. Must be one of: ${SUBJECT_COLORS.join(', ')}`);
       }
 
-      // Validate grade level if provided
-      if (updateData.gradeLevel !== undefined && (updateData.gradeLevel < 1 || updateData.gradeLevel > 12)) {
-        throw new Error('Grade level must be between 1 and 12');
+      // Validate grade levels if provided
+      if (updateData.gradeLevels !== undefined) {
+        if (!Array.isArray(updateData.gradeLevels)) {
+          throw new Error('Grade levels must be an array');
+        }
+        for (const gradeLevel of updateData.gradeLevels) {
+          if (gradeLevel < 1 || gradeLevel > 12) {
+            throw new Error('All grade levels must be between 1 and 12');
+          }
+        }
+      }
+
+      // Validate course codes if provided
+      if (updateData.courseCodes !== undefined) {
+        if (!Array.isArray(updateData.courseCodes)) {
+          throw new Error('Course codes must be an array');
+        }
+      }
+
+      // Validate that at least one grade level or course code is provided
+      if (updateData.gradeLevels !== undefined && updateData.courseCodes !== undefined) {
+        if (updateData.gradeLevels.length === 0 && updateData.courseCodes.length === 0) {
+          throw new Error('At least one grade level or college course must be specified');
+        }
       }
 
       // Validate units if provided
@@ -281,6 +336,11 @@ export class SubjectDatabase {
         ...updateData,
         updatedAt: serverTimestamp(),
       };
+
+      // If updating gradeLevels, remove old gradeLevel field for backward compatibility
+      if (updateData.gradeLevels !== undefined) {
+        updatePayload.gradeLevel = deleteField(); // Remove old field
+      }
 
       // If updating units, recalculate total
       if (updateData.lectureUnits !== undefined || updateData.labUnits !== undefined) {
@@ -356,11 +416,14 @@ export interface SubjectSetData {
   name: string; // Subject set name (e.g., "G10 Core Subjects")
   description: string; // Description of the subject set
   subjects: string[]; // Array of subject IDs
-  gradeLevel: number; // Grade level for this subject set
+  gradeLevels: number[]; // Grade levels this subject set applies to
+  courseSelections: { code: string; year: number; semester: 'first-sem' | 'second-sem' }[]; // College course selections with year and semester
   color: SubjectColor; // Color theme for the subject set
   createdAt: string; // ISO string (serialized from Firestore timestamp)
   updatedAt: string; // ISO string (serialized from Firestore timestamp)
   createdBy: string; // UID of the registrar who created it
+  // Backward compatibility
+  gradeLevel?: number; // Old single grade level field (deprecated)
 }
 
 // Input type for creating subject sets
