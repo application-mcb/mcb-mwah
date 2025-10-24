@@ -94,6 +94,192 @@ const SkeletonTableRow = () => (
   </tr>
 );
 
+// Memoized enrollment table row component for performance
+const EnrollmentTableRow = React.memo(({ 
+  enrollment, 
+  studentProfile, 
+  onView, 
+  onQuickEnroll, 
+  onPrint,
+  onDelete,
+  enrollingStudent,
+  subjectAssignments,
+  subjectSets,
+  getEnrollmentDisplayInfo,
+  getBgColor,
+  getStatusHexColor,
+  getTimeAgoInfo,
+  formatFullName,
+  formatDate,
+  getInitials,
+}: any) => {
+  return (
+    <tr className="hover:bg-gray-50">
+      <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 h-10 w-10 relative">
+            {studentProfile?.photoURL ? (
+              <img
+                src={studentProfile.photoURL}
+                alt={`${enrollment.personalInfo?.firstName || 'Student'} profile`}
+                className="h-10 w-10 rounded-full object-cover border-2 border-black/80"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-blue-900 flex items-center justify-center">
+                <span className="text-white text-xs font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {getInitials(enrollment.personalInfo?.firstName, enrollment.personalInfo?.lastName)}
+                </span>
+              </div>
+            )}
+            <span
+              className={`absolute -bottom-0 -right-0 w-3 h-3 border-2 border-white ${
+                enrollment.enrollmentInfo?.studentType === 'regular' ? 'bg-emerald-700' : 'bg-red-600'
+              }`}
+              aria-label={enrollment.enrollmentInfo?.studentType === 'regular' ? 'Regular Student' : 'Irregular Student'}
+            ></span>
+          </div>
+          <div className="ml-4">
+            <div className="text-xs font-medium text-gray-900"
+                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+              {formatFullName(
+                enrollment.personalInfo?.firstName,
+                enrollment.personalInfo?.middleName,
+                enrollment.personalInfo?.lastName,
+                enrollment.personalInfo?.nameExtension
+              )}
+            </div>
+            <div className="text-xs text-gray-500 font-mono"
+                 style={{ fontWeight: 400 }}>
+              {studentProfile?.email || enrollment.personalInfo?.email || 'N/A'}
+            </div>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
+        {(() => {
+          const displayInfo = getEnrollmentDisplayInfo(enrollment);
+          return (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <div
+                  className="w-3 h-3 flex-shrink-0"
+                  style={{ backgroundColor: getBgColor(displayInfo.color) }}
+                ></div>
+                <div className="text-xs text-gray-900"
+                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  {displayInfo.displayText}
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 font-mono"
+                   style={{ fontWeight: 400 }}>
+                {displayInfo.subtitle}
+              </div>
+            </>
+          );
+        })()}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 flex-shrink-0"
+              style={{ backgroundColor: getStatusHexColor(enrollment.enrollmentInfo?.status || 'unknown') }}
+            ></div>
+            <span className="text-xs capitalize font-medium font-mono"
+                  style={{ fontWeight: 400 }}>
+              {enrollment.enrollmentInfo?.status || 'Unknown'}
+            </span>
+          </div>
+          {enrollment.enrollmentInfo?.studentType && (
+            <div className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 flex-shrink-0"
+                style={{ backgroundColor: enrollment.enrollmentInfo.studentType === 'irregular' ? '#dc2626' : '#064e3b' }}
+              ></div>
+              <span className="text-xs capitalize text-black font-mono"
+                    style={{ fontWeight: 300 }}>
+                {enrollment.enrollmentInfo.studentType}
+              </span>
+            </div>
+          )}
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 border-r border-gray-200 font-mono hidden lg:table-cell"
+          style={{ fontWeight: 400 }}>
+        <div className="space-y-1">
+          <div className="text-xs font-mono text-gray-900">{formatDate(enrollment.submittedAt)}</div>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 flex-shrink-0"
+              style={{ backgroundColor: getTimeAgoInfo(enrollment.submittedAt).color }}
+            ></div>
+            <span className="text-xs font-medium font-mono"
+                  style={{ fontWeight: 400 }}>
+              {getTimeAgoInfo(enrollment.submittedAt).text}
+            </span>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
+        <div className="flex gap-2">
+          <Button
+            onClick={() => onView(enrollment)}
+            size="sm"
+            className="bg-blue-900 hover:bg-blue-900 text-white border"
+            disabled={enrollingStudent}
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
+            <Eye size={14} className="mr-1" />
+            View
+          </Button>
+          {enrollment.enrollmentInfo?.status !== 'enrolled' && (
+            <Button
+              onClick={() => onQuickEnroll(enrollment)}
+              size="sm"
+              className="bg-blue-900 text-white border hover:bg-blue-900"
+              disabled={enrollingStudent}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              {enrollingStudent ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Lightning size={14} className="mr-1" />
+                  Quick Enroll
+                </>
+              )}
+            </Button>
+          )}
+          {enrollment.enrollmentInfo?.status === 'enrolled' && (
+            <Button
+              onClick={() => onPrint(enrollment)}
+              size="sm"
+              className="bg-blue-900 hover:bg-blue-900 text-white border"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <Printer size={14} className="mr-1" />
+              Print
+            </Button>
+          )}
+          <Button
+            onClick={() => onDelete(enrollment)}
+            size="sm"
+            className="bg-red-600 hover:bg-red-700 text-white border"
+            disabled={enrollingStudent}
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
+            <Trash size={14} className="mr-1" />
+            Delete
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+});
+
 const SkeletonTable = () => (
   <div className="bg-white shadow overflow-hidden">
     <div className="px-4 py-5 sm:p-6">
@@ -159,7 +345,7 @@ interface ExtendedEnrollmentData extends Omit<EnrollmentData, 'enrollmentInfo'> 
 import { SubjectData } from '@/lib/subject-database';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase-server';
-import { Eye, MagnifyingGlass, Calendar, Phone, MapPin, FileText, User, GraduationCap, Circle, Gear, Clock, ArrowUp, ArrowDown, ArrowClockwise, User as UserIcon, FileText as FileTextIcon, GraduationCap as GraduationCapIcon, X, Printer, Check, Lightning, Shield } from '@phosphor-icons/react';
+import { Eye, MagnifyingGlass, Calendar, Phone, MapPin, FileText, User, GraduationCap, Circle, Gear, Clock, ArrowUp, ArrowDown, ArrowClockwise, ArrowLeft, ArrowRight, User as UserIcon, FileText as FileTextIcon, GraduationCap as GraduationCapIcon, X, Printer, Check, Lightning, Shield, Trash } from '@phosphor-icons/react';
 import ViewHandler from './viewHandler';
 
 interface EnrollmentManagementProps {
@@ -198,7 +384,9 @@ interface SubjectSetData {
   name: string;
   description: string;
   subjects: string[];
-  gradeLevel: number;
+  gradeLevel: number; // Legacy field
+  gradeLevels?: number[]; // New field
+  courseSelections?: { code: string; year: number; semester: 'first-sem' | 'second-sem' }[]; // College course selections
   color: string;
   createdAt: string;
   updatedAt: string;
@@ -242,6 +430,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
   const [studentProfiles, setStudentProfiles] = useState<Record<string, StudentProfile>>({});
   const [studentDocuments, setStudentDocuments] = useState<Record<string, StudentDocuments>>({});
   const [subjectSets, setSubjectSets] = useState<Record<number, SubjectSetData[]>>({});
+  const [allSubjectSets, setAllSubjectSets] = useState<SubjectSetData[]>([]);
   const [subjects, setSubjects] = useState<Record<string, SubjectData>>({});
   const [grades, setGrades] = useState<Record<string, { color: string }>>({});
   const [courses, setCourses] = useState<Record<string, { color: string }>>({});
@@ -251,15 +440,22 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingEnrollment, setViewingEnrollment] = useState<ExtendedEnrollmentData | null>(null);
   const [sortOption, setSortOption] = useState<string>('latest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   const [activeTab, setActiveTab] = useState<string>('student-info');
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showRevokeModal, setShowRevokeModal] = useState(false);
   const [revokeCountdown, setRevokeCountdown] = useState(0);
   const [enrollingStudent, setEnrollingStudent] = useState(false);
   const [revokingEnrollment, setRevokingEnrollment] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteCountdown, setDeleteCountdown] = useState(0);
+  const [deletingEnrollment, setDeletingEnrollment] = useState(false);
+  const [enrollmentToDelete, setEnrollmentToDelete] = useState<ExtendedEnrollmentData | null>(null);
   const [showQuickEnrollModal, setShowQuickEnrollModal] = useState(false);
   const [quickEnrollData, setQuickEnrollData] = useState<{
     enrollment: ExtendedEnrollmentData;
@@ -310,7 +506,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
 
           if (assignment) {
             // Get the subject set for this assignment
-            const subjectSet = Object.values(subjectSets).flat().find(set => set.id === assignment.subjectSetId);
+            const subjectSet = allSubjectSets.find(set => set.id === assignment.subjectSetId);
             if (subjectSet) {
               assignedSubjectIds = subjectSet.subjects;
               assignedSubjectSetIds = [subjectSet.id];
@@ -327,7 +523,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
 
             if (assignment) {
               // Get the subject set for this assignment
-              const subjectSet = Object.values(subjectSets).flat().find(set => set.id === assignment.subjectSetId);
+              const subjectSet = allSubjectSets.find(set => set.id === assignment.subjectSetId);
               if (subjectSet) {
                 assignedSubjectIds = subjectSet.subjects;
                 assignedSubjectSetIds = [subjectSet.id];
@@ -370,6 +566,21 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     };
   }, []);
 
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page on search
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset to first page when sort option changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortOption]);
+
   // Countdown timer for revoke modal
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -382,6 +593,19 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
       if (timer) clearTimeout(timer);
     };
   }, [showRevokeModal, revokeCountdown]);
+
+  // Countdown timer for delete modal
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showDeleteModal && deleteCountdown > 0) {
+      timer = setTimeout(() => {
+        setDeleteCountdown(deleteCountdown - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showDeleteModal, deleteCountdown]);
 
   // Load scholarships when modal opens
   useEffect(() => {
@@ -491,28 +715,55 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     try {
       const profiles: Record<string, StudentProfile> = {};
 
-      // Fetch student profiles for all enrollments
-      for (const enrollment of enrollmentData) {
-        try {
-          const studentResponse = await fetch(`/api/user/profile?uid=${enrollment.userId}`);
-          const studentData = await studentResponse.json();
-
-          if (studentResponse.ok && studentData.success) {
-            profiles[enrollment.userId] = {
-              userId: enrollment.userId,
-              photoURL: studentData.user?.photoURL,
-              email: studentData.user?.email,
-              guardianName: studentData.user?.guardianName,
-              guardianPhone: studentData.user?.guardianPhone,
-              guardianEmail: studentData.user?.guardianEmail,
-              guardianRelationship: studentData.user?.guardianRelationship,
-              emergencyContact: studentData.user?.emergencyContact
-            };
-          }
-        } catch (error) {
-          console.warn(`Failed to load profile for user ${enrollment.userId}:`, error);
-        }
+      // Batch fetch all student profiles at once
+      if (enrollmentData.length === 0) {
+        setStudentProfiles(profiles);
+        return;
       }
+
+      // Chunk userIds to avoid URL length limits (50 per chunk)
+      const userIds = enrollmentData.map(e => e.userId);
+      const chunkSize = 50;
+      const chunks = [];
+      
+      for (let i = 0; i < userIds.length; i += chunkSize) {
+        chunks.push(userIds.slice(i, i + chunkSize));
+      }
+
+      // Fetch all chunks in parallel
+      const batchPromises = chunks.map(async (chunk) => {
+        try {
+          const chunkUserIds = chunk.join(',');
+          const batchResponse = await fetch(`/api/user/profile?uids=${chunkUserIds}`);
+          const batchData = await batchResponse.json();
+
+          if (batchResponse.ok && batchData.success && batchData.users) {
+            return batchData.users;
+          }
+          return [];
+        } catch (error) {
+          console.warn('Failed to load chunk:', error);
+          return [];
+        }
+      });
+
+      const allUsers = await Promise.all(batchPromises);
+      
+      // Flatten and process results
+      allUsers.flat().forEach((user: any) => {
+        if (user && user.uid) {
+          profiles[user.uid] = {
+            userId: user.uid,
+            photoURL: user.photoURL,
+            email: user.email,
+            guardianName: user.guardianName,
+            guardianPhone: user.guardianPhone,
+            guardianEmail: user.guardianEmail,
+            guardianRelationship: user.guardianRelationship,
+            emergencyContact: user.emergencyContact
+          };
+        }
+      });
 
       setStudentProfiles(profiles);
     } catch (error) {
@@ -524,19 +775,46 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     try {
       const documents: Record<string, StudentDocuments> = {};
 
-      // Fetch student documents for all enrollments
-      for (const enrollment of enrollmentData) {
-        try {
-          const documentsResponse = await fetch(`/api/user/profile?uid=${enrollment.userId}`);
-          const documentsData = await documentsResponse.json();
-
-          if (documentsResponse.ok && documentsData.success && documentsData.user?.documents) {
-            documents[enrollment.userId] = documentsData.user.documents;
-          }
-        } catch (error) {
-          console.warn(`Failed to load documents for user ${enrollment.userId}:`, error);
-        }
+      // Batch fetch all student documents at once
+      if (enrollmentData.length === 0) {
+        setStudentDocuments(documents);
+        return;
       }
+
+      // Chunk userIds to avoid URL length limits (50 per chunk)
+      const userIds = enrollmentData.map(e => e.userId);
+      const chunkSize = 50;
+      const chunks = [];
+      
+      for (let i = 0; i < userIds.length; i += chunkSize) {
+        chunks.push(userIds.slice(i, i + chunkSize));
+      }
+
+      // Fetch all chunks in parallel
+      const batchPromises = chunks.map(async (chunk) => {
+        try {
+          const chunkUserIds = chunk.join(',');
+          const batchResponse = await fetch(`/api/user/profile?uids=${chunkUserIds}`);
+          const batchData = await batchResponse.json();
+
+          if (batchResponse.ok && batchData.success && batchData.users) {
+            return batchData.users;
+          }
+          return [];
+        } catch (error) {
+          console.warn('Failed to load chunk:', error);
+          return [];
+        }
+      });
+
+      const allUsers = await Promise.all(batchPromises);
+      
+      // Flatten and process results
+      allUsers.flat().forEach((user: any) => {
+        if (user && user.uid && user.documents) {
+          documents[user.uid] = user.documents;
+        }
+      });
 
       setStudentDocuments(documents);
     } catch (error) {
@@ -551,19 +829,34 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
       const data = await response.json();
       
       if (response.ok && data.subjectSets) {
-        // Group subject sets by grade level
+        // Store all subject sets as a flat array for easier filtering
+        const allSubjectSets: SubjectSetData[] = data.subjectSets;
+        
+        // Also group by grade level for backward compatibility
         const subjectSetsByGrade: Record<number, SubjectSetData[]> = {};
         
-        data.subjectSets.forEach((subjectSet: SubjectSetData) => {
-          const gradeLevel = subjectSet.gradeLevel;
-          if (!subjectSetsByGrade[gradeLevel]) {
-            subjectSetsByGrade[gradeLevel] = [];
+        allSubjectSets.forEach((subjectSet: SubjectSetData) => {
+          // Handle new structure with gradeLevels array
+          if (subjectSet.gradeLevels && subjectSet.gradeLevels.length > 0) {
+            subjectSet.gradeLevels.forEach(gradeLevel => {
+              if (!subjectSetsByGrade[gradeLevel]) {
+                subjectSetsByGrade[gradeLevel] = [];
+              }
+              subjectSetsByGrade[gradeLevel].push(subjectSet);
+            });
+          } else if (subjectSet.gradeLevel) {
+            // Legacy structure with single gradeLevel
+            const gradeLevel = subjectSet.gradeLevel;
+            if (!subjectSetsByGrade[gradeLevel]) {
+              subjectSetsByGrade[gradeLevel] = [];
+            }
+            subjectSetsByGrade[gradeLevel].push(subjectSet);
           }
-          subjectSetsByGrade[gradeLevel].push(subjectSet);
         });
         
         console.log('Loaded subject sets by grade:', subjectSetsByGrade);
         setSubjectSets(subjectSetsByGrade);
+        setAllSubjectSets(allSubjectSets);
       } else {
         console.error('Failed to load subject sets:', data);
       }
@@ -629,31 +922,46 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     setViewingEnrollment(enrollment);
     setShowViewModal(true);
 
-    // Auto-select all subjects when opening the modal
+    // Auto-select assigned subjects when opening the modal
     setTimeout(() => {
       const enrollmentInfo = enrollment.enrollmentInfo;
       
       if (enrollmentInfo?.level === 'college') {
-        // For college students, show all available subject sets
-        const allSubjectSets = Object.values(subjectSets).flat();
-        const allSubjectIds = allSubjectSets.flatMap(set => set.subjects);
-        const uniqueSubjectIds = Array.from(new Set(allSubjectIds)); // Remove duplicates
-
-        if (uniqueSubjectIds.length > 0) {
-          setSelectedSubjectSets(allSubjectSets.map(set => set.id));
-          setSelectedSubjects(uniqueSubjectIds);
+        // For college students, find the assigned subject set
+        const courseCode = enrollmentInfo.courseCode;
+        const yearLevel = parseInt(enrollmentInfo.yearLevel || '1');
+        const semester = enrollmentInfo.semester;
+        
+        const assignment = subjectAssignments.find(assignment => 
+          assignment.level === 'college' &&
+          assignment.courseCode === courseCode &&
+          assignment.yearLevel === yearLevel &&
+          assignment.semester === semester
+        );
+        
+        if (assignment) {
+          const assignedSubjectSet = allSubjectSets.find(set => set.id === assignment.subjectSetId);
+          if (assignedSubjectSet) {
+            setSelectedSubjectSets([assignedSubjectSet.id]);
+            setSelectedSubjects(assignedSubjectSet.subjects);
+          }
         }
       } else {
-        // High school logic
+        // High school logic - find the assigned subject set
         const gradeLevel = enrollmentInfo?.gradeLevel;
         if (gradeLevel) {
-          const gradeSubjectSets = subjectSets[parseInt(gradeLevel)] || [];
-          const allSubjectIds = gradeSubjectSets.flatMap(set => set.subjects);
-          const uniqueSubjectIds = Array.from(new Set(allSubjectIds)); // Remove duplicates
-
-          if (uniqueSubjectIds.length > 0) {
-            setSelectedSubjectSets(gradeSubjectSets.map(set => set.id));
-            setSelectedSubjects(uniqueSubjectIds);
+          const gradeLevelNum = parseInt(gradeLevel);
+          const assignment = subjectAssignments.find(assignment => 
+            assignment.level === 'high-school' &&
+            assignment.gradeLevel === gradeLevelNum
+          );
+          
+          if (assignment) {
+            const assignedSubjectSet = allSubjectSets.find(set => set.id === assignment.subjectSetId);
+            if (assignedSubjectSet) {
+              setSelectedSubjectSets([assignedSubjectSet.id]);
+              setSelectedSubjects(assignedSubjectSet.subjects);
+            }
           }
         }
       }
@@ -679,7 +987,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
 
       if (assignment) {
         // Get the subject set for this assignment
-        const subjectSet = Object.values(subjectSets).flat().find(set => set.id === assignment.subjectSetId);
+        const subjectSet = allSubjectSets.find(set => set.id === assignment.subjectSetId);
         if (subjectSet) {
           assignedSubjectIds = subjectSet.subjects;
         }
@@ -704,7 +1012,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
 
       if (assignment) {
         // Get the subject set for this assignment
-        const subjectSet = Object.values(subjectSets).flat().find(set => set.id === assignment.subjectSetId);
+        const subjectSet = allSubjectSets.find(set => set.id === assignment.subjectSetId);
         if (subjectSet) {
           assignedSubjectIds = subjectSet.subjects;
         }
@@ -1266,6 +1574,62 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     setRevokeCountdown(0);
   };
 
+  const handleDeleteEnrollment = (enrollment: ExtendedEnrollmentData) => {
+    setEnrollmentToDelete(enrollment);
+    setShowDeleteModal(true);
+    setDeleteCountdown(5);
+  };
+
+  const confirmDeleteEnrollment = async () => {
+    if (!enrollmentToDelete) {
+      toast.error('Unable to find enrollment information. Please refresh and try again.', {
+        autoClose: 5000,
+      });
+      return;
+    }
+
+    setDeletingEnrollment(true);
+
+    try {
+      const response = await fetch('/api/enrollment', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: enrollmentToDelete.userId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success(`Enrollment for ${enrollmentToDelete?.personalInfo?.firstName} ${enrollmentToDelete?.personalInfo?.lastName} has been deleted permanently.`, {
+          autoClose: 6000,
+        });
+        setShowDeleteModal(false);
+        setEnrollmentToDelete(null);
+      } else {
+        toast.error(data.error || 'Failed to delete enrollment. Please try again.', {
+          autoClose: 8000,
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting enrollment:', error);
+      toast.error('Network error occurred while deleting enrollment. Please check your connection and try again.', {
+        autoClose: 7000,
+      });
+    } finally {
+      setDeletingEnrollment(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setDeleteCountdown(0);
+    setEnrollmentToDelete(null);
+  };
+
   // Get date range for filtering
   const getDateRange = (days: number) => {
     const now = new Date();
@@ -1344,26 +1708,29 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     return parts.join(', ');
   };
 
-  // Filter and sort enrollments
-  const filteredAndSortedEnrollments = (() => {
-    let filtered = enrollments;
+  // Filter and sort enrollments - memoized for performance
+  const filteredAndSortedEnrollments = React.useMemo(() => {
+    // First, filter out enrolled students (only show pending enrollments)
+    let filtered = enrollments.filter(enrollment => 
+      enrollment.enrollmentInfo?.status !== 'enrolled'
+    );
 
     // Apply date filters first
     if (sortOption === 'last-3-days') {
       const threeDaysAgo = getDateRange(3);
-      filtered = enrollments.filter(enrollment =>
+      filtered = filtered.filter(enrollment =>
         enrollment.submittedAt && getDateTimestamp(enrollment.submittedAt) >= threeDaysAgo.getTime()
       );
     } else if (sortOption === 'last-7-days') {
       const sevenDaysAgo = getDateRange(7);
-      filtered = enrollments.filter(enrollment =>
+      filtered = filtered.filter(enrollment =>
         enrollment.submittedAt && getDateTimestamp(enrollment.submittedAt) >= sevenDaysAgo.getTime()
       );
     }
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    // Apply search filter (using debounced query)
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase();
       filtered = filtered.filter((enrollment) => {
         const fullName = formatFullName(
           enrollment.personalInfo?.firstName,
@@ -1411,7 +1778,17 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
     });
 
     return sorted;
-  })();
+  }, [enrollments, debouncedSearchQuery, sortOption]);
+
+  // Paginated enrollments
+  const paginatedEnrollments = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAndSortedEnrollments.slice(startIndex, endIndex);
+  }, [filteredAndSortedEnrollments, currentPage, itemsPerPage]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredAndSortedEnrollments.length / itemsPerPage);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -1952,7 +2329,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
                         style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                      Grade Level
+                      Level
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
                         style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
@@ -2166,19 +2543,77 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {Array.from(new Set(selectedSubjects)).map((subjectId, index) => {
-                  const subject = subjects[subjectId];
-                  if (!subject) return null;
-                  return (
-                    <div 
-                      key={`selected-${subjectId}-${index}`} 
-                      className={`flex items-center gap-2 px-3 py-1 bg-${subject.color} border border-${subject.color} text-white text-xs`}
-                    >
-                      <div className="w-2 h-2 bg-white"></div>
-                      {subject.code} {subject.name}
-                    </div>
-                  );
-                })}
+                {(() => {
+                  // Get the assigned subject set
+                  const enrollmentInfo = viewingEnrollment?.enrollmentInfo;
+                  let assignedSubjectSetId: string | undefined;
+                  
+                  if (enrollmentInfo?.level === 'college') {
+                    const assignment = subjectAssignments.find(assignment => 
+                      assignment.level === 'college' &&
+                      assignment.courseCode === enrollmentInfo.courseCode &&
+                      assignment.yearLevel === parseInt(enrollmentInfo.yearLevel || '1') &&
+                      assignment.semester === enrollmentInfo.semester
+                    );
+                    assignedSubjectSetId = assignment?.subjectSetId;
+                  } else if (enrollmentInfo?.gradeLevel) {
+                    const assignment = subjectAssignments.find(assignment => 
+                      assignment.level === 'high-school' &&
+                      assignment.gradeLevel === parseInt(enrollmentInfo.gradeLevel || '0')
+                    );
+                    assignedSubjectSetId = assignment?.subjectSetId;
+                  }
+                  
+                  // Get subjects from the assigned subject set first
+                  const assignedSet = allSubjectSets.find(set => set.id === assignedSubjectSetId);
+                  const assignedSubjectIds = assignedSet?.subjects || [];
+                  
+                  // Check if subjects are loaded
+                  const loadedSubjects = Array.from(new Set(selectedSubjects)).filter(subjectId => subjects[subjectId]);
+                  const hasUnloadedSubjects = selectedSubjects.length > 0 && loadedSubjects.length === 0;
+                  
+                  if (hasUnloadedSubjects || selectedSubjects.length === 0) {
+                    // Show skeleton while loading
+                    return (
+                      <>
+                        {[1, 2, 3, 4].map((i) => (
+                          <div 
+                            key={`skeleton-${i}`} 
+                            className="animate-pulse flex items-center gap-2 px-3 py-1 bg-gray-200 border border-gray-200 rounded-lg"
+                            style={{ minWidth: '120px', height: '28px' }}
+                          >
+                            <div className="w-2 h-2 bg-gray-300 rounded"></div>
+                            <div className="w-16 h-3 bg-gray-300 rounded"></div>
+                          </div>
+                        ))}
+                      </>
+                    );
+                  }
+                  
+                  // Sort subjects: assigned ones first, then the rest
+                  const sortedSubjects = [...loadedSubjects].sort((a, b) => {
+                    const aIsAssigned = assignedSubjectIds.includes(a);
+                    const bIsAssigned = assignedSubjectIds.includes(b);
+                    if (aIsAssigned && !bIsAssigned) return -1;
+                    if (!aIsAssigned && bIsAssigned) return 1;
+                    return 0;
+                  });
+                  
+                  // Show actual subjects once loaded
+                  return sortedSubjects.map((subjectId, index) => {
+                    const subject = subjects[subjectId];
+                    if (!subject) return null;
+                    return (
+                      <div 
+                        key={`selected-${subjectId}-${index}`} 
+                        className={`flex items-center gap-2 px-3 py-1 bg-${subject.color} border border-${subject.color} text-white text-xs`}
+                      >
+                        <div className="w-2 h-2 bg-white"></div>
+                        {subject.code} {subject.name}
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}
@@ -2188,11 +2623,27 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
             console.log('Subject sets:', subjectSets);
             
             if (enrollmentInfo?.level === 'college') {
-              // For college students, show all subject sets
-              const allSubjectSets = Object.values(subjectSets).flat();
-              console.log('All subject sets for college:', allSubjectSets);
+              // For college students, show all subject sets but put the assigned one on top
+              const courseCode = enrollmentInfo.courseCode;
+              const yearLevel = parseInt(enrollmentInfo.yearLevel || '1');
+              const semester = enrollmentInfo.semester;
               
-              if (allSubjectSets.length === 0) {
+              // Find the assigned subject set
+              const assignment = subjectAssignments.find(assignment => 
+                assignment.level === 'college' &&
+                assignment.courseCode === courseCode &&
+                assignment.yearLevel === yearLevel &&
+                assignment.semester === semester
+              );
+              
+              const assignedSubjectSetId = assignment?.subjectSetId;
+              
+              // Sort subject sets: assigned one first, then the rest
+              const assignedSet = allSubjectSets.find(set => set.id === assignedSubjectSetId);
+              const otherSets = allSubjectSets.filter(set => set.id !== assignedSubjectSetId);
+              const sortedSubjectSets = assignedSet ? [assignedSet, ...otherSets] : allSubjectSets;
+              
+              if (sortedSubjectSets.length === 0) {
                 return (
                   <div className="bg-gray-50 border border-gray-200 p-4 text-center">
                     <p className="text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
@@ -2202,14 +2653,15 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
                 );
               }
               
+              const semesterDisplay = semester === 'first-sem' ? 'Q1' : semester === 'second-sem' ? 'Q2' : '';
               return (
                 <div className="space-y-4">
                   <div className="bg-blue-50 border border-blue-200 p-3 mb-4">
                     <p className="text-blue-800 text-xs" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                      Showing all subject sets for college student: {enrollmentInfo.courseCode} - {enrollmentInfo.courseName} (Year {enrollmentInfo.yearLevel})
+                      Showing all subject sets for college student: {courseCode} - {enrollmentInfo.courseName} (Year {yearLevel})
                     </p>
                   </div>
-                  {allSubjectSets.map((subjectSet) => {
+                  {sortedSubjectSets.map((subjectSet) => {
                     const isSubjectSetSelected = selectedSubjectSets.includes(subjectSet.id);
                     
                     return (
@@ -2286,7 +2738,6 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
             // High school logic
             const gradeLevel = enrollmentInfo?.gradeLevel;
             console.log('Grade level:', gradeLevel);
-            console.log('Subject sets for grade:', subjectSets[parseInt(gradeLevel || '0')]);
             
             if (!gradeLevel) {
               return (
@@ -2298,108 +2749,42 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
               );
             }
 
-            const gradeSubjectSets = subjectSets[parseInt(gradeLevel)] || [];
-            console.log('Grade subject sets:', gradeSubjectSets);
+            const gradeLevelNum = parseInt(gradeLevel);
             
-            if (gradeSubjectSets.length === 0) {
-              // Show all subject sets as fallback
-              const allSubjectSets = Object.values(subjectSets).flat();
-              console.log('No grade-specific sets, showing all:', allSubjectSets);
-              
-              if (allSubjectSets.length === 0) {
-                return (
-                  <div className="bg-gray-50 border border-gray-200 p-4 text-center">
-                    <p className="text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                      No subject sets available
-                    </p>
-                  </div>
-                );
-              }
-              
+            // Find the assigned subject set for this grade level
+            const assignment = subjectAssignments.find(assignment => 
+              assignment.level === 'high-school' &&
+              assignment.gradeLevel === gradeLevelNum
+            );
+            
+            const assignedSubjectSetId = assignment?.subjectSetId;
+            
+            // Filter subject sets for this grade level
+            const gradeSubjectSets = allSubjectSets.filter(subjectSet => {
+              // Check if the subject set is for this grade level
+              if (subjectSet.gradeLevel === gradeLevelNum) return true;
+              if (subjectSet.gradeLevels && subjectSet.gradeLevels.includes(gradeLevelNum)) return true;
+              return false;
+            });
+            
+            // Sort subject sets: assigned one first, then the rest
+            const assignedSet = gradeSubjectSets.find(set => set.id === assignedSubjectSetId);
+            const otherSets = gradeSubjectSets.filter(set => set.id !== assignedSubjectSetId);
+            const sortedSubjectSets = assignedSet ? [assignedSet, ...otherSets] : gradeSubjectSets;
+            
+            if (sortedSubjectSets.length === 0) {
               return (
-                <div className="space-y-4">
-                  <div className="bg-yellow-50 border border-yellow-200 p-3 mb-4">
-                    <p className="text-yellow-800 text-xs" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                      Showing all subject sets (Grade {gradeLevel} specific sets not found)
-                    </p>
-                  </div>
-                  {allSubjectSets.map((subjectSet) => {
-                    const isSubjectSetSelected = selectedSubjectSets.includes(subjectSet.id);
-                    
-                    return (
-                      <div key={subjectSet.id} className={`bg-white border-2 p-4 cursor-pointer transition-all duration-300 animate-fadeInUp hover:scale-[1.02] ${
-                        isSubjectSetSelected 
-                          ? 'border-blue-900 bg-blue-50 shadow-lg' 
-                          : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                      }`}>
-                        <div 
-                          className="flex items-center gap-3 mb-3"
-                          onClick={() => handleSubjectSetToggle(subjectSet.id, subjectSet.subjects)}
-                        >
-                          <div className={`w-5 h-5 border-2 flex items-center justify-center ${
-                            isSubjectSetSelected 
-                              ? 'border-blue-900 bg-blue-900' 
-                              : 'border-gray-300'
-                          }`}>
-                            {isSubjectSetSelected && (
-                              <div className="w-2 h-2 bg-white"></div>
-                            )}
-                          </div>
-                          <div className={`w-4 h-4 bg-${subjectSet.color} flex items-center justify-center`}>
-                            <div className="w-2 h-2 bg-white"></div>
-                          </div>
-                          <h4 className="text-md font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                            {subjectSet.name} (Grade {subjectSet.gradeLevel})
-                          </h4>
-                        </div>
-                        <p className="text-xs text-gray-600 mb-3" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                          {subjectSet.description}
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                          {subjectSet.subjects.map((subjectId) => {
-                            const subject = subjects[subjectId];
-                            if (!subject) return null;
-                            const isSubjectSelected = selectedSubjects.includes(subjectId);
-                            
-                            return (
-                              <div 
-                                key={subjectId} 
-                                className={`flex items-center gap-2 p-2 border cursor-pointer transition-colors ${
-                                  isSubjectSelected 
-                                    ? 'bg-blue-100 border-blue-300' 
-                                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                                }`}
-                                onClick={() => handleSubjectToggle(subjectId)}
-                              >
-                                <div className={`w-3 h-3 border flex items-center justify-center ${
-                                  isSubjectSelected 
-                                    ? 'border-blue-900 bg-blue-900' 
-                                    : 'border-gray-300'
-                                }`}>
-                                  {isSubjectSelected && (
-                                    <div className="w-1 h-1 bg-white"></div>
-                                  )}
-                                </div>
-                                <div className={`w-3 h-3 bg-${subject.color}`}></div>
-                                <span className={`text-xs ${
-                                  isSubjectSelected ? 'text-blue-900 font-medium' : 'text-gray-700'
-                                }`} style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                                  {subject.code} {subject.name}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="bg-gray-50 border border-gray-200 p-4 text-center">
+                  <p className="text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                    No subject sets available
+                  </p>
                 </div>
               );
             }
 
             return (
               <div className="space-y-4">
-                {gradeSubjectSets.map((subjectSet) => {
+                {sortedSubjectSets.map((subjectSet) => {
                   const isSubjectSetSelected = selectedSubjectSets.includes(subjectSet.id);
                   
                   return (
@@ -2762,7 +3147,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-xs font-medium text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                  {viewingEnrollment?.enrollmentInfo?.level === 'college' ? 'Course & Year' : 'Grade Level'}
+                  Level
                 </label>
                 <p className="text-xs text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                   {(() => {
@@ -2994,7 +3379,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
                       <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
                         <GraduationCap size={12} weight="bold" className="text-white" />
                       </div>
-                      Grade Level
+                      Level
                     </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
@@ -3035,217 +3420,136 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
                     </td>
                   </tr>
                 ) : (
-                  filteredAndSortedEnrollments.map((enrollment) => (
-                  <tr key={enrollment.userId} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                      <div className="flex items-center">
+                  paginatedEnrollments.map((enrollment) => (
+                    <EnrollmentTableRow
+                      key={enrollment.userId}
+                      enrollment={enrollment}
+                      studentProfile={studentProfiles[enrollment.userId]}
+                      onView={handleViewEnrollment}
+                      onQuickEnroll={handleQuickEnroll}
+                      onDelete={handleDeleteEnrollment}
+                      onPrint={async () => {
+                        let subjectsToPrint: string[] = [];
+                        const enrollmentInfo = enrollment.enrollmentInfo;
 
-                        <div className="flex-shrink-0 h-10 w-10 relative">
-                          {studentProfiles[enrollment.userId]?.photoURL ? (
-                            <img
-                              src={studentProfiles[enrollment.userId].photoURL}
-                              alt={`${enrollment.personalInfo?.firstName || 'Student'} profile`}
-                              className="h-10 w-10 rounded-full object-cover border-2 border-black/80"
-                            />
-                          ) : (
-                            <div className="h-10 w-10 rounded-full bg-blue-900 flex items-center justify-center">
-                              <span className="text-white text-xs font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                                {getInitials(enrollment.personalInfo?.firstName, enrollment.personalInfo?.lastName)}
-                              </span>
-                            </div>
-                          )}
-                          <span
-                            className={`absolute -bottom-0 -right-0 w-3 h-3 border-2 border-white ${
-                              enrollment.enrollmentInfo?.studentType === 'regular' ? 'bg-emerald-700' : 'bg-red-600'
-                            }`}
-                            aria-label={enrollment.enrollmentInfo?.studentType === 'regular' ? 'Regular Student' : 'Irregular Student'}
-                          ></span>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-xs font-medium text-gray-900"
-                               style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                            {formatFullName(
-                              enrollment.personalInfo?.firstName,
-                              enrollment.personalInfo?.middleName,
-                              enrollment.personalInfo?.lastName,
-                              enrollment.personalInfo?.nameExtension
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500 font-mono"
-                               style={{ fontWeight: 400 }}>
-                            {studentProfiles[enrollment.userId]?.email || enrollment.personalInfo?.email || 'N/A'}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                      {(() => {
-                        const displayInfo = getEnrollmentDisplayInfo(enrollment);
-                        return (
-                          <>
-                            <div className="flex items-center gap-2 mb-1">
-                              <div
-                                className="w-3 h-3 flex-shrink-0"
-                                style={{ backgroundColor: getBgColor(displayInfo.color) }}
-                              ></div>
-                              <div className="text-xs text-gray-900"
-                                   style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                                {displayInfo.displayText}
-                              </div>
-                            </div>
-                            <div className="text-xs text-gray-500 font-mono"
-                                 style={{ fontWeight: 400 }}>
-                              {displayInfo.subtitle}
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 flex-shrink-0"
-                            style={{ backgroundColor: getStatusHexColor(enrollment.enrollmentInfo?.status || 'unknown') }}
-                          ></div>
-                          <span className="text-xs capitalize font-medium font-mono"
-                                style={{ fontWeight: 400 }}>
-                            {enrollment.enrollmentInfo?.status || 'Unknown'}
-                          </span>
-                        </div>
-                        {enrollment.enrollmentInfo?.studentType && (
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 flex-shrink-0"
-                              style={{ backgroundColor: enrollment.enrollmentInfo.studentType === 'irregular' ? '#dc2626' : '#064e3b' }}
-                            ></div>
-                            <span className="text-xs capitalize text-black font-mono"
-                                  style={{ fontWeight: 300 }}>
-                              {enrollment.enrollmentInfo.studentType}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 border-r border-gray-200 font-mono hidden lg:table-cell"
-                        style={{ fontWeight: 400 }}>
-                      <div className="space-y-1">
-                        <div className="text-xs font-mono text-gray-900">{formatDate(enrollment.submittedAt)}</div>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 flex-shrink-0"
-                            style={{ backgroundColor: getTimeAgoInfo(enrollment.submittedAt).color }}
-                          ></div>
-                          <span className="text-xs font-medium font-mono"
-                                style={{ fontWeight: 400 }}>
-                            {getTimeAgoInfo(enrollment.submittedAt).text}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleViewEnrollment(enrollment)}
-                          size="sm"
-                          className="bg-blue-900 hover:bg-blue-900 text-white border"
-                          disabled={enrollingStudent}
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                        >
-                          <Eye size={14} className="mr-1" />
-                          View
-                        </Button>
-                        {enrollment.enrollmentInfo?.status !== 'enrolled' && (
-                          <Button
-                            onClick={() => handleQuickEnroll(enrollment)}
-                            size="sm"
-                            className="bg-blue-900 text-white border hover:bg-blue-900"
-                            disabled={enrollingStudent}
-                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                          >
-                            {enrollingStudent ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
-                                Processing...
-                              </>
-                            ) : (
-                              <>
-                                <Lightning size={14} className="mr-1" />
-                                Quick Enroll
-                              </>
-                            )}
-                          </Button>
-                        )}
-                        {enrollment.enrollmentInfo?.status === 'enrolled' && (
-                          <Button
-                            onClick={async () => {
+                        if (enrollmentInfo?.level === 'college') {
+                          const assignment = subjectAssignments.find(assignment => 
+                            assignment.level === 'college' &&
+                            assignment.courseCode === enrollmentInfo.courseCode &&
+                            assignment.yearLevel === parseInt(enrollmentInfo.yearLevel || '1') &&
+                            assignment.semester === enrollmentInfo.semester
+                          );
 
-                              // Get subjects for this enrollment
-                              let subjectsToPrint: string[] = [];
-                              const enrollmentInfo = enrollment.enrollmentInfo;
+                          if (assignment) {
+                            const subjectSet = Object.values(subjectSets).flat().find(set => set.id === assignment.subjectSetId);
+                            if (subjectSet) {
+                              subjectsToPrint = subjectSet.subjects;
+                            }
+                          }
+                        } else {
+                          const gradeLevel = enrollmentInfo?.gradeLevel;
+                          if (gradeLevel) {
+                            const assignment = subjectAssignments.find(assignment => 
+                              assignment.level === 'high-school' &&
+                              assignment.gradeLevel === parseInt(gradeLevel)
+                            );
 
-                              if (enrollmentInfo?.level === 'college') {
-                                // For college students, get all available subjects
-                                const allSubjectSets = Object.values(subjectSets).flat();
-                                console.log('📚 Available subject sets for college:', allSubjectSets.length);
-
-                                if (allSubjectSets.length > 0) {
-                                  const allSubjects = allSubjectSets.flatMap(set => set.subjects);
-                                  subjectsToPrint = Array.from(new Set(allSubjects)); // Remove duplicates
-                                  console.log('📝 Subjects to print for college:', subjectsToPrint.length, 'unique subjects (from', allSubjects.length, 'total)');
-                                } else {
-                                  console.warn('⚠️ No subject sets found for college enrollment');
-                                }
-                              } else {
-                                // High school logic
-                                const gradeLevel = enrollmentInfo?.gradeLevel;
-                                if (gradeLevel) {
-                                  const gradeSubjectSets = subjectSets[parseInt(gradeLevel)] || [];
-                                  console.log('📚 Available subject sets for grade', gradeLevel, ':', gradeSubjectSets.length);
-
-                                  if (gradeSubjectSets.length > 0) {
-                                    const allSubjects = gradeSubjectSets.flatMap(set => set.subjects);
-                                    subjectsToPrint = Array.from(new Set(allSubjects)); // Remove duplicates
-                                    console.log('📝 Subjects to print:', subjectsToPrint.length, 'unique subjects (from', allSubjects.length, 'total)');
-                                  } else {
-                                    console.warn('⚠️ No subject sets found for grade level', gradeLevel);
-                                  }
-                                } else {
-                                  console.warn('⚠️ No grade level found for enrollment');
-                                }
+                            if (assignment) {
+                              const subjectSet = Object.values(subjectSets).flat().find(set => set.id === assignment.subjectSetId);
+                              if (subjectSet) {
+                                subjectsToPrint = subjectSet.subjects;
                               }
+                            }
+                          }
+                        }
 
-                              // Set the viewing enrollment and selected subjects for printing
-                            console.log('🖨️ Opening print modal with enrollment data:', {
-                              enrollmentId: enrollment.id,
-                              enrollmentInfo: enrollment.enrollmentInfo,
-                              orNumber: enrollment.enrollmentInfo?.orNumber,
-                              scholarship: enrollment.enrollmentInfo?.scholarship,
-                            });
-                            setViewingEnrollment(enrollment);
-                            setSelectedSubjects(subjectsToPrint);
-                            setShowPrintModal(true);
-
-                              console.log('✅ Opening print modal with', subjectsToPrint.length, 'subjects');
-                            }}
-                            size="sm"
-                            className="bg-blue-900 hover:bg-blue-900 text-white border"
-                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                          >
-                            <Printer size={14} className="mr-1" />
-                            Print
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+                        setViewingEnrollment(enrollment);
+                        setSelectedSubjects(subjectsToPrint);
+                        setShowPrintModal(true);
+                      }}
+                      enrollingStudent={enrollingStudent}
+                      subjectAssignments={subjectAssignments}
+                      subjectSets={subjectSets}
+                      getEnrollmentDisplayInfo={getEnrollmentDisplayInfo}
+                      getBgColor={getBgColor}
+                      getStatusHexColor={getStatusHexColor}
+                      getTimeAgoInfo={getTimeAgoInfo}
+                      formatFullName={formatFullName}
+                      formatDate={formatDate}
+                      getInitials={getInitials}
+                    />
+                  ))
+                )}
             </tbody>
           </table>
         </div>
         )}
       </Card>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white border border-gray-200">
+          <div className="text-xs text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedEnrollments.length)} of {filteredAndSortedEnrollments.length} enrollments
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className={`px-3 py-1 text-xs font-medium transition-colors flex items-center gap-1 ${
+                currentPage === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-900 text-white hover:bg-blue-800'
+              }`}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <ArrowLeft size={14} />
+              Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 7) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 4) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 3) {
+                  pageNum = totalPages - 6 + i;
+                } else {
+                  pageNum = currentPage - 3 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-1 text-xs font-medium transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-blue-900 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className={`px-3 py-1 text-xs font-medium transition-colors flex items-center gap-1 ${
+                currentPage === totalPages
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-900 text-white hover:bg-blue-800'
+              }`}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              Next
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* View Enrollment Modal */}
       <Modal
@@ -3508,7 +3812,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
                     </span>
                   </div>
                   <div>
-                    <span className="font-medium text-gray-600">{quickEnrollData.enrollment.enrollmentInfo?.level === 'college' ? 'Course & Year:' : 'Grade Level:'}</span>
+                    <span className="font-medium text-gray-600">Level:</span>
                     <span className="ml-2 text-gray-900">
                       {(() => {
                         const displayInfo = getEnrollmentDisplayInfo(quickEnrollData.enrollment);
@@ -3711,7 +4015,7 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
                     </span>
                   </div>
                   <div>
-                    <span className="font-medium text-gray-600">{viewingEnrollment.enrollmentInfo?.level === 'college' ? 'Course & Year:' : 'Grade Level:'}</span>
+                    <span className="font-medium text-gray-600">Level:</span>
                     <span className="ml-2 text-gray-900">
                       {(() => {
                         const displayInfo = getEnrollmentDisplayInfo(viewingEnrollment);
@@ -3831,6 +4135,56 @@ export default function EnrollmentManagement({ registrarUid, registrarName }: En
                       <Check size={16} />
                       Confirm Enrollment
                     </>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
+
+      {/* Delete Enrollment Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={cancelDelete}
+        title="Delete Enrollment"
+        size="sm"
+      >
+        <div className="p-6">
+          {enrollmentToDelete && (
+            <>
+              <p className="text-sm text-gray-700 mb-6" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                Are you sure you want to delete "{[
+                  enrollmentToDelete.personalInfo?.firstName,
+                  enrollmentToDelete.personalInfo?.middleName ? enrollmentToDelete.personalInfo.middleName.charAt(0).toUpperCase() + '.' : '',
+                  enrollmentToDelete.personalInfo?.lastName,
+                  enrollmentToDelete.personalInfo?.nameExtension
+                ].filter(Boolean).join(' ')}"?
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-4 py-2 bg-gray-500 text-white text-xs font-medium hover:bg-gray-600 transition-colors"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  disabled={deletingEnrollment}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDeleteEnrollment}
+                  disabled={deleteCountdown > 0 || deletingEnrollment}
+                  className={`flex-1 px-4 py-2 text-white text-xs font-medium transition-colors ${
+                    deleteCountdown > 0 || deletingEnrollment
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  {deletingEnrollment ? (
+                    'Deleting...'
+                  ) : (
+                    deleteCountdown > 0 ? `Delete in ${deleteCountdown}s` : 'Delete'
                   )}
                 </button>
               </div>

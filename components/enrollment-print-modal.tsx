@@ -9,6 +9,28 @@ import QRCode from 'qrcode';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase-server';
 
+// Extended interface to handle college enrollment fields
+interface ExtendedEnrollmentData extends Omit<EnrollmentData, 'enrollmentInfo'> {
+  enrollmentInfo: {
+    gradeLevel?: string;
+    schoolYear: string;
+    enrollmentDate: string;
+    status: string;
+    orNumber?: string;
+    scholarship?: string;
+    studentId?: string;
+    sectionId?: string;
+    studentType?: 'regular' | 'irregular';
+    // College-specific fields
+    level?: 'college' | 'high-school';
+    courseId?: string;
+    courseCode?: string;
+    courseName?: string;
+    yearLevel?: string;
+    semester?: 'first-sem' | 'second-sem';
+  };
+}
+
 interface SubjectData {
   id: string;
   name: string;
@@ -41,7 +63,7 @@ interface StudentProfile {
 interface EnrollmentPrintModalProps {
   isOpen: boolean;
   onClose: () => void;
-  enrollment: EnrollmentData | null;
+  enrollment: ExtendedEnrollmentData | null;
   studentProfile: StudentProfile | null;
   selectedSubjects: string[];
   subjects: Record<string, SubjectData>;
@@ -300,6 +322,16 @@ const EnrollmentPrintModal: React.FC<EnrollmentPrintModalProps> = ({
   };
 
   const getSubjectSetsForSelectedSubjects = () => {
+    // Handle college enrollments
+    if (enrollment.enrollmentInfo?.level === 'college') {
+      // Return all subject sets that contain any of the selected subjects
+      const allSubjectSets = Object.values(subjectSets).flat();
+      return allSubjectSets.filter(subjectSet => 
+        subjectSet.subjects.some(subjectId => selectedSubjects.includes(subjectId))
+      );
+    }
+    
+    // Handle high school enrollments
     const gradeLevel = enrollment.enrollmentInfo?.gradeLevel;
     if (!gradeLevel) return [];
 
@@ -406,7 +438,7 @@ const EnrollmentPrintModal: React.FC<EnrollmentPrintModalProps> = ({
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
                        >
-                    Grade Level
+                    {enrollment.enrollmentInfo?.level === 'college' ? 'Course & Year' : 'Grade Level'}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                        >
@@ -443,7 +475,14 @@ const EnrollmentPrintModal: React.FC<EnrollmentPrintModalProps> = ({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 border-r border-gray-200"
                        >
-                    {enrollment.enrollmentInfo?.gradeLevel || 'N/A'}
+                    {(() => {
+                      if (enrollment.enrollmentInfo?.level === 'college') {
+                        const semesterDisplay = enrollment.enrollmentInfo.semester === 'first-sem' ? 'Q1' : enrollment.enrollmentInfo.semester === 'second-sem' ? 'Q2' : '';
+                        const semesterSuffix = semesterDisplay ? ` ${semesterDisplay}` : '';
+                        return `${enrollment.enrollmentInfo.courseCode || 'N/A'} ${enrollment.enrollmentInfo.yearLevel || 'N/A'}${semesterSuffix}`;
+                      }
+                      return enrollment.enrollmentInfo?.gradeLevel || 'N/A';
+                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900"
                        >

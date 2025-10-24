@@ -9,6 +9,8 @@ const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "500"],
   variable: "--font-poppins",
+  display: "swap",
+  fallback: ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "sans-serif"],
 });
 
 export const metadata: Metadata = {

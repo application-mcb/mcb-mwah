@@ -180,6 +180,20 @@ interface SubjectSetData {
   createdBy: string;
 }
 
+interface SubjectAssignmentData {
+  id: string;
+  level: 'high-school' | 'college';
+  gradeLevel?: number;
+  courseCode?: string;
+  courseName?: string;
+  yearLevel?: number;
+  semester?: 'first-sem' | 'second-sem';
+  subjectSetId: string;
+  registrarUid: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface Tab {
   id: string;
   label: string;
@@ -200,8 +214,30 @@ interface SectionData {
   createdBy: string;
 }
 
+// Extended interface to handle college enrollment fields
+interface ExtendedEnrollmentData extends Omit<EnrollmentData, 'enrollmentInfo'> {
+  enrollmentInfo: {
+    gradeLevel?: string;
+    schoolYear: string;
+    enrollmentDate: string;
+    status: string;
+    orNumber?: string;
+    scholarship?: string;
+    studentId?: string;
+    sectionId?: string;
+    studentType?: 'regular' | 'irregular';
+    // College-specific fields
+    level?: 'college' | 'high-school';
+    courseId?: string;
+    courseCode?: string;
+    courseName?: string;
+    yearLevel?: string;
+    semester?: 'first-sem' | 'second-sem';
+  };
+}
+
 export default function StudentManagement({ registrarUid, registrarName }: StudentManagementProps) {
-  const [enrollments, setEnrollments] = useState<EnrollmentData[]>([]);
+  const [enrollments, setEnrollments] = useState<ExtendedEnrollmentData[]>([]);
   const [studentProfiles, setStudentProfiles] = useState<Record<string, StudentProfile>>({});
   const [studentDocuments, setStudentDocuments] = useState<Record<string, StudentDocuments>>({});
   const [subjectSets, setSubjectSets] = useState<Record<number, SubjectSetData[]>>({});
@@ -215,10 +251,20 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [allDataLoaded, setAllDataLoaded] = useState(false);
   const [error, setError] = useState('');
+  
+  // Subject Assignments
+  const [subjectAssignments, setSubjectAssignments] = useState<SubjectAssignmentData[]>([]);
+  const [subjectAssignmentLoading, setSubjectAssignmentLoading] = useState(false);
+  
+  // Print subjects
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showViewModal, setShowViewModal] = useState(false);
-  const [viewingEnrollment, setViewingEnrollment] = useState<EnrollmentData | null>(null);
+  const [viewingEnrollment, setViewingEnrollment] = useState<ExtendedEnrollmentData | null>(null);
   const [sortOption, setSortOption] = useState<string>('latest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   const [activeTab, setActiveTab] = useState<string>('student-info');
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showUnenrollModal, setShowUnenrollModal] = useState(false);
@@ -253,6 +299,21 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
       }
     };
   }, []);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page on search
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset to first page when sort option changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortOption]);
 
   // Countdown timer for unenroll modal
   useEffect(() => {
@@ -296,7 +357,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
       const unsubscribe = onSnapshot(q, async (snapshot) => {
         console.log('📡 Real-time update received:', snapshot.docChanges().length, 'changes');
 
-        const enrollments: EnrollmentData[] = [];
+        const enrollments: ExtendedEnrollmentData[] = [];
 
         for (const doc of snapshot.docs) {
           const enrollmentDoc = doc.data();
@@ -352,7 +413,8 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
             loadSubjects(),
             loadGrades(),
             loadSections(),
-            loadCourses()
+            loadCourses(),
+            loadSubjectAssignments()
           ]);
           console.log('✅ All data loaded successfully');
           setAllDataLoaded(true);
@@ -390,33 +452,60 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
     });
   };
 
-  const loadStudentProfiles = async (enrollmentData: EnrollmentData[]) => {
+  const loadStudentProfiles = async (enrollmentData: ExtendedEnrollmentData[]) => {
     try {
       const profiles: Record<string, StudentProfile> = {};
 
-      // Fetch student profiles for all enrollments
-      for (const enrollment of enrollmentData) {
-        try {
-          const studentResponse = await fetch(`/api/user/profile?uid=${enrollment.userId}`);
-          const studentData = await studentResponse.json();
-
-          if (studentResponse.ok && studentData.success) {
-            profiles[enrollment.userId] = {
-              userId: enrollment.userId,
-              photoURL: studentData.user?.photoURL,
-              email: studentData.user?.email,
-              studentId: studentData.user?.studentId,
-              guardianName: studentData.user?.guardianName,
-              guardianPhone: studentData.user?.guardianPhone,
-              guardianEmail: studentData.user?.guardianEmail,
-              guardianRelationship: studentData.user?.guardianRelationship,
-              emergencyContact: studentData.user?.emergencyContact
-            };
-          }
-        } catch (error) {
-          console.warn(`Failed to load profile for user ${enrollment.userId}:`, error);
-        }
+      // Batch fetch all student profiles at once
+      if (enrollmentData.length === 0) {
+        setStudentProfiles(profiles);
+        return;
       }
+
+      // Chunk userIds to avoid URL length limits (50 per chunk)
+      const userIds = enrollmentData.map(e => e.userId);
+      const chunkSize = 50;
+      const chunks = [];
+      
+      for (let i = 0; i < userIds.length; i += chunkSize) {
+        chunks.push(userIds.slice(i, i + chunkSize));
+      }
+
+      // Fetch all chunks in parallel
+      const batchPromises = chunks.map(async (chunk) => {
+        try {
+          const chunkUserIds = chunk.join(',');
+          const batchResponse = await fetch(`/api/user/profile?uids=${chunkUserIds}`);
+          const batchData = await batchResponse.json();
+
+          if (batchResponse.ok && batchData.success && batchData.users) {
+            return batchData.users;
+          }
+          return [];
+        } catch (error) {
+          console.warn('Failed to load chunk:', error);
+          return [];
+        }
+      });
+
+      const allUsers = await Promise.all(batchPromises);
+      
+      // Flatten and process results
+      allUsers.flat().forEach((user: any) => {
+        if (user && user.uid) {
+          profiles[user.uid] = {
+            userId: user.uid,
+            photoURL: user.photoURL,
+            email: user.email,
+            studentId: user.studentId,
+            guardianName: user.guardianName,
+            guardianPhone: user.guardianPhone,
+            guardianEmail: user.guardianEmail,
+            guardianRelationship: user.guardianRelationship,
+            emergencyContact: user.emergencyContact
+          };
+        }
+      });
 
       setStudentProfiles(profiles);
     } catch (error) {
@@ -424,23 +513,50 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
     }
   };
 
-  const loadStudentDocuments = async (enrollmentData: EnrollmentData[]) => {
+  const loadStudentDocuments = async (enrollmentData: ExtendedEnrollmentData[]) => {
     try {
       const documents: Record<string, StudentDocuments> = {};
 
-      // Fetch student documents for all enrollments
-      for (const enrollment of enrollmentData) {
-        try {
-          const documentsResponse = await fetch(`/api/user/profile?uid=${enrollment.userId}`);
-          const documentsData = await documentsResponse.json();
-
-          if (documentsResponse.ok && documentsData.success && documentsData.user?.documents) {
-            documents[enrollment.userId] = documentsData.user.documents;
-          }
-        } catch (error) {
-          console.warn(`Failed to load documents for user ${enrollment.userId}:`, error);
-        }
+      // Batch fetch all student documents at once
+      if (enrollmentData.length === 0) {
+        setStudentDocuments(documents);
+        return;
       }
+
+      // Chunk userIds to avoid URL length limits (50 per chunk)
+      const userIds = enrollmentData.map(e => e.userId);
+      const chunkSize = 50;
+      const chunks = [];
+      
+      for (let i = 0; i < userIds.length; i += chunkSize) {
+        chunks.push(userIds.slice(i, i + chunkSize));
+      }
+
+      // Fetch all chunks in parallel
+      const batchPromises = chunks.map(async (chunk) => {
+        try {
+          const chunkUserIds = chunk.join(',');
+          const batchResponse = await fetch(`/api/user/profile?uids=${chunkUserIds}`);
+          const batchData = await batchResponse.json();
+
+          if (batchResponse.ok && batchData.success && batchData.users) {
+            return batchData.users;
+          }
+          return [];
+        } catch (error) {
+          console.warn('Failed to load chunk:', error);
+          return [];
+        }
+      });
+
+      const allUsers = await Promise.all(batchPromises);
+      
+      // Flatten and process results
+      allUsers.flat().forEach((user: any) => {
+        if (user && user.uid && user.documents) {
+          documents[user.uid] = user.documents;
+        }
+      });
 
       setStudentDocuments(documents);
     } catch (error) {
@@ -556,7 +672,25 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
     }
   };
 
-  const handleViewStudent = (enrollment: EnrollmentData) => {
+  const loadSubjectAssignments = async () => {
+    try {
+      setSubjectAssignmentLoading(true);
+      const response = await fetch('/api/subject-assignments');
+      const data = await response.json();
+      
+      if (response.ok && data.subjectAssignments) {
+        setSubjectAssignments(data.subjectAssignments);
+      } else {
+        console.error('Failed to load subject assignments:', data);
+      }
+    } catch (error) {
+      console.error('Error loading subject assignments:', error);
+    } finally {
+      setSubjectAssignmentLoading(false);
+    }
+  };
+
+  const handleViewStudent = (enrollment: ExtendedEnrollmentData) => {
     setViewingEnrollment(enrollment);
     setShowViewModal(true);
   };
@@ -574,7 +708,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
     setLoadingImages(prev => ({ ...prev, [userId]: false }));
   };
 
-  const handleSectionChange = async (enrollment: EnrollmentData, sectionId: string) => {
+  const handleSectionChange = async (enrollment: ExtendedEnrollmentData, sectionId: string) => {
     setAssigningSectionStudent(enrollment.userId);
 
     try {
@@ -763,8 +897,8 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
     }
   };
 
-  // Filter and sort enrollments
-  const filteredAndSortedEnrollments = (() => {
+  // Filter and sort enrollments - memoized for performance
+  const filteredAndSortedEnrollments = React.useMemo(() => {
     let filtered = enrollments;
 
     // Apply date filters first
@@ -780,9 +914,9 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
       );
     }
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    // Apply search filter (using debounced query)
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase();
       filtered = filtered.filter((enrollment) => {
         const fullName = formatFullName(
           enrollment.personalInfo?.firstName,
@@ -830,7 +964,17 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
     });
 
     return sorted;
-  })();
+  }, [enrollments, debouncedSearchQuery, sortOption]);
+
+  // Paginated enrollments
+  const paginatedEnrollments = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAndSortedEnrollments.slice(startIndex, endIndex);
+  }, [filteredAndSortedEnrollments, currentPage, itemsPerPage]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredAndSortedEnrollments.length / itemsPerPage);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -976,6 +1120,51 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
     const color = matchingGrade ? matchingGrade[1].color : 'blue-800';
     console.log('🎨 Grade', gradeLevel, 'color:', color);
     return color; // default to blue-800
+  };
+
+  // Get course color from database by course code
+  const getCourseColor = (courseCode: string): string => {
+    // Find the course that matches the course code
+    const courseData = courses.find(c => c.code === courseCode);
+    console.log('🔍 Looking for course color for code:', courseCode, 'Found:', courseData);
+
+    const color = courseData ? courseData.color : 'blue-900';
+    console.log('🎨 Course', courseCode, 'color:', color);
+    return color; // default to blue-900
+  };
+
+  // Helper function to get display info for enrollment (handles both high school and college)
+  const getEnrollmentDisplayInfo = (enrollment: ExtendedEnrollmentData | null) => {
+    if (!enrollment || !enrollment.enrollmentInfo) {
+      return {
+        type: 'unknown',
+        displayText: 'N/A',
+        subtitle: 'N/A',
+        color: 'blue-900'
+      };
+    }
+
+    const enrollmentInfo = enrollment.enrollmentInfo;
+    
+    if (enrollmentInfo?.level === 'college') {
+      const semesterDisplay = enrollmentInfo.semester === 'first-sem' ? 'Q1' : enrollmentInfo.semester === 'second-sem' ? 'Q2' : '';
+      const semesterSuffix = semesterDisplay ? ` ${semesterDisplay}` : '';
+      return {
+        type: 'college',
+        displayText: `${enrollmentInfo.courseCode || 'N/A'} ${enrollmentInfo.yearLevel || 'N/A'}${semesterSuffix}`,
+        subtitle: enrollmentInfo?.schoolYear || 'N/A',
+        color: getCourseColor(enrollmentInfo.courseCode || '')
+      };
+    } else {
+      // High school enrollment
+      const gradeLevel = parseInt(enrollmentInfo?.gradeLevel || '0');
+      return {
+        type: 'high-school',
+        displayText: `Grade ${gradeLevel || 'N/A'}`,
+        subtitle: enrollmentInfo?.schoolYear || 'N/A',
+        color: getGradeColor(gradeLevel)
+      };
+    }
   };
 
   // Color mapping for background colors (matching grade-list.tsx)
@@ -1249,7 +1438,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
                       >
-                      Grade Level
+                      Level
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
                       >
@@ -1269,7 +1458,10 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                   <tr>
                     <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 border-r border-gray-200"
                       >
-                      {viewingEnrollment?.enrollmentInfo?.gradeLevel || 'N/A'}
+                      {(() => {
+                        const displayInfo = getEnrollmentDisplayInfo(viewingEnrollment);
+                        return displayInfo.displayText;
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 border-r border-gray-200"
                       >
@@ -1426,37 +1618,66 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
             Currently Assigned Subjects
           </h3>
           {(() => {
-            const gradeLevel = viewingEnrollment?.enrollmentInfo?.gradeLevel;
-            if (!gradeLevel) {
-              return (
-                <div className="bg-gray-50 border border-gray-200 p-4 text-center">
-                  <p className="text-gray-500" >
-                    No grade level information available
-                  </p>
-                </div>
+            const enrollmentInfo = viewingEnrollment?.enrollmentInfo;
+            let gradeSubjectSets: SubjectSetData[] = [];
+            let displayLevel: string = '';
+            let assignedSubjectIds: string[] = [];
+
+            if (enrollmentInfo?.level === 'college') {
+              // For college students, find the subject assignment for this course, year level, and semester
+              const assignment = subjectAssignments.find(assignment => 
+                assignment.level === 'college' &&
+                assignment.courseCode === enrollmentInfo.courseCode &&
+                assignment.yearLevel === parseInt(enrollmentInfo.yearLevel || '1') &&
+                assignment.semester === enrollmentInfo.semester
               );
+
+              if (assignment) {
+                // Get the subject set for this assignment
+                const subjectSet = Object.values(subjectSets).flat().find(set => set.id === assignment.subjectSetId);
+                if (subjectSet) {
+                  gradeSubjectSets = [subjectSet];
+                  assignedSubjectIds = subjectSet.subjects;
+                }
+              }
+
+              const semesterDisplay = enrollmentInfo.semester === 'first-sem' ? 'Q1' : enrollmentInfo.semester === 'second-sem' ? 'Q2' : '';
+              displayLevel = `${enrollmentInfo.courseCode || 'N/A'} ${enrollmentInfo.yearLevel || 'N/A'}${semesterDisplay ? ` ${semesterDisplay}` : ''}`;
+            } else {
+              // High school logic - find assignment for this grade level
+              const gradeLevel = enrollmentInfo?.gradeLevel;
+              if (!gradeLevel) {
+                return (
+                  <div className="bg-gray-50 border border-gray-200 p-4 text-center">
+                    <p className="text-gray-500" >
+                      No grade level information available
+                    </p>
+                  </div>
+                );
+              }
+
+              const assignment = subjectAssignments.find(assignment => 
+                assignment.level === 'high-school' &&
+                assignment.gradeLevel === parseInt(gradeLevel)
+              );
+
+              if (assignment) {
+                // Get the subject set for this assignment
+                const subjectSet = Object.values(subjectSets).flat().find(set => set.id === assignment.subjectSetId);
+                if (subjectSet) {
+                  gradeSubjectSets = [subjectSet];
+                  assignedSubjectIds = subjectSet.subjects;
+                }
+              }
+
+              displayLevel = `Grade ${gradeLevel}`;
             }
 
-            const gradeSubjectSets = subjectSets[parseInt(gradeLevel)] || [];
-            if (gradeSubjectSets.length === 0) {
+            if (gradeSubjectSets.length === 0 || assignedSubjectIds.length === 0) {
               return (
                 <div className="bg-gray-50 border border-gray-200 p-4 text-center">
                   <p className="text-gray-500" >
-                    No subject sets available for this grade level
-                  </p>
-                </div>
-              );
-            }
-
-            // Get all subjects from all subject sets for this grade
-            const allSubjects = gradeSubjectSets.flatMap(set => set.subjects);
-            const uniqueSubjectIds = Array.from(new Set(allSubjects));
-
-            if (uniqueSubjectIds.length === 0) {
-              return (
-                <div className="bg-gray-50 border border-gray-200 p-4 text-center">
-                  <p className="text-gray-500" >
-                    No subjects assigned to this grade level
+                    No subject assignment found for {displayLevel}. Please create a subject assignment in Subject Management.
                   </p>
                 </div>
               );
@@ -1467,14 +1688,14 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                 <div className="bg-blue-50 border border-blue-200 p-4">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-md font-medium text-blue-900" >
-                      Assigned Subjects ({uniqueSubjectIds.length})
+                      Assigned Subjects ({assignedSubjectIds.length})
                     </h4>
                     <span className="text-xs text-blue-700" >
-                      Grade {gradeLevel}
+                      {displayLevel}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {uniqueSubjectIds.map((subjectId) => {
+                    {assignedSubjectIds.map((subjectId) => {
                       const subject = subjects[subjectId];
                       if (!subject) return null;
                       return (
@@ -1495,41 +1716,6 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                       );
                     })}
                   </div>
-                </div>
-
-                {/* Subject Sets Breakdown */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-medium text-gray-900" >
-                    Subject Sets Breakdown
-                  </h4>
-                  {gradeSubjectSets.map((subjectSet) => (
-                    <div key={subjectSet.id} className="bg-white border border-gray-200 p-4">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-4 h-4 bg-${subjectSet.color} flex-shrink-0`}></div>
-                        <h5 className="text-xs font-medium text-gray-900" >
-                          {subjectSet.name}
-                        </h5>
-                        <span className="text-xs text-gray-500" >
-                          {subjectSet.subjects.length} subjects
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600 mb-3" >
-                        {subjectSet.description}
-                      </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {subjectSet.subjects.map((subjectId) => {
-                          const subject = subjects[subjectId];
-                          if (!subject) return null;
-                          return (
-                            <div key={subjectId} className="text-xs text-gray-700 flex items-center gap-2">
-                              <div className={`w-2 h-2 border-2 border-${subject.color} bg-${subject.color} flex-shrink-0`}></div>
-                              <span className="truncate">{subject.code} {subject.name}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             );
@@ -1573,8 +1759,13 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                 </span>
               </div>
               <div>
-                <span className="font-medium text-gray-600">Grade:</span>
-                <span className="ml-2 text-gray-900">Grade {viewingEnrollment?.enrollmentInfo?.gradeLevel}</span>
+                <span className="font-medium text-gray-600">Level:</span>
+                <span className="ml-2 text-gray-900">
+                  {(() => {
+                    const displayInfo = getEnrollmentDisplayInfo(viewingEnrollment);
+                    return displayInfo.displayText;
+                  })()}
+                </span>
               </div>
               <div>
                 <span className="font-medium text-gray-600">Status:</span>
@@ -1888,7 +2079,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                       <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
                         <GraduationCap size={12} weight="bold" className="text-white" />
                       </div>
-                      Grade Level
+                      Level
                     </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
@@ -1920,7 +2111,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                     </td>
                   </tr>
                 ) : (
-                  filteredAndSortedEnrollments.map((enrollment) => (
+                  paginatedEnrollments.map((enrollment) => (
                   <tr key={enrollment.userId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="flex items-center">
@@ -1977,19 +2168,27 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div
-                          className="w-3 h-3 flex-shrink-0"
-                          style={{ backgroundColor: getBgColor(getGradeColor(parseInt(enrollment.enrollmentInfo?.gradeLevel || '0'))) }}
-                        ></div>
-                        <div className="text-xs text-gray-900"
-                          >
-                          Grade {enrollment.enrollmentInfo?.gradeLevel || 'N/A'}
-                        </div>
-                      </div>
+                      {(() => {
+                        const displayInfo = getEnrollmentDisplayInfo(enrollment);
+                        return (
+                          <div className="flex items-center gap-2 mb-1">
+                            <div
+                              className="w-3 h-3 flex-shrink-0"
+                              style={{ backgroundColor: getBgColor(displayInfo.color) }}
+                            ></div>
+                            <div className="text-xs text-gray-900"
+                              >
+                              {displayInfo.displayText}
+                            </div>
+                          </div>
+                        );
+                      })()}
                       <div className="text-xs text-gray-500 font-mono"
                         style={{ fontWeight: 400 }}>
-                        {enrollment.enrollmentInfo?.schoolYear || 'N/A'}
+                        {(() => {
+                          const displayInfo = getEnrollmentDisplayInfo(enrollment);
+                          return displayInfo.subtitle;
+                        })()}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
@@ -2049,23 +2248,55 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                         </Button>
                         <Button
                           onClick={() => {
-                            // Get subjects for this enrollment
+                            // Get subjects for this enrollment based on assignments
                             let subjectsToPrint: string[] = [];
-                            const gradeLevel = enrollment.enrollmentInfo?.gradeLevel;
+                            const enrollmentInfo = enrollment.enrollmentInfo;
 
-                            if (gradeLevel) {
-                              const gradeSubjectSets = subjectSets[parseInt(gradeLevel)] || [];
-                              console.log('📚 Available subject sets for grade', gradeLevel, ':', gradeSubjectSets.length);
+                            if (enrollmentInfo?.level === 'college') {
+                              // For college students, find the subject assignment for this course, year level, and semester
+                              const assignment = subjectAssignments.find(assignment => 
+                                assignment.level === 'college' &&
+                                assignment.courseCode === enrollmentInfo.courseCode &&
+                                assignment.yearLevel === parseInt(enrollmentInfo.yearLevel || '1') &&
+                                assignment.semester === enrollmentInfo.semester
+                              );
 
-                              if (gradeSubjectSets.length > 0) {
-                                const allSubjects = gradeSubjectSets.flatMap(set => set.subjects);
-                                subjectsToPrint = Array.from(new Set(allSubjects)); // Remove duplicates
-                                console.log('📝 Subjects to print:', subjectsToPrint.length, 'unique subjects (from', allSubjects.length, 'total)');
+                              if (assignment) {
+                                // Get the subject set for this assignment
+                                const subjectSet = Object.values(subjectSets).flat().find(set => set.id === assignment.subjectSetId);
+                                if (subjectSet) {
+                                  subjectsToPrint = subjectSet.subjects;
+                                  console.log('📝 Subjects to print for college:', subjectsToPrint.length, 'subjects from assignment');
+                                } else {
+                                  console.warn('⚠️ Subject set not found for assignment');
+                                }
                               } else {
-                                console.warn('⚠️ No subject sets found for grade level', gradeLevel);
+                                console.warn('⚠️ No subject assignment found for college enrollment');
                               }
                             } else {
-                              console.warn('⚠️ No grade level found for enrollment');
+                              // High school logic - find assignment for this grade level
+                              const gradeLevel = enrollmentInfo?.gradeLevel;
+                              if (gradeLevel) {
+                                const assignment = subjectAssignments.find(assignment => 
+                                  assignment.level === 'high-school' &&
+                                  assignment.gradeLevel === parseInt(gradeLevel)
+                                );
+
+                                if (assignment) {
+                                  // Get the subject set for this assignment
+                                  const subjectSet = Object.values(subjectSets).flat().find(set => set.id === assignment.subjectSetId);
+                                  if (subjectSet) {
+                                    subjectsToPrint = subjectSet.subjects;
+                                    console.log('📝 Subjects to print for high school:', subjectsToPrint.length, 'subjects from assignment');
+                                  } else {
+                                    console.warn('⚠️ Subject set not found for assignment');
+                                  }
+                                } else {
+                                  console.warn('⚠️ No subject assignment found for grade level', gradeLevel);
+                                }
+                              } else {
+                                console.warn('⚠️ No grade level found for enrollment');
+                              }
                             }
 
                             // Set the viewing enrollment and selected subjects for printing
@@ -2076,6 +2307,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                               scholarship: enrollment.enrollmentInfo?.scholarship,
                             });
                             setViewingEnrollment(enrollment);
+                            setSelectedSubjects(subjectsToPrint);
                             setShowPrintModal(true);
 
                             console.log('✅ Opening print modal with', subjectsToPrint.length, 'subjects');
@@ -2097,6 +2329,71 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
         </div>
         )}
       </Card>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white border border-gray-200">
+          <div className="text-xs text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredAndSortedEnrollments.length)} of {filteredAndSortedEnrollments.length} students
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className={`px-3 py-1 text-xs font-medium transition-colors flex items-center gap-1 ${
+                currentPage === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-900 text-white hover:bg-blue-800'
+              }`}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <ArrowLeft size={14} />
+              Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 7) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 4) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 3) {
+                  pageNum = totalPages - 6 + i;
+                } else {
+                  pageNum = currentPage - 3 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-1 text-xs font-medium transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-blue-900 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className={`px-3 py-1 text-xs font-medium transition-colors flex items-center gap-1 ${
+                currentPage === totalPages
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-900 text-white hover:bg-blue-800'
+              }`}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              Next
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* View Student Modal */}
       <Modal
@@ -2155,7 +2452,10 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                     {viewingEnrollment?.enrollmentInfo?.status || 'Unknown'}
                   </span>
                   <span className="text-xs text-gray-500" >
-                    Grade {viewingEnrollment?.enrollmentInfo?.gradeLevel || 'N/A'}
+                    {(() => {
+                      const displayInfo = getEnrollmentDisplayInfo(viewingEnrollment);
+                      return displayInfo.displayText;
+                    })()}
                   </span>
                 </div>
               </div>
@@ -2213,9 +2513,9 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
         onClose={() => setShowPrintModal(false)}
         enrollment={viewingEnrollment}
         studentProfile={viewingEnrollment ? studentProfiles[viewingEnrollment.userId] : null}
-        selectedSubjects={[]}
-        subjects={{}}
-        subjectSets={{}}
+        selectedSubjects={selectedSubjects}
+        subjects={subjects}
+        subjectSets={subjectSets}
         registrarName={registrarName}
       />
 
