@@ -57,6 +57,7 @@ interface OverviewStats {
   recentEnrollments: any[];
   recentTeachers: any[];
   recentGrades: any[];
+  recentCourses: any[];
   grades: any;
 }
 
@@ -77,6 +78,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
     recentEnrollments: [],
     recentTeachers: [],
     recentGrades: [],
+    recentCourses: [],
     grades: {}
   });
   const [loading, setLoading] = useState(true);
@@ -447,6 +449,29 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
             };
           }) || [];
 
+        // Get recent courses (last 5) with section and student counts
+        const recentCourses = coursesData.courses
+          ?.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5)
+          .map((course: any) => {
+            // Count sections for this course
+            const sectionsForCourse = sectionsData.sections?.filter((section: any) => section.courseId === course.id) || [];
+            
+            // Count students in sections for this course
+            let studentsInCourse = 0;
+            sectionsForCourse.forEach((section: any) => {
+              if (section.students && Array.isArray(section.students)) {
+                studentsInCourse += section.students.length;
+              }
+            });
+            
+            return {
+              ...course,
+              sectionsCount: sectionsForCourse.length,
+              studentsCount: studentsInCourse
+            };
+          }) || [];
+
         // Store grades data for color mapping
         const gradesDataForColors = enrollmentData.grades || {};
 
@@ -466,6 +491,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
           recentEnrollments,
           recentTeachers,
           recentGrades,
+          recentCourses,
           grades: gradesDataForColors
         });
       } catch (error) {
@@ -476,6 +502,13 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
     };
 
     fetchOverviewData();
+    
+    // Auto-refresh every 30 seconds to update stats
+    const refreshInterval = setInterval(() => {
+      fetchOverviewData();
+    }, 30000); // Refresh every 30 seconds
+    
+    return () => clearInterval(refreshInterval);
   }, []);
 
   // Skeleton component for recent enrollments only
@@ -580,7 +613,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="p-4 border-none bg-gray-50 border-l-5 border-blue-900 animate-pulse">
+                <div key={i} className="p-4 border-none bg-gray-50 border-1 shadow-xl border-blue-900 animate-pulse">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gray-200"></div>
                     <div className="flex-1 space-y-2">
@@ -603,7 +636,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
                     {navigationItems.slice(groupIndex * 3, (groupIndex + 1) * 3).map((item, itemIndex) => (
                       <div
                         key={item.id}
-                        className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                        className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-xl transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
                         style={{ 
                           animationDelay: `${(groupIndex * 150) + (itemIndex * 75) + 200}ms`,
                           animationFillMode: 'both'
@@ -690,7 +723,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
                     return (
                     <div
                       key={enrollment.id || studentIndex}
-                      className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                      className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-xl transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
                       style={{ 
                         animationDelay: `${(groupIndex * 150) + (studentIndex * 75) + 200}ms`,
                         animationFillMode: 'both'
@@ -836,7 +869,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
                       return (
                         <div
                           key={teacher.id || teacherIndex}
-                          className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                          className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-xl transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
                           style={{ 
                             animationDelay: `${(groupIndex * 150) + (teacherIndex * 75) + 200}ms`,
                             animationFillMode: 'both'
@@ -923,7 +956,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
             <GraduationCapIcon size={20} className="text-white" weight="fill" />
           </div>
           <h2 className="text-xl font-medium text-gray-900">
-            Grade Levels
+            Grade Levels & Courses
           </h2>
         </div>
         
@@ -931,7 +964,7 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="p-4 border-none bg-gray-50 border-l-5 border-blue-900 animate-pulse">
+                <div key={i} className="p-4 border-none bg-gray-50 border-1 shadow-xl border-blue-900 animate-pulse">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
                     <div className="flex-1 space-y-2">
@@ -942,85 +975,95 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
                 </div>
               ))}
             </div>
-          ) : (
-            <div
-              className="flex transition-transform duration-500 ease-in-out"
-              style={{ transform: `translateX(-${gradesCarouselIndex * 100}%)` }}
-            >
-              {Array.from({ length: Math.ceil(stats.recentGrades.length / 3) }).map((_, groupIndex) => (
-                <div key={groupIndex} className="w-full flex-shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${groupIndex * 150}ms` }}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {stats.recentGrades.slice(groupIndex * 3, (groupIndex + 1) * 3).map((grade, gradeIndex) => {
-                      const gradeColor = grade.color || 'blue-800';
-                      const bgColor = getBgColor(gradeColor);
-                      
-                      return (
-                        <div
-                          key={grade.id || gradeIndex}
-                          className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
-                          style={{ 
-                            animationDelay: `${(groupIndex * 150) + (gradeIndex * 75) + 200}ms`,
-                            animationFillMode: 'both'
-                          }}
-                        >
-                          {/* Grade Profile Layout */}
-                          <div className="flex items-center space-x-4">
-                            {/* Circular Grade Icon */}
-                            <div className="w-12 h-12 bg-blue-900 flex items-center justify-center border-2 border-gray-300 rounded-full">
-                              <GraduationCapIcon size={20} className="text-white" weight="fill" />
-                            </div>
+          ) : (() => {
+            // Combine grades and courses into a single array
+            const combinedItems = [
+              ...stats.recentGrades.map(item => ({ ...item, type: 'grade' })),
+              ...stats.recentCourses.map(item => ({ ...item, type: 'course' }))
+            ];
+            
+            return (
+              <div
+                className="flex transition-transform duration-500 ease-in-out"
+                style={{ transform: `translateX(-${gradesCarouselIndex * 100}%)` }}
+              >
+                {Array.from({ length: Math.ceil(combinedItems.length / 3) }).map((_, groupIndex) => (
+                  <div key={groupIndex} className="w-full flex-shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${groupIndex * 150}ms` }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {combinedItems.slice(groupIndex * 3, (groupIndex + 1) * 3).map((item, itemIndex) => {
+                        const itemColor = item.color || item.courseColor || 'blue-800';
+                        const bgColor = getBgColor(itemColor);
+                        
+                        return (
+                          <div
+                            key={item.id || itemIndex}
+                            className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-xl transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                            style={{ 
+                              animationDelay: `${(groupIndex * 150) + (itemIndex * 75) + 200}ms`,
+                              animationFillMode: 'both'
+                            }}
+                          >
+                            {/* Item Profile Layout */}
+                            <div className="flex items-center space-x-4">
+                              {/* Circular Icon */}
+                              <div className="w-12 h-12 bg-blue-900 flex items-center justify-center border-2 border-gray-300 rounded-full">
+                                <GraduationCapIcon size={20} className="text-white" weight="fill" />
+                              </div>
 
-                            {/* Grade Info */}
-                            <div className="flex-1 min-w-0">
-                              {/* Grade Level */}
-                              <h3 className="text-sm font-medium text-gray-900 truncate" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
-                                {grade.strand && (grade.gradeLevel === 11 || grade.gradeLevel === 12) 
-                                  ? `G${grade.gradeLevel}${grade.strand}` 
-                                  : grade.gradeLevel >= 7 && grade.gradeLevel <= 12 
-                                    ? `G${grade.gradeLevel}` 
-                                    : `Grade ${grade.gradeLevel}`}
-                              </h3>
-                              
-                              {/* Department */}
-                              <div className="flex items-center space-x-2">
-                                <div className="w-3 h-3 bg-purple-600 flex-shrink-0"></div>
-                                <p className="text-xs text-black truncate font-mono">
-                                  {grade.department === 'JHS' ? 'Junior HS' :
-                                   grade.department === 'SHS' ? 'Senior HS' :
-                                   'College'}
-                                </p>
-                              </div>
-                              
-                              {/* Sections Count */}
-                              <div className="flex items-center space-x-2 mt-1">
-                                <div className="w-3 h-3 bg-indigo-600 flex-shrink-0"></div>
-                                <p className="text-xs text-black truncate font-mono">
-                                  {grade.sectionsCount || 0} Section{(grade.sectionsCount || 0) !== 1 ? 's' : ''}
-                                </p>
-                              </div>
-                              
-                              {/* Students Count */}
-                              <div className="flex items-center space-x-2 mt-1">
-                                <div className="w-3 h-3 bg-green-600 flex-shrink-0"></div>
-                                <p className="text-xs text-black truncate font-mono">
-                                  {grade.studentsCount || 0} Student{(grade.studentsCount || 0) !== 1 ? 's' : ''}
-                                </p>
+                              {/* Item Info */}
+                              <div className="flex-1 min-w-0">
+                                {/* Name */}
+                                <h3 className="text-sm font-medium text-gray-900 truncate" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                                  {item.type === 'grade' 
+                                    ? (item.strand && (item.gradeLevel === 11 || item.gradeLevel === 12) 
+                                        ? `G${item.gradeLevel}${item.strand}` 
+                                        : item.gradeLevel >= 7 && item.gradeLevel <= 12 
+                                          ? `G${item.gradeLevel}` 
+                                          : `Grade ${item.gradeLevel}`)
+                                    : item.courseName || item.code}
+                                </h3>
+                                
+                                {/* Department */}
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-3 h-3 bg-purple-600 flex-shrink-0"></div>
+                                  <p className="text-xs text-black truncate font-mono">
+                                    {item.department === 'JHS' ? 'Junior HS' :
+                                     item.department === 'SHS' ? 'Senior HS' :
+                                     'College'}
+                                  </p>
+                                </div>
+                                
+                                {/* Sections Count */}
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <div className="w-3 h-3 bg-indigo-600 flex-shrink-0"></div>
+                                  <p className="text-xs text-black truncate font-mono">
+                                    {item.sectionsCount || 0} Section{(item.sectionsCount || 0) !== 1 ? 's' : ''}
+                                  </p>
+                                </div>
+                                
+                                {/* Students Count */}
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <div className="w-3 h-3 bg-green-600 flex-shrink-0"></div>
+                                  <p className="text-xs text-black truncate font-mono">
+                                    {item.studentsCount || 0} Student{(item.studentsCount || 0) !== 1 ? 's' : ''}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            );
+          })()}
           
           {/* Navigation dots */}
-          {stats.recentGrades.length > 3 && (
+          {stats.recentGrades.length + stats.recentCourses.length > 3 && (
             <div className="flex justify-center mt-4 space-x-2">
-              {Array.from({ length: Math.ceil(stats.recentGrades.length / 3) }).map((_, index) => (
+              {Array.from({ length: Math.ceil((stats.recentGrades.length + stats.recentCourses.length) / 3) }).map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setGradesCarouselIndex(index)}
@@ -1034,13 +1077,13 @@ export default function RegistrarOverview({ registrarUid }: RegistrarOverviewPro
         </div>
 
         {/* Empty state - only show after loading is complete */}
-        {!loading && stats.recentGrades.length === 0 && (
+        {!loading && stats.recentGrades.length === 0 && stats.recentCourses.length === 0 && (
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-gray-200 flex items-center justify-center mx-auto mb-4">
               <GraduationCapIcon size={32} className="text-gray-400" />
             </div>
             <p className="text-sm text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-              No grade levels found
+              No grade levels or courses found
             </p>
           </div>
         )}

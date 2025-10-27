@@ -269,25 +269,25 @@ meter::-webkit-meter-even-less-good-value {
 .Toastify__toast--success {
   background: #f0f9ff !important;
   color: #0c4a6e !important;
-  border-left: 4px solid #3b82f6 !important;
+  bordereft: 4px solid #3b82f6 !important;
 }
 
 .Toastify__toast--error {
   background: #f0f9ff !important;
   color: #0c4a6e !important;
-  border-left: 4px solid #3b82f6 !important;
+  bordereft: 4px solid #3b82f6 !important;
 }
 
 .Toastify__toast--warning {
   background: #f0f9ff !important;
   color: #0c4a6e !important;
-  border-left: 4px solid #3b82f6 !important;
+  bordereft: 4px solid #3b82f6 !important;
 }
 
 .Toastify__toast--info {
   background: #f0f9ff !important;
   color: #0c4a6e !important;
-  border-left: 4px solid #3b82f6 !important;
+  bordereft: 4px solid #3b82f6 !important;
 }
 
 .Toastify__toast-body {

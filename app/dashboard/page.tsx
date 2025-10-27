@@ -770,7 +770,7 @@ export default function Dashboard() {
           </div>
           <Button 
               variant="ghost"
-              className="border-1 border-blue-900 rounded-none w-full text-white bg-blue-900"
+              className="border-1 shadow-xl border-blue-900 rounded-none w-full text-white bg-blue-900"
               onClick={userProfile ? handleEditProfile : () => router.push('/setup')}
             >
               <Gear size={20} weight="fill" className="mr-1 transition-transform duration-200 hover:text-blue-900" />
@@ -787,7 +787,7 @@ export default function Dashboard() {
             
             <Button 
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'dashboard' ? 'bg-blue-50 border-blue-900' : ''}`}
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-1 shadow-xl ${currentView === 'dashboard' ? 'bg-blue-50 border-blue-900' : ''}`}
               onClick={() => setCurrentView('dashboard')}
             >
                 <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
@@ -799,7 +799,7 @@ export default function Dashboard() {
 
             <Button
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'enrollment' ? 'bg-blue-50 border-blue-900' : ''}`}
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-1 shadow-xl ${currentView === 'enrollment' ? 'bg-blue-50 border-blue-900' : ''}`}
               onClick={() => setCurrentView('enrollment')}
             >
                 <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
@@ -811,7 +811,7 @@ export default function Dashboard() {
 
             <Button
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${currentView === 'documents' ? 'bg-blue-50 border-blue-900' : ''}`}
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-1 shadow-xl ${currentView === 'documents' ? 'bg-blue-50 border-blue-900' : ''}`}
               onClick={() => setCurrentView('documents')}
             >
                 <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
@@ -829,7 +829,7 @@ export default function Dashboard() {
                 !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
                   ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
                   : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
-              } border-l-5 ${currentView === 'subjects' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
+              } border-1 shadow-xl ${currentView === 'subjects' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
               onClick={() => {
                 if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
                   // Show enrollment required message
@@ -859,7 +859,7 @@ export default function Dashboard() {
                 !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
                   ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
                   : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
-              } border-l-5 ${currentView === 'schedule' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
+              } border-1 shadow-xl ${currentView === 'schedule' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
               onClick={() => {
                 if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
                   // Show enrollment required message
@@ -889,7 +889,7 @@ export default function Dashboard() {
                 !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
                   ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
                   : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
-              } border-l-5 ${currentView === 'performance' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
+              } border-1 shadow-xl ${currentView === 'performance' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
               onClick={() => {
                 if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
                   // Show enrollment required message
@@ -919,7 +919,7 @@ export default function Dashboard() {
                 !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
                   ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
                   : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
-              } border-l-5 ${currentView === 'records' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
+              } border-1 shadow-xl ${currentView === 'records' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
               onClick={() => {
                 if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
                   // Show enrollment required message
@@ -991,7 +991,7 @@ export default function Dashboard() {
 
               {/* Quick Stats */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+                <Card className="p-6 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
                       <GraduationCap size={24} className="text-white" weight="fill" />
@@ -1018,7 +1018,7 @@ export default function Dashboard() {
                   </div>
                 </Card>
 
-                <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+                <Card className="p-6 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
                       <BookOpen size={24} className="text-white" weight="fill" />
@@ -1047,7 +1047,7 @@ export default function Dashboard() {
                   </div>
                 </Card>
 
-                <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+                <Card className="p-6 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
                       <Calendar size={24} className="text-white" weight="fill" />
@@ -1063,7 +1063,7 @@ export default function Dashboard() {
                   </div>
                 </Card>
 
-                <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+                <Card className="p-6 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
                       <ChartBar size={24} className="text-white" weight="fill" />
@@ -1173,7 +1173,7 @@ export default function Dashboard() {
                               return (
                                 <div
                                   key={subject.id}
-                                  className="group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
+                                  className="group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-xl transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
                                   style={{ 
                                     backgroundColor: getSubjectColor(subject.color),
                                     borderLeftColor: getSubjectColor(subject.color),
@@ -1296,7 +1296,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+              <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-xl border-blue-900">
                 <Calendar size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
                 <h3
                   className="text-lg font-medium text-gray-900 mb-2"
@@ -1305,7 +1305,7 @@ export default function Dashboard() {
                   Schedule not available
                 </h3>
                 <p
-                  className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+                  className="text-gray-600 text-justify border-1 shadow-xl border-blue-900 p-3 bg-blue-50"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
                   Your class schedule will be available once you're enrolled and your subjects are assigned.
@@ -1336,7 +1336,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+              <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-xl border-blue-900">
                 <ChartBar size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
                 <h3
                   className="text-lg font-medium text-gray-900 mb-2"
@@ -1345,7 +1345,7 @@ export default function Dashboard() {
                   Performance data not available
                 </h3>
                 <p
-                  className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+                  className="text-gray-600 text-justify border-1 shadow-xl border-blue-900 p-3 bg-blue-50"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
                   Your academic performance data will be available once you have completed assessments and grades have been recorded.

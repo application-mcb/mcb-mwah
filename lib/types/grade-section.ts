@@ -16,7 +16,8 @@ export type GradeColor = typeof GRADE_COLORS[number];
 // Department types
 export const DEPARTMENTS = [
   'JHS', // Junior High School
-  'SHS'  // Senior High School
+  'SHS', // Senior High School
+  'COLLEGE' // College
 ] as const;
 
 export type Department = typeof DEPARTMENTS[number];
@@ -44,10 +45,11 @@ export interface GradeData {
 // Section data structure
 export interface SectionData {
   id: string; // Auto-generated ID (e.g., "section-grade10-jhs-don-bosco")
-  gradeId: string; // Reference to the grade this section belongs to
+  gradeId?: string; // Reference to the grade this section belongs to (for JHS/SHS)
+  courseId?: string; // Reference to the course this section belongs to (for College)
   sectionName: string; // e.g., "Don Bosco", "Don Toreto"
-  grade: string; // e.g., "Grade 10"
-  department: Department; // JHS, SHS
+  grade: string; // e.g., "Grade 10" or "BSIT - Year 1"
+  department: Department; // JHS, SHS, COLLEGE
   rank: SectionRank; // A, B, C, D, E, F, G, H
   description: string; // Detailed description
   students?: string[]; // Array of student userIds assigned to this section
@@ -69,7 +71,8 @@ export interface CreateGradeData {
 }
 
 export interface CreateSectionData {
-  gradeId: string;
+  gradeId?: string;
+  courseId?: string;
   sectionName: string;
   grade: string;
   department: Department;

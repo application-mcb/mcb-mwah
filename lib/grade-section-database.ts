@@ -268,11 +268,20 @@ export class SectionDatabase {
         throw new Error(`Invalid section rank. Must be one of: ${SECTION_RANKS.join(', ')}`);
       }
 
-      // Check if grade exists
-      const gradeExists = await GradeDatabase.gradeExists(sectionData.gradeId);
-      if (!gradeExists) {
-        throw new Error('Referenced grade does not exist');
+      // Check if either gradeId or courseId is provided
+      if (!sectionData.gradeId && !sectionData.courseId) {
+        throw new Error('Either gradeId or courseId must be provided');
       }
+
+      // Check if grade exists (if gradeId is provided)
+      if (sectionData.gradeId) {
+        const gradeExists = await GradeDatabase.gradeExists(sectionData.gradeId);
+        if (!gradeExists) {
+          throw new Error('Referenced grade does not exist');
+        }
+      }
+
+      // Note: Course validation is done in the API route
 
       const sectionId = this.generateSectionId(sectionData.grade, sectionData.department, sectionData.sectionName);
 

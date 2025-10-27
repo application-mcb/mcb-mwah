@@ -341,7 +341,7 @@ export default function CustomizeAccount() {
                   <IdentificationCard size={20} className="text-blue-900" weight="duotone" />
                   <h3 className="text-lg font-medium text-gray-900">Personal Information</h3>
                 </div>
-                <p className="text-xs text-blue-900 font-light text-justify border-l-5 border-blue-900 p-3 bg-blue-100">Submit your essential personal details for account verification, including your full name, updated contact information, and a concise overview of your professional background. Ensure the information is accurate and complete to facilitate smooth verification and secure access to your account.</p>
+                <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-xl border-blue-900 p-3 bg-blue-100">Submit your essential personal details for account verification, including your full name, updated contact information, and a concise overview of your professional background. Ensure the information is accurate and complete to facilitate smooth verification and secure access to your account.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -529,7 +529,7 @@ export default function CustomizeAccount() {
                   <House size={20} className="text-blue-900" weight="duotone" />
                   <h3 className="text-lg font-medium text-gray-900">Address Information</h3>
                 </div>
-                <p className="text-xs text-blue-900 font-light text-justify border-l-5 border-blue-900 p-3 bg-blue-100">
+                <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-xl border-blue-900 p-3 bg-blue-100">
                 Provide your full residential address details, including street, city, state, and postal code, for accurate location verification. Ensure all information is correct and up to date to confirm your residence and complete the verification process successfully.</p>
               </div>
 
@@ -639,7 +639,7 @@ export default function CustomizeAccount() {
                   <Shield size={20} className="text-blue-900" weight="duotone" />
                   <h3 className="text-lg font-medium text-gray-900">Guardian Information</h3>
                 </div>
-                <p className="text-xs text-blue-900 font-light text-justify border-l-5 border-blue-900 p-3 bg-blue-100">
+                <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-xl border-blue-900 p-3 bg-blue-100">
                 Submit emergency contact and guardian details for safety purposes, including full name, relationship, and accurate contact information. This ensures proper communication and support in case of emergencies, helping verify identity and maintaining safety throughout the verification process.
                 </p>
               </div>
@@ -725,7 +725,7 @@ export default function CustomizeAccount() {
 
             {/* Academic Data Usage Agreement */}
             <div className="">
-              <div className="flex items-start gap-3 p-4 border-l-5 border-blue-900 bg-blue-100 text-blue-900">
+              <div className="flex items-start gap-3 p-4 border-1 shadow-xl border-blue-900 bg-blue-100 text-blue-900">
                 <div className="flex items-center">
                   
                 </div>

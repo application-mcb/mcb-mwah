@@ -91,7 +91,7 @@ const Print: React.FC<PrintProps> = ({ children, onClose, title = "Print Documen
           background-color: #f3f4f6;
           padding: 8px 12px;
           margin: 0 0 10px 0;
-          border-left: 4px solid #1e40af;
+          bordereft: 4px solid #1e40af;
           font-size: 14px;
           font-weight: 600;
         }

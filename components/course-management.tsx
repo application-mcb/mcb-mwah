@@ -384,7 +384,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 bg-red-50 border-l-5 border-red-600">
+                <div className="p-4 bg-red-50 border-1 shadow-xl border-red-600">
                   <p className="text-sm text-red-800 font-medium mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                     You are about to delete:
                   </p>
@@ -496,7 +496,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                     >
                       Course Code
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-l-5 border-blue-900`}>
+                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900`}>
                       <span
                         className="text-sm text-gray-900 font-medium"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
@@ -512,7 +512,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                     >
                       Course Name
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-l-5 border-blue-900`}>
+                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900`}>
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -531,7 +531,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                   >
                     Description
                   </label>
-                  <div className={`px-4 py-3 bg-gray-100 border-l-5 border-blue-900 min-h-[120px]`}>
+                  <div className={`px-4 py-3 bg-gray-100 border-1 shadow-xl border-blue-900 min-h-[120px]`}>
                     <p
                       className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap"
                       style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -569,7 +569,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                     >
                       Created Date
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-l-5 border-blue-900`}>
+                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900`}>
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -589,7 +589,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                     >
                       Last Updated
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-l-5 border-blue-900`}>
+                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900`}>
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}

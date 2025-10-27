@@ -231,7 +231,7 @@ export default function TeacherPage() {
           </div>
           <Button
             variant="ghost"
-            className="border-1 border-blue-900 rounded-none w-full text-white bg-blue-900"
+            className="border-1 shadow-xl border-blue-900 rounded-none w-full text-white bg-blue-900"
             onClick={() => {/* Add profile edit functionality */}}
           >
             <Gear size={20} weight="fill" className="mr-1 transition-transform duration-200 hover:text-blue-900" />
@@ -248,7 +248,7 @@ export default function TeacherPage() {
 
             <Button
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-1 shadow-xl ${
                 currentView === 'overview' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
               }`}
               onClick={() => handleNavigation('overview')}
@@ -261,7 +261,7 @@ export default function TeacherPage() {
 
             <Button
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-1 shadow-xl ${
                 currentView === 'my-classes' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
               }`}
               onClick={() => handleNavigation('my-classes')}
@@ -274,7 +274,7 @@ export default function TeacherPage() {
 
             <Button
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-1 shadow-xl ${
                 currentView === 'students' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
               }`}
               onClick={() => handleNavigation('students')}
@@ -287,7 +287,7 @@ export default function TeacherPage() {
 
             <Button
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-1 shadow-xl ${
                 currentView === 'grades' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
               }`}
               onClick={() => handleNavigation('grades')}
@@ -300,7 +300,7 @@ export default function TeacherPage() {
 
             <Button
               variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-5 ${
+              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-1 shadow-xl ${
                 currentView === 'schedule' ? 'bg-blue-50 text-blue-900 border-blue-900' : ''
               }`}
               onClick={() => handleNavigation('schedule')}
@@ -317,7 +317,7 @@ export default function TeacherPage() {
         <div className="p-6 border-t border-gray-200">
           <Button
             variant="outline"
-            className="rounded-none border-r-0 border-b-0 font-light border-t-0 w-full justify-start border-l-5 border-red-900 bg-red-50 text-red-900 hover:text-red-900 hover:border-red-900"
+            className="rounded-none border-r-0 border-b-0 font-light border-t-0 w-full justify-start border-1 shadow-xl border-red-900 bg-red-50 text-red-900 hover:text-red-900 hover:border-red-900"
             onClick={handleSignOut}
           >
             <div className="flex justify-center items-center bg-red-800 aspect-square w-6 h-6">

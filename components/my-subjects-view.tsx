@@ -373,7 +373,7 @@ export default function MySubjectsView({ userId, onNavigateToEnrollment }: MySub
           </div>
         </div>
 
-        <Card className="p-12 text-center border-none bg-blue-50 border-l-5 border-blue-500">
+        <Card className="p-12 text-center border-none bg-blue-50 border-1 shadow-xl border-blue-500">
           <XCircle size={48} className="mx-auto mb-4" weight="duotone" />
           <h3
             className="text-lg font-medium text-blue-900 mb-2"
@@ -428,7 +428,7 @@ export default function MySubjectsView({ userId, onNavigateToEnrollment }: MySub
           </div>
         </div>
 
-        <Card className="p-12 text-center border-none bg-red-50 border-l-5 border-red-500">
+        <Card className="p-12 text-center border-none bg-red-50 border-1 shadow-xl border-red-500">
           <div className="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-6">
             <GraduationCap size={32} className="text-red-600" weight="duotone" />
           </div>
@@ -439,7 +439,7 @@ export default function MySubjectsView({ userId, onNavigateToEnrollment }: MySub
             Enrollment Required
           </h3>
           <p
-            className="text-red-700 text-justify border-l-5 border-red-500 p-4 bg-red-100 mb-6 max-w-lg mx-auto"
+            className="text-red-700 text-justify border-1 shadow-xl border-red-500 p-4 bg-red-100 mb-6 max-w-lg mx-auto"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             <strong>You must enroll first before accessing your subjects.</strong> Complete your enrollment process to get assigned to subjects and view your curriculum.
@@ -528,7 +528,7 @@ export default function MySubjectsView({ userId, onNavigateToEnrollment }: MySub
           </div>
         </div>
 
-        <Card className="p-12 text-center border-none bg-yellow-50 border-l-5 border-yellow-500">
+        <Card className="p-12 text-center border-none bg-yellow-50 border-1 shadow-xl border-yellow-500">
           <BookOpen size={48} className="mx-auto text-yellow-400 mb-4" weight="duotone" />
           <h3
             className="text-lg font-medium text-yellow-900 mb-2"

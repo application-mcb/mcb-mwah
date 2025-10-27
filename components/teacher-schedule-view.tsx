@@ -239,7 +239,7 @@ export default function TeacherScheduleView({ teacherId }: TeacherScheduleViewPr
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day, index) => (
-            <Card key={day} className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+            <Card key={day} className="p-6 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
               <div className="animate-pulse">
                 <h3 className="text-lg font-medium text-gray-900 mb-4"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
@@ -285,7 +285,7 @@ export default function TeacherScheduleView({ teacherId }: TeacherScheduleViewPr
           </div>
         </div>
 
-        <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+        <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-xl border-blue-900">
           <Calendar size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
           <h3
             className="text-lg font-medium text-gray-900 mb-2"
@@ -332,7 +332,7 @@ export default function TeacherScheduleView({ teacherId }: TeacherScheduleViewPr
       {/* Weekly Schedule Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => (
-          <Card key={day} className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+          <Card key={day} className="p-6 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
             <h3 className="text-lg font-medium text-gray-900 mb-4"
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
               {day}

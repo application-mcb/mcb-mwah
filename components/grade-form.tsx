@@ -175,7 +175,7 @@ export default function GradeForm({
   const hasAvailableGrades = availableGradeOptions.length > 0;
 
   return (
-    <Card className="w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto bg-gray-50 border-l-0 border-r-0 border-b-0 border-t-5 border-blue-900">
+    <Card className="w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto bg-gray-50 border-0 border-r-0 border-b-0 border-t-5 border-blue-900">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <div className={`w-10 h-10 bg-blue-900 flex items-center justify-center`}>
@@ -248,7 +248,7 @@ export default function GradeForm({
                 value={formData.gradeLevel}
                 onChange={(e) => handleInputChange('gradeLevel', e.target.value)}
                 disabled={loading || isEditing || (!isEditing && !hasAvailableGrades)} // Can't change grade level when editing or no grades available
-                className={`w-full pl-10 pr-3 py-2 border-l-5 border-blue-900 border-r-0 border-t-0 border-b-0 rounded-none bg-white text-base shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.gradeLevel ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
+                className={`w-full pl-10 pr-3 py-2 border-1 shadow-xl border-blue-900 border-r-0 border-t-0 border-b-0 rounded-none bg-white text-base shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.gradeLevel ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 aria-describedby={errors.gradeLevel ? 'grade-level-error' : undefined}
               >
@@ -293,7 +293,7 @@ export default function GradeForm({
             Department
           </label>
           <div className="relative">
-            <div className="w-full pl-10 pr-3 py-2 border-l-5 border-gray-300 bg-gray-100 text-gray-600">
+            <div className="w-full pl-10 pr-3 py-2 border-1 shadow-xl border-gray-300 bg-gray-100 text-gray-600">
               {formData.department === 'JHS' ? 'Junior High School' :
                formData.department === 'SHS' ? 'Senior High School' :
                'College'}
@@ -337,7 +337,7 @@ export default function GradeForm({
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 disabled={loading || (!isEditing && !hasAvailableGrades)}
-                className={`border-l-5 border-blue-900 border-r-0 border-t-0 border-b-0 rounded-none flex min-h-[100px] w-full bg-white pl-10 pr-3 py-2 text-base shadow-lg placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
+                className={`border-1 shadow-xl border-blue-900 border-r-0 border-t-0 border-b-0 rounded-none flex min-h-[100px] w-full bg-white pl-10 pr-3 py-2 text-base shadow-lg placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 aria-describedby={errors.description ? 'description-error' : undefined}
                 maxLength={150}
@@ -369,7 +369,7 @@ export default function GradeForm({
           </div>
         </div>
 
-        <p className="text-sm text-gray-800 font-light p-3 bg-blue-100 border-l-5 border-blue-900 text-justify">
+        <p className="text-sm text-gray-800 font-light p-3 bg-blue-100 border-1 shadow-xl border-blue-900 text-justify">
           This form will determine the identity of the grade level in the system. The clearer the description, the easier it will be to identify and manage grade levels.
         </p>
 

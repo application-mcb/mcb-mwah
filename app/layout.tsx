@@ -41,7 +41,7 @@ export default function RootLayout({
             draggable
             pauseOnHover
             theme="light"
-            toastClassName="!font-poppins !text-xs !font-medium !shadow-lg !border-l-4"
+            toastClassName="!font-poppins !text-xs !font-medium !shadow-lg !border-4"
             progressClassName="!bg-blue-900"
             className="!font-poppins"
             style={{ fontFamily: 'Poppins', fontSize: '12px' }}

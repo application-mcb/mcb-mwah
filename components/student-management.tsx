@@ -203,7 +203,8 @@ interface Tab {
 
 interface SectionData {
   id: string;
-  gradeId: string;
+  gradeId?: string;
+  courseId?: string;
   sectionName: string;
   grade: string;
   department: string;
@@ -444,12 +445,26 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
     }
   };
 
-  const refreshStudents = () => {
-    // Real-time listener makes manual refresh unnecessary
-    // But we can show a visual indicator that data is up-to-date
-    toast.success('Real-time updates are active. Table refreshes automatically when data changes.', {
-      autoClose: 4000,
-    });
+  const refreshStudents = async () => {
+    try {
+      setLoading(true);
+      // Force reload by refetching student profiles and documents
+      const enrollmentData = Object.values(enrollments);
+      await Promise.all([
+        loadStudentProfiles(enrollmentData),
+        loadStudentDocuments(enrollmentData)
+      ]);
+      toast.success('Data refreshed successfully', {
+        autoClose: 2000,
+      });
+    } catch (error) {
+      console.error('Error refreshing students:', error);
+      toast.error('Failed to refresh data', {
+        autoClose: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadStudentProfiles = async (enrollmentData: ExtendedEnrollmentData[]) => {
@@ -636,15 +651,30 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
       const data = await response.json();
 
       if (response.ok && data.sections) {
-        // Group sections by grade level
+        // Group sections by grade level or course
         const sectionsByGrade: Record<string, SectionData[]> = {};
 
         data.sections.forEach((section: SectionData) => {
-          const gradeLevel = section.grade.replace('Grade ', '');
-          if (!sectionsByGrade[gradeLevel]) {
-            sectionsByGrade[gradeLevel] = [];
+          let key: string;
+          
+          // For high school sections, use gradeId
+          if (section.gradeId) {
+            // Extract grade level from grade string or use gradeId
+            key = section.grade.replace('Grade ', '').replace('G', '');
+          } 
+          // For college sections, use courseId
+          else if (section.courseId) {
+            key = section.courseId;
+          } 
+          // Fallback
+          else {
+            key = section.grade.replace('Grade ', '');
           }
-          sectionsByGrade[gradeLevel].push(section);
+          
+          if (!sectionsByGrade[key]) {
+            sectionsByGrade[key] = [];
+          }
+          sectionsByGrade[key].push(section);
         });
 
         console.log('🏫 Loaded sections data:', sectionsByGrade);
@@ -739,6 +769,9 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
           toast.success(`Student assigned to ${selectedSection?.sectionName || 'section'} successfully`, {
             autoClose: 3000,
           });
+          
+          // Refresh to update stats
+          await refreshStudents();
         } else {
           toast.error(data.error || 'Failed to assign section. Please try again.', {
             autoClose: 4000,
@@ -764,6 +797,9 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
           toast.success('Student unassigned from section successfully', {
             autoClose: 3000,
           });
+          
+          // Refresh to update stats
+          await refreshStudents();
         } else {
           toast.error(data.error || 'Failed to unassign section. Please try again.', {
             autoClose: 4000,
@@ -1985,8 +2021,7 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                     ></div>
                     <span className="text-xs text-gray-900 font-mono" >
                       {course.code}: {enrollments.filter(e => {
-                        const gradeLevel = parseInt(e.enrollmentInfo?.gradeLevel || '0');
-                        return gradeLevel >= 1 && gradeLevel <= 4;
+                        return e.enrollmentInfo?.courseCode === course.code;
                       }).length}
                     </span>
                   </div>
@@ -2193,8 +2228,12 @@ export default function StudentManagement({ registrarUid, registrarName }: Stude
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       {(() => {
+                        // For high school: use gradeLevel
+                        // For college: use courseCode
                         const gradeLevel = enrollment.enrollmentInfo?.gradeLevel;
-                        const gradeSections = gradeLevel ? sections[gradeLevel] : null;
+                        const courseCode = enrollment.enrollmentInfo?.courseCode;
+                        const lookupKey = gradeLevel || courseCode;
+                        const gradeSections = lookupKey ? sections[lookupKey] : null;
                         const currentSectionId = enrollment.enrollmentInfo?.sectionId;
                         const isAssigning = assigningSectionStudent === enrollment.userId;
 

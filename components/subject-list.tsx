@@ -282,7 +282,7 @@ export default function SubjectList({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <Card key={i} className="p-6 bg-gray-50 border-l-0 border-r-0 border-b-0">
+            <Card key={i} className="p-6 bg-gray-50 border-0 border-r-0 border-b-0">
               <div className="animate-pulse space-y-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gray-200 rounded"></div>
@@ -324,7 +324,7 @@ export default function SubjectList({
                 placeholder="Search subjects..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="pr-4 py-2 border-1 border-blue-900 rounded-none"
+                className="pr-4 py-2 border-1 shadow-xl border-blue-900 rounded-none"
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
               />
             </div>
@@ -398,7 +398,7 @@ export default function SubjectList({
 
       {/* Subject Grid */}
       {filteredSubjects.length === 0 ? (
-        <Card className="w-full max-w-md mx-auto p-8 border-none text-center bg-gray-50 border-l-5 border-blue-900">
+        <Card className="w-full max-w-md mx-auto p-8 border-none text-center bg-gray-50 border-1 shadow-xl border-blue-900">
           <BookOpen size={64} className="mx-auto text-gray-400 mb-4" weight="duotone" />
           <h3
             className="text-lg font-medium text-gray-900 mb-2"
@@ -407,7 +407,7 @@ export default function SubjectList({
             No subjects found
           </h3>
           <p
-            className="text-blue-900 text-sm text-justify w-full border-l-5 border-blue-900 p-3 bg-blue-100 mb-4"
+            className="text-blue-900 text-sm text-justify w-full border-1 shadow-xl border-blue-900 p-3 bg-blue-100 mb-4"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             {searchQuery || selectedGradeLevel
@@ -464,7 +464,7 @@ export default function SubjectList({
                       className="w-4 h-4"
                       style={{ backgroundColor: getBgColor(gradeColor) }}
                     ></div>
-                    <hr className="w-full border-1" style={{ borderColor: getBgColor(gradeColor) }} />
+                    <hr className="w-full border-1 shadow-xl" style={{ borderColor: getBgColor(gradeColor) }} />
 
                     <h2
                       className="text-xl font-semibold text-gray-900"
@@ -500,7 +500,7 @@ export default function SubjectList({
                   {gradeSubjects && gradeSubjects.length > 0 ? gradeSubjects.map((subject, subjectIndex) => (
                     <Card
                       key={subject.id}
-                      className={`group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 bg-${subject.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 h-full flex flex-col`}
+                      className={`group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-xl bg-${subject.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 h-full flex flex-col`}
                       style={{
                         animationDelay: `${(keyIndex * 150) + (subjectIndex * 75) + 200}ms`,
                         animationFillMode: 'both'

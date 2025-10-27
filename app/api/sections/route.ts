@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SectionDatabase, CreateSectionData, Department, DEPARTMENTS, GradeDatabase } from '@/lib/grade-section-database';
+import { CourseDatabase } from '@/lib/course-database';
 import { RegistrarDatabase } from '@/lib/registrar-database';
 
 // GET /api/sections - Get all sections or filter by query parameters
@@ -65,12 +66,20 @@ export async function GET(request: NextRequest) {
 // POST /api/sections - Create a new section
 export async function POST(request: NextRequest) {
   try {
-    const { gradeId, sectionName, grade, department, rank, description, registrarUid } = await request.json();
+    const { gradeId, courseId, sectionName, grade, department, rank, description, registrarUid } = await request.json();
 
-    // Validate required fields
-    if (!gradeId || !sectionName || !registrarUid) {
+    // Validate required fields - either gradeId or courseId must be provided
+    if ((!gradeId && !courseId) || !sectionName || !registrarUid) {
       return NextResponse.json(
-        { error: 'Missing required fields: gradeId, sectionName, registrarUid' },
+        { error: 'Missing required fields: gradeId or courseId, sectionName, registrarUid' },
+        { status: 400 }
+      );
+    }
+
+    // Cannot have both gradeId and courseId
+    if (gradeId && courseId) {
+      return NextResponse.json(
+        { error: 'Cannot specify both gradeId and courseId' },
         { status: 400 }
       );
     }
@@ -92,39 +101,86 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if grade exists
-    const gradeData = await GradeDatabase.getGrade(gradeId);
-    if (!gradeData) {
+    let sectionData: CreateSectionData;
+    let identifier: string;
+
+    if (gradeId) {
+      // Check if grade exists
+      const gradeData = await GradeDatabase.getGrade(gradeId);
+      if (!gradeData) {
+        return NextResponse.json(
+          { error: 'Grade not found' },
+          { status: 404 }
+        );
+      }
+
+      // Check if section name already exists for this grade
+      const existingSections = await SectionDatabase.getSectionsByGrade(gradeId);
+      const sectionExists = existingSections.some(
+        section => section.sectionName.toLowerCase() === sectionName.toLowerCase().trim()
+      );
+
+      if (sectionExists) {
+        return NextResponse.json(
+          { error: `Section "${sectionName}" already exists for this grade level` },
+          { status: 409 }
+        );
+      }
+
+      sectionData = {
+        gradeId,
+        sectionName: sectionName.trim(),
+        grade: grade || `Grade ${gradeData.gradeLevel}`,
+        department: (department as Department) || gradeData.department,
+        rank: rank || 'A',
+        description: description?.trim() || '',
+        createdBy: registrarUid,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      identifier = gradeId;
+    } else if (courseId) {
+      // Check if course exists
+      const courseData = await CourseDatabase.getCourse(courseId);
+      if (!courseData) {
+        return NextResponse.json(
+          { error: 'Course not found' },
+          { status: 404 }
+        );
+      }
+
+      // Check if section name already exists for this course
+      const allSections = await SectionDatabase.getAllSections();
+      const courseSections = allSections.filter(s => s.courseId === courseId);
+      const sectionExists = courseSections.some(
+        section => section.sectionName.toLowerCase() === sectionName.toLowerCase().trim()
+      );
+
+      if (sectionExists) {
+        return NextResponse.json(
+          { error: `Section "${sectionName}" already exists for this course` },
+          { status: 409 }
+        );
+      }
+
+      sectionData = {
+        courseId,
+        sectionName: sectionName.trim(),
+        grade: grade || `${courseData.code} - ${courseData.name}`,
+        department: 'COLLEGE',
+        rank: rank || 'A',
+        description: description?.trim() || '',
+        createdBy: registrarUid,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      identifier = courseId;
+    } else {
       return NextResponse.json(
-        { error: 'Grade not found' },
-        { status: 404 }
+        { error: 'Either gradeId or courseId must be provided' },
+        { status: 400 }
       );
     }
-
-    // Check if section name already exists for this grade
-    const existingSections = await SectionDatabase.getSectionsByGrade(gradeId);
-    const sectionExists = existingSections.some(
-      section => section.sectionName.toLowerCase() === sectionName.toLowerCase().trim()
-    );
-
-    if (sectionExists) {
-      return NextResponse.json(
-        { error: `Section "${sectionName}" already exists for this grade level` },
-        { status: 409 }
-      );
-    }
-
-    const sectionData: CreateSectionData = {
-      gradeId,
-      sectionName: sectionName.trim(),
-      grade: grade || `Grade ${gradeData.gradeLevel}`,
-      department: (department as Department) || gradeData.department,
-      rank: rank || 'A',
-      description: description?.trim() || '',
-      createdBy: registrarUid,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
 
     const section = await SectionDatabase.createSection(sectionData);
 

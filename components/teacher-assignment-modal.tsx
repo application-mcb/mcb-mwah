@@ -599,7 +599,7 @@ export default function TeacherAssignmentModal({
             </div>
 
             {grades.length === 0 ? (
-              <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+              <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-xl border-blue-900">
                 <GraduationCap size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
                 <h3
                   className="text-lg font-medium text-gray-900 mb-2"
@@ -608,7 +608,7 @@ export default function TeacherAssignmentModal({
                   No grades available
                 </h3>
                 <p
-                  className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+                  className="text-gray-600 text-justify border-1 shadow-xl border-blue-900 p-3 bg-blue-50"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
                   There are currently no grade levels available for subject assignment. Please contact your registrar or try again later.
@@ -619,7 +619,7 @@ export default function TeacherAssignmentModal({
                 {grades.map((grade, index) => (
                   <Card
                     key={grade.id}
-                    className={`group p-6 border-none border-l-5 bg-gray-50 hover:border-blue-900 cursor-pointer animate-in fade-in slide-in-from-bottom-4 ${
+                    className={`group p-6 border-none border-1 shadow-xl bg-gray-50 hover:border-blue-900 cursor-pointer animate-in fade-in slide-in-from-bottom-4 ${
                       selectingGrade === grade.id ? 'shadow-lg border-blue-900' : ''
                     }`}
                     style={{

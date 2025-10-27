@@ -1114,7 +1114,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
-            <Card key={i} className="p-6 bg-gray-50 border-l-0 border-r-0 border-b-0">
+            <Card key={i} className="p-6 bg-gray-50 border-0 border-r-0 border-b-0">
               <div className="animate-pulse space-y-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gray-200 rounded"></div>
@@ -1163,7 +1163,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
       </div>
 
         {/* Document Requirements Alert */}
-        <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+        <Card className="p-6 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-gray-100 flex items-center justify-center">
               <FileText size={24} className="text-blue-900" weight="bold" />
@@ -1240,7 +1240,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
         </Card>
 
         {/* Help Information */}
-        <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+        <Card className="p-6 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
           <h3 className="text-lg font-medium text-gray-900 mb-3" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
             Need Help?
           </h3>
@@ -1432,7 +1432,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                             return (
                               <div
                                 key={subject.id}
-                                className="group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
+                                className="group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-xl transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
                                 style={{ 
                                   backgroundColor: getColorValue(subject.color),
                                   borderLeftColor: getColorValue(subject.color),
@@ -1856,7 +1856,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
       {/* Loading State */}
       {!userProfile && (
-        <Card className="p-8 border-none bg-gray-50 border-l-5 border-blue-900">
+        <Card className="p-8 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
           <div className="text-center space-y-4">
             <div className="animate-spin rounded-none h-8 w-8 border-2 border-blue-900/30 border-t-blue-900 mx-auto"></div>
             <p className="text-gray-600"  >
@@ -1868,7 +1868,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
       {/* Step Content */}
       {userProfile && currentStep === 'compliance' && (
-        <Card className={`p-8 border-none bg-gray-50 border-l-5 border-blue-900 h-full transition-all duration-500 ${animatingStep ? 'opacity-0 transform translate-x-4' : 'opacity-100 transform translate-x-0'}`}>
+        <Card className={`p-8 border-none bg-gray-50 border-1 shadow-xl border-blue-900 h-full transition-all duration-500 ${animatingStep ? 'opacity-0 transform translate-x-4' : 'opacity-100 transform translate-x-0'}`}>
           <div className="text-center space-y-6">
             <div className="w-16 h-16 bg-blue-900 flex items-center justify-center mx-auto">
               <BookOpen size={32} className="text-white" weight="fill" />
@@ -1881,7 +1881,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                       Enrollment Compliance Agreement
                     </h3>
               <p
-                className="text-gray-600 text-sm text-justify max-w-2xl mx-auto border-l-5 border-blue-900 p-4 bg-blue-50"
+                className="text-gray-600 text-sm text-justify max-w-2xl mx-auto border-1 shadow-xl border-blue-900 p-4 bg-blue-50"
                  
               >
                 Before proceeding with enrollment, you must acknowledge and agree to comply with all school policies, academic requirements, and institutional guidelines. This includes maintaining academic integrity, following the code of conduct, and meeting all course prerequisites. By checking the box below, you confirm your understanding and commitment to these standards.
@@ -1958,7 +1958,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* High School Option */}
             <Card
-              className="group p-8 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300"
+              className="group p-8 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-1 shadow-xl hover:shadow-lg transition-all duration-300"
               onClick={() => handleLevelSelect('high-school')}
             >
               <div className="space-y-6 flex flex-col justify-between h-full">
@@ -2026,7 +2026,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
             {/* College Option */}
             <Card
-              className="group p-8 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300"
+              className="group p-8 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-1 shadow-xl hover:shadow-lg transition-all duration-300"
               onClick={() => handleLevelSelect('college')}
             >
               <div className="space-y-6 flex flex-col justify-between h-full">
@@ -2129,7 +2129,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
           </div>
 
           {grades.length === 0 ? (
-            <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+            <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-xl border-blue-900">
               <GraduationCap size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
               <h3
                 className="text-lg font-medium text-gray-900 mb-2"
@@ -2138,7 +2138,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                 No grades available
               </h3>
               <p
-                className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+                className="text-gray-600 text-justify border-1 shadow-xl border-blue-900 p-3 bg-blue-50"
                  
               >
                 There are currently no grade levels available for enrollment. Please contact your registrar or try again later.
@@ -2149,7 +2149,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
               {grades.map((grade, index) => (
                 <Card
                   key={grade.id}
-                  className={`group p-6 border-none border-l-5 bg-gray-50 hover:border-blue-900 cursor-pointer ${
+                  className={`group p-6 border-none border-1 shadow-xl bg-gray-50 hover:border-blue-900 cursor-pointer ${
                     selectingGrade === grade.id ? 'shadow-lg border-blue-900' : ''
                   }`}
                   style={{
@@ -2243,7 +2243,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
           </div>
 
           {loadingCourses ? (
-            <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+            <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-xl border-blue-900">
               <div className="animate-spin rounded-none h-8 w-8 border-2 border-blue-900/30 border-t-blue-900 mx-auto mb-4"></div>
               <h3
                 className="text-lg font-medium text-gray-900 mb-2"
@@ -2252,14 +2252,14 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                 Loading courses...
               </h3>
               <p
-                className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+                className="text-gray-600 text-justify border-1 shadow-xl border-blue-900 p-3 bg-blue-50"
 
               >
                 Please wait while we load available college courses.
               </p>
             </Card>
           ) : courses.length === 0 ? (
-            <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+            <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-xl border-blue-900">
               <GraduationCap size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
               <h3
                 className="text-lg font-medium text-gray-900 mb-2"
@@ -2268,7 +2268,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
                 No courses available
               </h3>
               <p
-                className="text-gray-600 text-justify border-l-5 border-blue-900 p-3 bg-blue-50"
+                className="text-gray-600 text-justify border-1 shadow-xl border-blue-900 p-3 bg-blue-50"
 
               >
                 There are currently no college courses available for enrollment. Please contact your registrar or try again later.
@@ -2279,7 +2279,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
               {courses.map((course, index) => (
                 <Card
                   key={`course-${course.id}-${index}`}
-                  className={`group p-6 border-none border-l-5 bg-gray-50 hover:border-blue-900 cursor-pointer ${
+                  className={`group p-6 border-none border-1 shadow-xl bg-gray-50 hover:border-blue-900 cursor-pointer ${
                     selectedCourse?.id === course.id ? 'shadow-lg border-blue-900' : ''
                   }`}
                   style={{
@@ -2375,7 +2375,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
           <div className="grid grid-cols-2 gap-6">
             {/* First Year */}
             <Card
-              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-1 shadow-xl hover:shadow-lg transition-all duration-300 ${
                 selectedYear === 1 ? 'shadow-lg border-blue-900' : ''
               }`}
               style={{
@@ -2432,7 +2432,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
             {/* Second Year */}
             <Card
-              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-1 shadow-xl hover:shadow-lg transition-all duration-300 ${
                 selectedYear === 2 ? 'shadow-lg border-blue-900' : ''
               }`}
               style={{
@@ -2489,7 +2489,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
             {/* Third Year */}
             <Card
-              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-1 shadow-xl hover:shadow-lg transition-all duration-300 ${
                 selectedYear === 3 ? 'shadow-lg border-blue-900' : ''
               }`}
               style={{
@@ -2546,7 +2546,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
             {/* Fourth Year */}
             <Card
-              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-1 shadow-xl hover:shadow-lg transition-all duration-300 ${
                 selectedYear === 4 ? 'shadow-lg border-blue-900' : ''
               }`}
               style={{
@@ -2638,7 +2638,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* First Semester */}
             <Card
-              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-1 shadow-xl hover:shadow-lg transition-all duration-300 ${
                 selectedSemester === 'first-sem' ? 'shadow-lg border-blue-900' : ''
               }`}
               style={{
@@ -2692,7 +2692,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
             {/* Second Semester */}
             <Card
-              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-l-5 hover:shadow-lg transition-all duration-300 ${
+              className={`group p-6 border-none bg-gray-50 hover:border-blue-900 cursor-pointer border-1 shadow-xl hover:shadow-lg transition-all duration-300 ${
                 selectedSemester === 'second-sem' ? 'shadow-lg border-blue-900' : ''
               }`}
               style={{
@@ -2786,7 +2786,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             </Button>
           </div>
 
-          <Card className="p-8 border-none bg-gray-50 border-l-5 border-blue-900">
+          <Card className="p-8 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
               {/* Name Section */}
               <div>
@@ -3145,7 +3145,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column - Personal Information */}
-            <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+            <Card className="p-6 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
             <div className="space-y-6">
                 <div>
                   <h4
@@ -3332,7 +3332,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
             </Card>
 
             {/* Right Column - Documents Info */}
-            <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+            <Card className="p-6 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
               <div className="space-y-6">
                 <h4
                   className="text-lg font-medium text-gray-900 mb-4"
@@ -3418,7 +3418,7 @@ export default function EnrollmentForm({ userId, userProfile, onProgressUpdate }
               </div>
 
           {/* Agreement and Submit Section */}
-          <Card className="p-6 border-none bg-gray-50 border-l-5 border-blue-900">
+          <Card className="p-6 border-none bg-gray-50 border-1 shadow-xl border-blue-900">
             <div className="space-y-4">
      
 

@@ -106,7 +106,7 @@ export default function CourseList({
               College Course Management
           </h2>
        </div>
-          <p className="text-sm text-gray-900 font-light text-justify w-1/2 border-l-5 border-none">
+          <p className="text-sm text-gray-900 font-light text-justify w-1/2 border-1 shadow-xl border-none">
           Easily manage your college courses here! Organize schedules, track progress, and access helpful resources. Stay on top of your studies, learn better, and enjoy a smoother, more successful academic journey.
           </p>
         </div>
@@ -173,7 +173,7 @@ export default function CourseList({
                     <button
                       key={color.value}
                       onClick={() => onColorToggle(color.value)}
-                      className={`flex items-center space-x-2 px-3 py-2 border-1 transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                      className={`flex items-center space-x-2 px-3 py-2 border-1 shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 ${
                         isSelected
                           ? 'border-blue-900 bg-gray-50 shadow-lg animate-in zoom-in-95'
                           : 'border-gray-300 hover:border-gray-400 hover:shadow-md'
@@ -248,7 +248,7 @@ export default function CourseList({
            Umm, it seems like you haven't created any courses yet.
           </h3>
           <p
-            className="text-gray-800 max-w-xl font-light text-justify text-sm border-l-5 border-blue-900 p-3 bg-blue-100"
+            className="text-gray-800 max-w-xl font-light text-justify text-sm border-1 shadow-xl border-blue-900 p-3 bg-blue-100"
           >
             Start by picking a subject college students will enjoy, set clear goals, and create fun, engaging lessons. Add multimedia, assignments, and assessments. Encourage interaction, offer helpful resources, keep everything accessible, welcome feedback, and always look for ways to improve.
           </p>
@@ -266,7 +266,7 @@ export default function CourseList({
           {courses.map((course, index) => (
             <Card
               key={course.code}
-              className={`p-6 hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 bg-${course.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
+              className={`p-6 hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-xl bg-${course.color} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
               style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'both' }}
             >
               <div className="flex items-start gap-4 mb-4">

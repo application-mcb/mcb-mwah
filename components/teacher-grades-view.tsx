@@ -735,7 +735,7 @@ export default function TeacherGradesView({ teacherId }: TeacherGradesViewProps)
         </div>
 
       {filteredStudents.length === 0 ? (
-        <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+        <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-xl border-blue-900">
           <Calculator size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
           <h3
             className="text-lg font-medium text-gray-900 mb-2"
@@ -806,7 +806,7 @@ export default function TeacherGradesView({ teacherId }: TeacherGradesViewProps)
 
       {/* Grades Table or No Results */}
       {filteredStudents.length === 0 ? (
-        <Card className="p-12 text-center border-none bg-gray-50 border-l-5 border-blue-900">
+        <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-xl border-blue-900">
           <Calculator size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
           <h3
             className="text-lg font-medium text-gray-900 mb-2"

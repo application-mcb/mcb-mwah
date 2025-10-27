@@ -154,7 +154,7 @@ function SubjectSelectionModal({
                   value={formData.name}
                   onChange={(e) => onFormDataChange('name', e.target.value)}
                   disabled={loading}
-                  className={`pl-10 border-1 border-blue-900 rounded-none ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  className={`pl-10 border-1 shadow-xl border-blue-900 rounded-none ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 />
                 <BookOpen
@@ -386,7 +386,7 @@ function SubjectSelectionModal({
                   value={formData.description}
                   onChange={(e) => onFormDataChange('description', e.target.value)}
                   disabled={loading}
-                  className={`border-1 border-blue-900 rounded-none flex min-h-[80px] w-full rounded-md bg-white pl-10 pr-3 py-2 text-base shadow-lg placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                  className={`border-1 shadow-xl border-blue-900 rounded-none flex min-h-[80px] w-full rounded-md bg-white pl-10 pr-3 py-2 text-base shadow-lg placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   maxLength={300}
                   rows={3}
@@ -888,7 +888,7 @@ export default function SubjectSetForm({
 
   return (
     <>
-      <Card className="w-full max-w-2xl p-6 bg-gray-50 border-l-0 border-r-0 border-b-0 border-t-5 border-blue-900">
+      <Card className="w-full max-w-2xl p-6 bg-gray-50 border-0 border-r-0 border-b-0 border-t-5 border-blue-900">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <div className={`w-10 h-10 bg-${formData.color} flex items-center justify-center`}>

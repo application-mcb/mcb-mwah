@@ -109,9 +109,9 @@ export default function GradeList({
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex flex-wrap gap-4">
           {[...Array(6)].map((_, i) => (
-            <Card key={i} className="p-6 animate-pulse">
+            <Card key={i} className="p-6 animate-pulse flex-1 min-w-[300px] max-w-[400px]">
               <div className="flex items-center space-x-4">
                 <div className="w-12 h-12 bg-gray-200"></div>
                 <div className="flex-1 space-y-2">
@@ -209,7 +209,7 @@ export default function GradeList({
             No Grade Levels Found
           </h3>
           <p
-            className="text-blue-900 text-sm text-justify w-1/2 border-l-5 border-blue-900 p-3 bg-blue-100"
+            className="text-blue-900 text-sm text-justify w-1/2 border-1 shadow-xl border-blue-900 p-3 bg-blue-100"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             {searchQuery || selectedDepartments.length > 0
@@ -226,11 +226,11 @@ export default function GradeList({
           </Button>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex flex-wrap gap-4">
           {grades.map((grade, index) => (
             <Card
               key={grade.id}
-              className="p-6 hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
+              className="p-6 hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-xl text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 flex-1 min-w-[300px] max-w-[400px]"
               style={{
                 backgroundColor: getBgColor(grade.color),
                 animationDelay: `${index * 100}ms`,

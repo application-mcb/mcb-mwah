@@ -992,7 +992,7 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
           <h4 className="text-lg font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
             Personal Information
           </h4>
-          <p className="text-xs text-blue-900 font-light text-justify border-l-5 border-blue-900 p-3 bg-blue-100 mb-4">
+          <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-xl border-blue-900 p-3 bg-blue-100 mb-4">
             Provide the teacher's complete personal details for identification and contact purposes. This information helps establish their professional profile and enables effective communication within the school system.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1073,7 +1073,7 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
           <h4 className="text-lg font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
             Account Information
           </h4>
-          <p className="text-xs text-blue-900 font-light text-justify border-l-5 border-blue-900 p-3 bg-blue-100 mb-4">
+          <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-xl border-blue-900 p-3 bg-blue-100 mb-4">
             Set up secure login credentials for the teacher account. This includes email verification and password creation to ensure authorized access to the system and protect sensitive educational data.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

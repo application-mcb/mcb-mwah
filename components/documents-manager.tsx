@@ -472,7 +472,7 @@ export default function DocumentsManager({ userId, userProfile, onProgressUpdate
           const IconComponent = docType.icon;
 
           return (
-            <Card key={docType.key} className={`group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-l-5 ${existingDoc ? 'bg-blue-900' : 'bg-red-800'} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
+            <Card key={docType.key} className={`group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-xl ${existingDoc ? 'bg-blue-900' : 'bg-red-800'} text-white transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4`}
             style={{
               animationDelay: `${index * 75}ms`,
               animationFillMode: 'both'

@@ -8,6 +8,7 @@ import GradeList from '@/components/grade-list';
 import SectionList from '@/components/section-list';
 import { LoaderOverlay } from '@/components/loader-overlay';
 import { GradeData, SectionData, DEPARTMENTS, SECTION_RANKS } from '@/lib/types/grade-section';
+import { CourseData } from '@/lib/types/course';
 import { useAuth } from '@/lib/auth-context';
 import { Trash, X, Warning, Check, Eye, GraduationCap, Users, MemberOfIcon } from '@phosphor-icons/react';
 
@@ -19,6 +20,7 @@ type ViewMode = 'grades' | 'sections';
 
 export default function GradeSectionManagement({ registrarUid }: GradeSectionManagementProps) {
   const [grades, setGrades] = useState<GradeData[]>([]);
+  const [courses, setCourses] = useState<CourseData[]>([]);
   const [sections, setSections] = useState<SectionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -52,6 +54,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [selectedRanks, setSelectedRanks] = useState<string[]>([]);
   const [selectedGrades, setSelectedGrades] = useState<string[]>([]);
+  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
 
   const [countdown, setCountdown] = useState(5);
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -60,6 +63,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
   // Load data on component mount
   useEffect(() => {
     loadGrades();
+    loadCourses();
     loadSections();
   }, []);
 
@@ -110,17 +114,37 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
       ));
     }
 
+    // Apply department filter
+    if (selectedDepartments.length > 0) {
+      filtered = filtered.filter((section) => selectedDepartments.includes(section.department));
+    }
+
     // Apply rank filter
     if (selectedRanks.length > 0) {
       filtered = filtered.filter((section) => selectedRanks.includes(section.rank));
     }
 
-    if (selectedGrades.length > 0) {
-      filtered = filtered.filter((section) => selectedGrades.includes(section.gradeId));
+    // Filter by grades and courses - show sections that match the selected filters
+    if (selectedGrades.length > 0 || selectedCourses.length > 0) {
+      filtered = filtered.filter((section) => {
+        // If section has a gradeId
+        if (section.gradeId) {
+          // Show if grades are selected and this grade is included
+          return selectedGrades.length > 0 && selectedGrades.includes(section.gradeId);
+        }
+        
+        // If section has a courseId
+        if (section.courseId) {
+          // Show if courses are selected and this course is included
+          return selectedCourses.length > 0 && selectedCourses.includes(section.courseId);
+        }
+        
+        return false;
+      });
     }
 
     return filtered;
-  }, [sections, sectionSearchQuery, selectedRanks, selectedGrades]);
+  }, [sections, sectionSearchQuery, selectedDepartments, selectedRanks, selectedGrades, selectedCourses]);
 
   // Handle filter toggles
   const handleDepartmentToggle = (department: string) => {
@@ -153,6 +177,16 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
     });
   };
 
+  const handleCourseToggle = (courseId: string) => {
+    setSelectedCourses(prev => {
+      if (prev.includes(courseId)) {
+        return prev.filter(id => id !== courseId);
+      } else {
+        return [...prev, courseId];
+      }
+    });
+  };
+
   // Load data functions
   const loadGrades = async () => {
     try {
@@ -164,6 +198,19 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
       setGrades(data.grades || []);
     } catch (error: any) {
       setError('Failed to load grades: ' + error.message);
+    }
+  };
+
+  const loadCourses = async () => {
+    try {
+      const response = await fetch('/api/courses');
+      if (!response.ok) {
+        throw new Error('Failed to load courses');
+      }
+      const data = await response.json();
+      setCourses(data.courses || []);
+    } catch (error: any) {
+      console.error('Failed to load courses:', error.message);
     }
   };
 
@@ -290,7 +337,8 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
 
   // Section CRUD operations
   const handleCreateSection = async (sectionData: {
-    gradeId: string;
+    gradeId?: string;
+    courseId?: string;
     sectionName: string;
     grade: string;
     department: string;
@@ -334,7 +382,8 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
   };
 
   const handleUpdateSection = async (sectionData: {
-    gradeId: string;
+    gradeId?: string;
+    courseId?: string;
     sectionName: string;
     grade: string;
     department: string;
@@ -487,7 +536,10 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
   // Get sections count per grade
   const sectionsCount: { [gradeId: string]: number } = {};
   sections.forEach(section => {
-    sectionsCount[section.gradeId] = (sectionsCount[section.gradeId] || 0) + 1;
+    const identifier = section.gradeId || section.courseId;
+    if (identifier) {
+      sectionsCount[identifier] = (sectionsCount[identifier] || 0) + 1;
+    }
   });
 
   // Render messages
@@ -560,11 +612,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
               Grade & Section Management
             </h1>
             </div>
-            <p
-              className="text-gray-600 text-sm font-light w-1/2 text-justify"
-            >
-              Easily organize and manage your institution’s grade levels and sections with streamlined tools. Assign students, track progress, and customize classes to ensure smooth operations, better coordination, and an efficient learning environment for both teachers and learners.
-            </p>
+            
           </div>
 
           {/* Navigation Cards */}
@@ -701,6 +749,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
           <SectionList
             sections={filteredSections}
             grades={grades}
+            courses={courses}
             onEditSection={handleEditSection}
             onDeleteSection={handleDeleteSectionClick}
             onViewSection={handleViewSection}
@@ -713,6 +762,10 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
             onRankToggle={handleRankToggle}
             selectedGrades={selectedGrades}
             onGradeToggle={handleGradeToggle}
+            selectedDepartments={selectedDepartments}
+            onDepartmentToggle={handleDepartmentToggle}
+            selectedCourses={selectedCourses}
+            onCourseToggle={handleCourseToggle}
           />
         )}
       </div>
@@ -777,6 +830,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
               isEditing={false}
               loading={actionLoading}
               availableGrades={grades}
+              availableCourses={courses}
               existingSections={sections}
             />
           </div>
@@ -797,6 +851,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
               isEditing={true}
               loading={actionLoading}
               availableGrades={grades}
+              availableCourses={courses}
               existingSections={sections}
             />
           </div>
@@ -831,7 +886,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 bg-blue-50 border-l-5 border-blue-600">
+                <div className="p-4 bg-blue-50 border-1 shadow-xl border-blue-600">
                   <p className="text-sm text-blue-800 font-medium mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                     You are about to delete:
                   </p>
@@ -930,7 +985,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 bg-blue-50 border-l-5 border-blue-600">
+                <div className="p-4 bg-blue-50 border-1 shadow-xl border-blue-600">
                   <p className="text-sm text-blue-800 font-medium mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                     You are about to delete:
                   </p>
@@ -1039,7 +1094,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                     >
                       Grade Level
                     </label>
-                    <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                    <div className="px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900">
                       <span
                         className="text-sm text-gray-900 font-medium"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
@@ -1055,7 +1110,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                     >
                       Department
                     </label>
-                    <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                    <div className="px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900">
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -1075,7 +1130,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                   >
                     Description
                   </label>
-                  <div className="px-4 py-3 bg-gray-100 border-l-5 border-blue-900 min-h-[120px]">
+                  <div className="px-4 py-3 bg-gray-100 border-1 shadow-xl border-blue-900 min-h-[120px]">
                     <p
                       className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap"
                       style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -1093,7 +1148,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                     >
                       Sections Count
                     </label>
-                    <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                    <div className="px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900">
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -1109,7 +1164,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                     >
                       Created Date
                     </label>
-                    <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                    <div className="px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900">
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -1178,7 +1233,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                     >
                       Section Name
                     </label>
-                    <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                    <div className="px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900">
                       <span
                         className="text-sm text-gray-900 font-medium"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
@@ -1195,7 +1250,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                       >
                         Grade
                       </label>
-                      <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                      <div className="px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900">
                         <span
                           className="text-sm text-gray-900"
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -1211,7 +1266,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                       >
                         Department
                       </label>
-                      <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                      <div className="px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900">
                         <span
                           className="text-sm text-gray-900"
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -1229,7 +1284,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                       >
                         Rank
                       </label>
-                      <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                      <div className="px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900">
                         <span
                           className="text-sm text-gray-900 font-medium"
                           style={{ fontFamily: 'Poppins', fontWeight: 500 }}
@@ -1248,7 +1303,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                   >
                     Description
                   </label>
-                  <div className="px-4 py-3 bg-gray-100 border-l-5 border-blue-900 min-h-[120px]">
+                  <div className="px-4 py-3 bg-gray-100 border-1 shadow-xl border-blue-900 min-h-[120px]">
                     <p
                       className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap"
                       style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -1266,7 +1321,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                     >
                       Created Date
                     </label>
-                    <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                    <div className="px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900">
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -1286,7 +1341,7 @@ export default function GradeSectionManagement({ registrarUid }: GradeSectionMan
                     >
                       Last Updated
                     </label>
-                    <div className="px-3 py-2 bg-gray-100 border-l-5 border-blue-900">
+                    <div className="px-3 py-2 bg-gray-100 border-1 shadow-xl border-blue-900">
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
