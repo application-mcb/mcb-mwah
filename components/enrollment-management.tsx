@@ -139,7 +139,7 @@ const EnrollmentTableRow = React.memo(({
             ></span>
           </div>
           <div className="ml-4">
-            <div className="text-xs font-medium text-black"
+            <div className="text-xs font-medium text-gray-900"
                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
               {formatFullName(
                 enrollment.personalInfo?.firstName,
@@ -152,9 +152,9 @@ const EnrollmentTableRow = React.memo(({
                  style={{ fontWeight: 400 }}>
               {studentProfile?.email || enrollment.personalInfo?.email || 'N/A'}
             </div>
-            <div className="text-xs text-gray-500 font-mono"
+            <div className="text-xs text-gray-400 font-mono text-[10px] mt-0.5"
                  style={{ fontWeight: 300 }}>
-              #{enrollment.id ? enrollment.id.substring(0, 10).toUpperCase() : 'N/A'}
+              ID: {enrollment.id || 'N/A'}
             </div>
           </div>
         </div>
