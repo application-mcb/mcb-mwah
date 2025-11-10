@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import CourseColorPicker from '@/components/course-color-picker';
 import { CourseColor, COURSE_COLORS } from '@/lib/types/course';
-import { Plus, X, Pencil, Hash, BookOpen, FileText, Palette } from '@phosphor-icons/react';
+import { Palette } from '@phosphor-icons/react';
 
 interface CourseFormData {
   code: string;
@@ -94,41 +93,7 @@ export default function CourseForm({
   };
 
   return (
-    <Card className="w-full max-w-2xl p-6 bg-gray-50 border-0 border-r-0 border-b-0 border-t-5 border-blue-900">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <div className={`w-10 h-10 bg-${formData.color} flex items-center justify-center`}>
-            {isEditing ? (
-              <Pencil size={20} className="text-white" />
-            ) : (
-              <Plus size={20} className="text-white" />
-            )}
-          </div>
-          <div>
-            <h2
-              className="text-xl font-medium text-gray-900"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-            >
-              {isEditing ? 'Edit Course' : 'Create New Course'}
-            </h2>
-            <p
-              className="text-sm text-gray-600"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              {isEditing ? 'Update course information' : 'Add a new course to the system'}
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onCancel}
-          disabled={loading}
-          className="text-gray-500 hover:text-gray-700"
-        >
-          <X size={20} />
-        </Button>
-      </div>
+    <div className="p-6">
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -136,29 +101,22 @@ export default function CourseForm({
           <div className="space-y-2">
             <label
               htmlFor="course-code"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               Course Code *
             </label>
-            <div className="relative">
-              <Input
-                id="course-code"
-                type="text"
-                placeholder="e.g., BSIT"
-                value={formData.code}
-                onChange={(e) => handleInputChange('code', e.target.value.toUpperCase())}
-                disabled={loading || isEditing} // Can't change code when editing
-                className={`pl-10 border-1 shadow-sm border-blue-900 border-r-0 border-t-0 border-b-0 rounded-none uppercase capitalize ${errors.code ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                aria-describedby={errors.code ? 'code-error' : undefined}
-              />
-              <Hash
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                weight="duotone"
-              />
-            </div>
+            <Input
+              id="course-code"
+              type="text"
+              placeholder="e.g., BSIT"
+              value={formData.code}
+              onChange={(e) => handleInputChange('code', e.target.value.toUpperCase())}
+              disabled={loading || isEditing} // Can't change code when editing
+              className={`border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 rounded-lg ${errors.code ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              aria-describedby={errors.code ? 'code-error' : undefined}
+            />
             {errors.code && (
               <p
                 id="code-error"
@@ -182,29 +140,22 @@ export default function CourseForm({
           <div className="space-y-2 md:col-span-2">
             <label
               htmlFor="course-name"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               Course Name *
             </label>
-            <div className="relative">
-              <Input
-                id="course-name"
-                type="text"
-                placeholder="e.g., BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                disabled={loading}
-                className={`pl-10 border-1 shadow-sm border-blue-900 border-r-0 border-t-0 border-b-0 rounded-none ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                aria-describedby={errors.name ? 'name-error' : undefined}
-              />
-              <BookOpen
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                weight="duotone"
-              />
-            </div>
+            <Input
+              id="course-name"
+              type="text"
+              placeholder="e.g., BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              disabled={loading}
+              className={`border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 rounded-lg ${errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              aria-describedby={errors.name ? 'name-error' : undefined}
+            />
             {errors.name && (
               <p
                 id="name-error"
@@ -220,32 +171,25 @@ export default function CourseForm({
           <div className="space-y-2 md:col-span-2">
             <label
               htmlFor="course-description"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               Course Description *
             </label>
-            <div className="relative">
-              <textarea
-                id="course-description"
-                placeholder="Provide a detailed description of the course, including learning objectives, content coverage, and target audience..."
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                disabled={loading}
-                className={`border-1 shadow-sm border-blue-900 rounded-none flex min-h-[100px] w-full rounded-md bg-white pl-10 pr-3 py-2 text-base shadow-lg placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${
-                  errors.description ? 'border-red-500 focus-visible:ring-red-500' : ''
-                }`}
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                aria-describedby={errors.description ? 'description-error' : undefined}
-                maxLength={200}
-                rows={4}
-              />
-              <FileText
-                size={18}
-                className="absolute left-3 top-4 text-gray-400"
-                weight="duotone"
-              />
-            </div>
+            <textarea
+              id="course-description"
+              placeholder="Provide a detailed description of the course, including learning objectives, content coverage, and target audience..."
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              disabled={loading}
+              className={`border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 flex min-h-[100px] w-full rounded-xl bg-white px-3 py-2 text-base placeholder:text-gray-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${
+                errors.description ? 'border-red-500 focus-visible:ring-red-500' : ''
+              }`}
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              aria-describedby={errors.description ? 'description-error' : undefined}
+              maxLength={200}
+              rows={4}
+            />
             <div className="flex justify-between items-center">
               {errors.description && (
                 <p
@@ -284,7 +228,7 @@ export default function CourseForm({
           />
         </div>
 
-        <p className="text-sm text-gray-800 font-light p-3 bg-green-100 border-1 shadow-sm border-green-900 text-justify"> 
+        <p className="text-sm text-gray-600 font-light p-3 bg-white border border-gray-200 rounded-xl text-justify"> 
           This form will determine the identity of the course in the system. The clearer the description, the easier it will be to identify the course.
         </p>
 
@@ -295,14 +239,16 @@ export default function CourseForm({
             variant="outline"
             onClick={onCancel}
             disabled={loading}
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            className="rounded-lg"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
           >
             Cancel
           </Button>
           <Button
             type="submit"
             disabled={loading || !formData.code || !formData.name || !formData.description}
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            className="bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white rounded-lg"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
           >
             {loading ? (
               <>
@@ -317,6 +263,6 @@ export default function CourseForm({
           </Button>
         </div>
       </form>
-    </Card>
+    </div>
   );
 }

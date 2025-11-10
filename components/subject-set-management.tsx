@@ -1,24 +1,33 @@
-'use client';
+'use client'
 
-import { useState, useEffect, useMemo } from 'react';
-import { toast } from 'react-toastify';
-import SubjectSetForm from '@/components/subject-set-form';
-import { LoaderOverlay } from '@/components/loader-overlay';
-import { SubjectSetData, SubjectData } from '@/lib/subject-database';
-import { useAuth } from '@/lib/auth-context';
-import { Trash, X, Warning, Check, Eye, BookOpen, Plus, Pencil } from '@phosphor-icons/react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { useState, useEffect, useMemo } from 'react'
+import { toast } from 'react-toastify'
+import SubjectSetForm from '@/components/subject-set-form'
+import { LoaderOverlay } from '@/components/loader-overlay'
+import { SubjectSetData, SubjectData } from '@/lib/subject-database'
+import { useAuth } from '@/lib/auth-context'
+import {
+  Trash,
+  X,
+  Warning,
+  Check,
+  Eye,
+  BookOpen,
+  Plus,
+  Pencil,
+} from '@phosphor-icons/react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 interface SubjectSetManagementProps {
-  registrarUid: string;
+  registrarUid: string
 }
 
 // Helper function to get actual color value from subject set color
 const getColorValue = (color: string): string => {
   const colorMap: Record<string, string> = {
-    'blue-700': '#1e40af',
-    'blue-800': '#1e3a8a',
+    'blue-900': '#1e40af',
+    'blue-900': '#1e3a8a',
     'red-700': '#b91c1c',
     'red-800': '#991b1b',
     'emerald-700': '#047857',
@@ -32,14 +41,14 @@ const getColorValue = (color: string): string => {
     'purple-700': '#8b5cf6',
     'purple-800': '#6b21a8',
     'indigo-700': '#4338ca',
-    'indigo-800': '#312e81'
-  };
-  return colorMap[color] || '#1e3a8a'; // Default to blue-800 if color not found
-};
+    'indigo-800': '#312e81',
+  }
+  return colorMap[color] || '#1e3a8a' // Default to blue-900 if color not found
+}
 
 const colorMap = {
-  'blue-700': { bg: 'bg-blue-700', name: 'Blue 700' },
-  'blue-800': { bg: 'bg-blue-800', name: 'Blue 800' },
+  'blue-900': { bg: 'bg-blue-900', name: 'Blue 700' },
+  'blue-900': { bg: 'bg-blue-900', name: 'Blue 800' },
   'red-700': { bg: 'bg-red-700', name: 'Red 700' },
   'red-800': { bg: 'bg-red-800', name: 'Red 800' },
   'emerald-700': { bg: 'bg-emerald-700', name: 'Emerald 700' },
@@ -54,103 +63,124 @@ const colorMap = {
   'purple-800': { bg: 'bg-purple-800', name: 'Purple 800' },
   'indigo-700': { bg: 'bg-indigo-700', name: 'Indigo 700' },
   'indigo-800': { bg: 'bg-indigo-800', name: 'Indigo 800' },
-};
+}
 
-export default function SubjectSetManagement({ registrarUid }: SubjectSetManagementProps) {
-  const [subjectSets, setSubjectSets] = useState<SubjectSetData[]>([]);
-  const [subjects, setSubjects] = useState<SubjectData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [editingSubjectSet, setEditingSubjectSet] = useState<SubjectSetData | null>(null);
-  const [deletingSubjectSet, setDeletingSubjectSet] = useState<SubjectSetData | null>(null);
-  const [countdown, setCountdown] = useState(5);
-  const [isConfirmed, setIsConfirmed] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [viewingSubjectSet, setViewingSubjectSet] = useState<SubjectSetData | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGradeLevel, setSelectedGradeLevel] = useState<number | null>(null);
-  const { user } = useAuth();
+export default function SubjectSetManagement({
+  registrarUid,
+}: SubjectSetManagementProps) {
+  const [subjectSets, setSubjectSets] = useState<SubjectSetData[]>([])
+  const [subjects, setSubjects] = useState<SubjectData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [editingSubjectSet, setEditingSubjectSet] =
+    useState<SubjectSetData | null>(null)
+  const [deletingSubjectSet, setDeletingSubjectSet] =
+    useState<SubjectSetData | null>(null)
+  const [countdown, setCountdown] = useState(5)
+  const [isConfirmed, setIsConfirmed] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [viewingSubjectSet, setViewingSubjectSet] =
+    useState<SubjectSetData | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedGradeLevel, setSelectedGradeLevel] = useState<number | null>(
+    null
+  )
+  const { user } = useAuth()
 
   // Load subject sets and subjects on component mount
   useEffect(() => {
-    loadSubjectSets();
-    loadSubjects();
-  }, []);
+    loadSubjectSets()
+    loadSubjects()
+  }, [])
 
   // Countdown timer for delete confirmation
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: NodeJS.Timeout
     if (showDeleteModal && countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000)
     }
     return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [showDeleteModal, countdown]);
+      if (timer) clearTimeout(timer)
+    }
+  }, [showDeleteModal, countdown])
 
   const loadSubjectSets = async () => {
     try {
-      setLoading(true);
-      setError('');
+      setLoading(true)
+      setError('')
 
-      const response = await fetch('/api/subject-sets');
+      const response = await fetch('/api/subject-sets')
 
       if (!response.ok) {
-        throw new Error('Failed to load subject sets');
+        throw new Error('Failed to load subject sets')
       }
 
-      const data = await response.json();
-      setSubjectSets(data.subjectSets || []);
+      const data = await response.json()
+      setSubjectSets(data.subjectSets || [])
     } catch (error: any) {
-      setError('Failed to load subject sets: ' + error.message);
+      setError('Failed to load subject sets: ' + error.message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const loadSubjects = async () => {
     try {
-      const response = await fetch('/api/subjects');
+      const response = await fetch('/api/subjects')
       if (response.ok) {
-        const data = await response.json();
-        setSubjects(data.subjects || []);
+        const data = await response.json()
+        setSubjects(data.subjects || [])
       }
     } catch (error: any) {
-      console.error('Error loading subjects:', error);
+      console.error('Error loading subjects:', error)
     }
-  };
+  }
 
   // Filter subject sets based on search query and grade level
   const filteredSubjectSets = useMemo(() => {
-    let filtered = subjectSets;
+    let filtered = subjectSets
 
     // Apply search filter
     if (searchQuery.trim()) {
-      const searchTerm = searchQuery.toLowerCase();
-      filtered = filtered.filter((subjectSet) => (
-        subjectSet.name.toLowerCase().includes(searchTerm) ||
-        subjectSet.description.toLowerCase().includes(searchTerm)
-      ));
+      const searchTerm = searchQuery.toLowerCase()
+      filtered = filtered.filter(
+        (subjectSet) =>
+          subjectSet.name.toLowerCase().includes(searchTerm) ||
+          subjectSet.description.toLowerCase().includes(searchTerm)
+      )
     }
 
     // Apply grade level filter
     if (selectedGradeLevel) {
-      filtered = filtered.filter((subjectSet) => subjectSet.gradeLevel === selectedGradeLevel);
+      filtered = filtered.filter(
+        (subjectSet) => subjectSet.gradeLevel === selectedGradeLevel
+      )
     }
 
-    return filtered;
-  }, [subjectSets, searchQuery, selectedGradeLevel]);
+    return filtered
+  }, [subjectSets, searchQuery, selectedGradeLevel])
 
-  const handleCreateSubjectSet = async (subjectSetData: { name: string; description: string; gradeLevels: number[]; courseSelections: { code: string; year: number; semester: 'first-sem' | 'second-sem' }[]; color: any; subjects: string[] }) => {
+  const handleCreateSubjectSet = async (subjectSetData: {
+    name: string
+    description: string
+    gradeLevels: number[]
+    courseSelections: {
+      code: string
+      year: number
+      semester: 'first-sem' | 'second-sem'
+    }[]
+    color: any
+    subjects: string[]
+  }) => {
     try {
-      setActionLoading(true);
-      setError('');
-      setSuccess('');
+      setActionLoading(true)
+      setError('')
+      setSuccess('')
 
       const response = await fetch('/api/subject-sets', {
         method: 'POST',
@@ -159,152 +189,173 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
         },
         body: JSON.stringify({
           ...subjectSetData,
-          registrarUid
+          registrarUid,
         }),
-      });
+      })
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create subject set');
+        throw new Error(data.error || 'Failed to create subject set')
       }
 
-      setSubjectSets(prev => [...prev, data.subjectSet]);
-      setSuccess('Subject set created successfully!');
-      setShowCreateModal(false);
+      setSubjectSets((prev) => [...prev, data.subjectSet])
+      setSuccess('Subject set created successfully!')
+      setShowCreateModal(false)
 
       // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(''), 3000);
+      setTimeout(() => setSuccess(''), 3000)
     } catch (error: any) {
-      setError(error.message);
+      setError(error.message)
     } finally {
-      setActionLoading(false);
+      setActionLoading(false)
     }
-  };
+  }
 
-  const handleUpdateSubjectSet = async (subjectSetData: { name: string; description: string; gradeLevels: number[]; courseSelections: { code: string; year: number; semester: 'first-sem' | 'second-sem' }[]; color: any; subjects: string[] }) => {
+  const handleUpdateSubjectSet = async (subjectSetData: {
+    name: string
+    description: string
+    gradeLevels: number[]
+    courseSelections: {
+      code: string
+      year: number
+      semester: 'first-sem' | 'second-sem'
+    }[]
+    color: any
+    subjects: string[]
+  }) => {
     try {
-      setActionLoading(true);
-      setError('');
-      setSuccess('');
+      setActionLoading(true)
+      setError('')
+      setSuccess('')
 
-      if (!editingSubjectSet) return;
+      if (!editingSubjectSet) return
 
-      const response = await fetch(`/api/subject-sets/${editingSubjectSet.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...subjectSetData,
-          registrarUid
-        }),
-      });
+      const response = await fetch(
+        `/api/subject-sets/${editingSubjectSet.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...subjectSetData,
+            registrarUid,
+          }),
+        }
+      )
 
-      const data = await response.json();
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update subject set');
+        throw new Error(data.error || 'Failed to update subject set')
       }
 
-      setSubjectSets(prev =>
-        prev.map(subjectSet =>
+      setSubjectSets((prev) =>
+        prev.map((subjectSet) =>
           subjectSet.id === editingSubjectSet.id ? data.subjectSet : subjectSet
         )
-      );
-      setSuccess('Subject set updated successfully!');
-      setShowEditModal(false);
-      setEditingSubjectSet(null);
+      )
+      setSuccess('Subject set updated successfully!')
+      setShowEditModal(false)
+      setEditingSubjectSet(null)
 
       // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(''), 3000);
+      setTimeout(() => setSuccess(''), 3000)
     } catch (error: any) {
-      setError(error.message);
+      setError(error.message)
     } finally {
-      setActionLoading(false);
+      setActionLoading(false)
     }
-  };
+  }
 
   const handleDeleteSubjectSet = (subjectSet: SubjectSetData) => {
-    setDeletingSubjectSet(subjectSet);
-    setShowDeleteModal(true);
-    setCountdown(5);
-    setIsConfirmed(false);
-  };
+    setDeletingSubjectSet(subjectSet)
+    setShowDeleteModal(true)
+    setCountdown(5)
+    setIsConfirmed(false)
+  }
 
   const handleConfirmDelete = async () => {
-    if (!deletingSubjectSet) return;
+    if (!deletingSubjectSet) return
 
     try {
-      setActionLoading(true);
-      setError('');
-      setSuccess('');
+      setActionLoading(true)
+      setError('')
+      setSuccess('')
 
-      const response = await fetch(`/api/subject-sets/${deletingSubjectSet.id}?registrarUid=${registrarUid}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/subject-sets/${deletingSubjectSet.id}?registrarUid=${registrarUid}`,
+        {
+          method: 'DELETE',
+        }
+      )
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete subject set');
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete subject set')
       }
 
-      setSubjectSets(prev => prev.filter(s => s.id !== deletingSubjectSet.id));
-      toast.success(`Subject set "${deletingSubjectSet.name}" deleted successfully!`);
-      setShowDeleteModal(false);
-      setDeletingSubjectSet(null);
+      setSubjectSets((prev) =>
+        prev.filter((s) => s.id !== deletingSubjectSet.id)
+      )
+      toast.success(
+        `Subject set "${deletingSubjectSet.name}" deleted successfully!`
+      )
+      setShowDeleteModal(false)
+      setDeletingSubjectSet(null)
     } catch (error: any) {
-      toast.error(error.message || 'Failed to delete subject set');
+      toast.error(error.message || 'Failed to delete subject set')
     } finally {
-      setActionLoading(false);
+      setActionLoading(false)
     }
-  };
+  }
 
   const handleCreateNew = () => {
-    setShowCreateModal(true);
-    setEditingSubjectSet(null);
-    setError('');
-    setSuccess('');
-  };
+    setShowCreateModal(true)
+    setEditingSubjectSet(null)
+    setError('')
+    setSuccess('')
+  }
 
   const handleEditSubjectSet = (subjectSet: SubjectSetData) => {
-    setEditingSubjectSet(subjectSet);
-    setShowEditModal(true);
-    setError('');
-    setSuccess('');
-  };
+    setEditingSubjectSet(subjectSet)
+    setShowEditModal(true)
+    setError('')
+    setSuccess('')
+  }
 
   const handleViewSubjectSet = (subjectSet: SubjectSetData) => {
-    setViewingSubjectSet(subjectSet);
-    setShowViewModal(true);
-  };
+    setViewingSubjectSet(subjectSet)
+    setShowViewModal(true)
+  }
 
   const handleCancel = () => {
-    setShowCreateModal(false);
-    setShowEditModal(false);
-    setShowDeleteModal(false);
-    setShowViewModal(false);
-    setEditingSubjectSet(null);
-    setDeletingSubjectSet(null);
-    setViewingSubjectSet(null);
-    setCountdown(5);
-    setIsConfirmed(false);
-    setError('');
-    setSuccess('');
-  };
+    setShowCreateModal(false)
+    setShowEditModal(false)
+    setShowDeleteModal(false)
+    setShowViewModal(false)
+    setEditingSubjectSet(null)
+    setDeletingSubjectSet(null)
+    setViewingSubjectSet(null)
+    setCountdown(5)
+    setIsConfirmed(false)
+    setError('')
+    setSuccess('')
+  }
 
   const getSubjectDetails = (subjectId: string) => {
-    return subjects.find(subject => subject.id === subjectId);
-  };
+    return subjects.find((subject) => subject.id === subjectId)
+  }
 
   const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedGradeLevel(null);
-  };
+    setSearchQuery('')
+    setSelectedGradeLevel(null)
+  }
 
   // Show success/error messages
   const renderMessages = () => {
-    if (!error && !success) return null;
+    if (!error && !success) return null
 
     return (
       <div className="mb-6">
@@ -312,8 +363,16 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
           <div className="bg-red-50 border border-red-200 p-4 mb-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                <svg
+                  className="h-5 w-5 text-red-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div className="ml-3">
@@ -332,8 +391,16 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
           <div className="bg-green-50 border border-green-200 p-4 mb-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                <svg
+                  className="h-5 w-5 text-green-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div className="ml-3">
@@ -348,8 +415,8 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
           </div>
         )}
       </div>
-    );
-  };
+    )
+  }
 
   return (
     <>
@@ -400,20 +467,36 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 />
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
                   </svg>
                 </div>
               </div>
               <select
                 value={selectedGradeLevel || ''}
-                onChange={(e) => setSelectedGradeLevel(e.target.value ? parseInt(e.target.value) : null)}
+                onChange={(e) =>
+                  setSelectedGradeLevel(
+                    e.target.value ? parseInt(e.target.value) : null
+                  )
+                }
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
               >
                 <option value="">All Grades</option>
-                {[7, 8, 9, 10, 11, 12].map(grade => (
-                  <option key={grade} value={grade}>Grade {grade}</option>
+                {[7, 8, 9, 10, 11, 12].map((grade) => (
+                  <option key={grade} value={grade}>
+                    Grade {grade}
+                  </option>
                 ))}
               </select>
             </div>
@@ -434,7 +517,8 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
         {/* Results Summary */}
         <div className="flex items-center justify-between text-sm text-gray-600 mb-6">
           <span style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-            Showing {filteredSubjectSets.length} of {subjectSets.length} subject sets
+            Showing {filteredSubjectSets.length} of {subjectSets.length} subject
+            sets
           </span>
         </div>
 
@@ -442,7 +526,10 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
-              <Card key={i} className="p-6 bg-gray-50 border-0 border-r-0 border-b-0">
+              <Card
+                key={i}
+                className="p-6 bg-gray-50 border-0 border-r-0 border-b-0"
+              >
                 <div className="animate-pulse space-y-4">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-gray-200 rounded"></div>
@@ -461,7 +548,11 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
           </div>
         ) : filteredSubjectSets.length === 0 ? (
           <div className="text-center py-12">
-            <BookOpen size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+            <BookOpen
+              size={48}
+              className="mx-auto text-gray-400 mb-4"
+              weight="duotone"
+            />
             <h3
               className="text-lg font-medium text-gray-900 mb-2"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
@@ -474,8 +565,7 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
             >
               {searchQuery || selectedGradeLevel
                 ? 'Try adjusting your search or filters'
-                : 'Get started by creating your first subject set'
-              }
+                : 'Get started by creating your first subject set'}
             </p>
             <Button
               onClick={handleCreateNew}
@@ -496,9 +586,14 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                   {/* Header */}
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3">
-
-                      <div className={`w-10 h-10 bg-white flex items-center justify-center` }>
-                        <BookOpen size={20} style={{ color: getColorValue(subjectSet.color) }} weight="fill" />
+                      <div
+                        className={`w-10 h-10 bg-white flex items-center justify-center`}
+                      >
+                        <BookOpen
+                          size={20}
+                          style={{ color: getColorValue(subjectSet.color) }}
+                          weight="fill"
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3
@@ -513,19 +608,47 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                         >
                           {(() => {
                             // Check if this is a college subject set (has courseSelections)
-                            if (subjectSet.courseSelections && Array.isArray(subjectSet.courseSelections) && subjectSet.courseSelections.length > 0) {
+                            if (
+                              subjectSet.courseSelections &&
+                              Array.isArray(subjectSet.courseSelections) &&
+                              subjectSet.courseSelections.length > 0
+                            ) {
                               // Extract unique course codes
-                              const uniqueCourseCodes = Array.from(new Set(subjectSet.courseSelections.map(sel => sel.code)));
-                              return `${uniqueCourseCodes.join(', ')} • ${subjectSet.subjects.length} subject${subjectSet.subjects.length !== 1 ? 's' : ''}`;
+                              const uniqueCourseCodes = Array.from(
+                                new Set(
+                                  subjectSet.courseSelections.map(
+                                    (sel) => sel.code
+                                  )
+                                )
+                              )
+                              return `${uniqueCourseCodes.join(', ')} • ${
+                                subjectSet.subjects.length
+                              } subject${
+                                subjectSet.subjects.length !== 1 ? 's' : ''
+                              }`
                             }
                             // Check if this is a high school subject set (has gradeLevels)
-                            else if (subjectSet.gradeLevels && Array.isArray(subjectSet.gradeLevels) && subjectSet.gradeLevels.length > 0) {
-                              const gradeLabels = subjectSet.gradeLevels.map(level => `Grade ${level}`).join(', ');
-                              return `${gradeLabels} • ${subjectSet.subjects.length} subject${subjectSet.subjects.length !== 1 ? 's' : ''}`;
+                            else if (
+                              subjectSet.gradeLevels &&
+                              Array.isArray(subjectSet.gradeLevels) &&
+                              subjectSet.gradeLevels.length > 0
+                            ) {
+                              const gradeLabels = subjectSet.gradeLevels
+                                .map((level) => `Grade ${level}`)
+                                .join(', ')
+                              return `${gradeLabels} • ${
+                                subjectSet.subjects.length
+                              } subject${
+                                subjectSet.subjects.length !== 1 ? 's' : ''
+                              }`
                             }
                             // Fallback to deprecated gradeLevel field
                             else {
-                              return `Grade ${subjectSet.gradeLevel || 7} • ${subjectSet.subjects.length} subject${subjectSet.subjects.length !== 1 ? 's' : ''}`;
+                              return `Grade ${subjectSet.gradeLevel || 7} • ${
+                                subjectSet.subjects.length
+                              } subject${
+                                subjectSet.subjects.length !== 1 ? 's' : ''
+                              }`
                             }
                           })()}
                         </p>
@@ -551,7 +674,7 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                     </p>
                     <div className="flex flex-wrap gap-1">
                       {subjectSet.subjects.slice(0, 3).map((subjectId) => {
-                        const subject = getSubjectDetails(subjectId);
+                        const subject = getSubjectDetails(subjectId)
                         return (
                           <span
                             key={subjectId}
@@ -560,7 +683,7 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                           >
                             {subject?.name || 'Unknown Subject'}
                           </span>
-                        );
+                        )
                       })}
                       {subjectSet.subjects.length > 3 && (
                         <span
@@ -659,7 +782,10 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                   <div className="w-10 h-10 bg-red-100 flex items-center justify-center">
                     <Warning size={20} className="text-red-600" weight="fill" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                  <h3
+                    className="text-lg font-semibold text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
                     Delete Subject Set
                   </h3>
                 </div>
@@ -674,14 +800,24 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
 
               <div className="space-y-4">
                 <div className="p-4 bg-red-50 border-1 shadow-sm border-red-600">
-                  <p className="text-sm text-red-800 font-medium mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                  <p
+                    className="text-sm text-red-800 font-medium mb-2"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
                     You are about to delete:
                   </p>
-                  <p className="text-sm text-red-700 font-semibold" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                  <p
+                    className="text-sm text-red-700 font-semibold"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
                     {deletingSubjectSet.name}
                   </p>
-                  <p className="text-xs text-red-600 mt-2" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-                    This action cannot be undone and will permanently remove the subject set from the system.
+                  <p
+                    className="text-xs text-red-600 mt-2"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    This action cannot be undone and will permanently remove the
+                    subject set from the system.
                   </p>
                 </div>
 
@@ -697,7 +833,9 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                     />
                     <label
                       htmlFor="confirm-delete"
-                      className={`text-sm ${countdown > 0 ? 'text-gray-400' : 'text-gray-700'}`}
+                      className={`text-sm ${
+                        countdown > 0 ? 'text-gray-400' : 'text-gray-700'
+                      }`}
                       style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                     >
                       I understand this action cannot be undone
@@ -754,8 +892,12 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
             <div className="bg-white shadow-lg max-w-4xl h-[80vh] overflow-auto w-full p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
-                  <div className={`w-10 h-10 ${colorMap[viewingSubjectSet.color]?.bg || 'bg-gray-400'} flex items-center justify-center`}>
-                    <BookOpen size={20} className='text-white' weight="fill" />
+                  <div
+                    className={`w-10 h-10 ${
+                      colorMap[viewingSubjectSet.color]?.bg || 'bg-gray-400'
+                    } flex items-center justify-center`}
+                  >
+                    <BookOpen size={20} className="text-white" weight="fill" />
                   </div>
                   <h3
                     className="text-lg font-semibold text-gray-900"
@@ -783,7 +925,9 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                     >
                       Subject Set Name
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}>
+                    <div
+                      className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}
+                    >
                       <span
                         className="text-sm text-gray-900 font-medium"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
@@ -799,7 +943,9 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                     >
                       Grade Level
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}>
+                    <div
+                      className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}
+                    >
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -818,12 +964,15 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                   >
                     Description
                   </label>
-                  <div className={`px-4 py-3 bg-gray-100 border-1 shadow-sm border-blue-900 min-h-[120px]`}>
+                  <div
+                    className={`px-4 py-3 bg-gray-100 border-1 shadow-sm border-blue-900 min-h-[120px]`}
+                  >
                     <p
                       className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap"
                       style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                     >
-                      {viewingSubjectSet.description || 'No description provided.'}
+                      {viewingSubjectSet.description ||
+                        'No description provided.'}
                     </p>
                   </div>
                 </div>
@@ -838,14 +987,22 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {viewingSubjectSet.subjects.map((subjectId) => {
-                      const subject = getSubjectDetails(subjectId);
+                      const subject = getSubjectDetails(subjectId)
                       return (
                         <div
                           key={subjectId}
                           className="flex items-center space-x-3 p-3 bg-gray-50 border border-gray-200 "
                         >
-                          <div className={`w-8 h-8 ${subject ? `bg-${subject.color}` : 'bg-gray-400'} flex items-center justify-center`}>
-                            <BookOpen size={14} className="text-white" weight="fill" />
+                          <div
+                            className={`w-8 h-8 ${
+                              subject ? `bg-${subject.color}` : 'bg-gray-400'
+                            } flex items-center justify-center`}
+                          >
+                            <BookOpen
+                              size={14}
+                              className="text-white"
+                              weight="fill"
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p
@@ -858,11 +1015,15 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                               className="text-xs text-gray-600"
                               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                             >
-                              {subject ? `${subject.totalUnits} unit${subject.totalUnits !== 1 ? 's' : ''}` : 'Subject details unavailable'}
+                              {subject
+                                ? `${subject.totalUnits} unit${
+                                    subject.totalUnits !== 1 ? 's' : ''
+                                  }`
+                                : 'Subject details unavailable'}
                             </p>
                           </div>
                         </div>
-                      );
+                      )
                     })}
                   </div>
                 </div>
@@ -878,9 +1039,15 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                     </label>
                     <div className="flex items-center space-x-2">
                       <div
-                        className={`w-10 h-10 max-h-10 flex items-center justify-center ${colorMap[viewingSubjectSet.color]?.bg || 'bg-gray-400'}`}
+                        className={`w-10 h-10 max-h-10 flex items-center justify-center ${
+                          colorMap[viewingSubjectSet.color]?.bg || 'bg-gray-400'
+                        }`}
                       >
-                        <BookOpen size={16} className="text-white" weight="fill" />
+                        <BookOpen
+                          size={16}
+                          className="text-white"
+                          weight="fill"
+                        />
                       </div>
                       <span
                         className="text-sm text-gray-700 capitalize"
@@ -897,15 +1064,19 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                     >
                       Created Date
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}>
+                    <div
+                      className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}
+                    >
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                       >
-                        {new Date(viewingSubjectSet.createdAt).toLocaleDateString('en-US', {
+                        {new Date(
+                          viewingSubjectSet.createdAt
+                        ).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
-                          day: 'numeric'
+                          day: 'numeric',
                         })}
                       </span>
                     </div>
@@ -917,15 +1088,19 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
                     >
                       Last Updated
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}>
+                    <div
+                      className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}
+                    >
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                       >
-                        {new Date(viewingSubjectSet.updatedAt).toLocaleDateString('en-US', {
+                        {new Date(
+                          viewingSubjectSet.updatedAt
+                        ).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
-                          day: 'numeric'
+                          day: 'numeric',
                         })}
                       </span>
                     </div>
@@ -953,5 +1128,5 @@ export default function SubjectSetManagement({ registrarUid }: SubjectSetManagem
         message="Processing subject set..."
       />
     </>
-  );
+  )
 }

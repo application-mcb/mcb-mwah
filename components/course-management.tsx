@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import CourseForm from '@/components/course-form';
 import CourseList from '@/components/course-list';
 import { LoaderOverlay } from '@/components/loader-overlay';
+import { Modal } from '@/components/ui/modal';
 import { CourseData, CourseColor } from '@/lib/types/course';
 import { useAuth } from '@/lib/auth-context';
 import { Trash, X, Warning, Check, Eye, GraduationCap } from '@phosphor-icons/react';
@@ -299,9 +300,8 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
 
   return (
     <>
-      <div className="p-6">
+      <div className="p-6 space-y-6 w-full max-w-full overflow-x-hidden">
         {renderMessages()}
-
 
         <CourseList
           courses={filteredCourses}
@@ -320,40 +320,38 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
 
       {/* Create Course Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
-            onClick={() => !actionLoading && handleCancel()}
-          ></div>
-          <div className="relative animate-in fade-in duration-300">
-            <CourseForm
-              onSubmit={handleCreateCourse}
-              onCancel={handleCancel}
-              initialData={undefined}
-              isEditing={false}
-              loading={actionLoading}
-            />
-          </div>
-        </div>
+        <Modal
+          isOpen={showCreateModal}
+          onClose={handleCancel}
+          title="Create New Course"
+          size="lg"
+        >
+          <CourseForm
+            onSubmit={handleCreateCourse}
+            onCancel={handleCancel}
+            initialData={undefined}
+            isEditing={false}
+            loading={actionLoading}
+          />
+        </Modal>
       )}
 
       {/* Edit Course Modal */}
       {showEditModal && editingCourse && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
-            onClick={() => !actionLoading && handleCancel()}
-          ></div>
-          <div className="relative animate-in fade-in duration-300">
-            <CourseForm
-              onSubmit={handleUpdateCourse}
-              onCancel={handleCancel}
-              initialData={editingCourse}
-              isEditing={true}
-              loading={actionLoading}
-            />
-          </div>
-        </div>
+        <Modal
+          isOpen={showEditModal}
+          onClose={handleCancel}
+          title="Edit Course"
+          size="lg"
+        >
+          <CourseForm
+            onSubmit={handleUpdateCourse}
+            onCancel={handleCancel}
+            initialData={editingCourse}
+            isEditing={true}
+            loading={actionLoading}
+          />
+        </Modal>
       )}
 
       {/* Delete Course Modal */}
@@ -364,19 +362,19 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-lg max-w-md w-full p-6">
+            <div className="bg-white shadow-lg max-w-md w-full p-6 rounded-xl">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-red-100 flex items-center justify-center">
-                    <Warning size={20} className="text-red-600" weight="fill" />
+                  <div className="w-10 h-10 bg-gradient-to-br from-red-700 to-red-800 rounded-xl flex items-center justify-center">
+                    <Warning size={20} className="text-white" weight="fill" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                  <h3 className="text-lg font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                     Delete Course
                   </h3>
                 </div>
                 <button
                   onClick={handleCancel}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 transition-colors rounded-lg p-1 hover:bg-gray-100"
                   disabled={actionLoading}
                 >
                   <X size={20} />
@@ -384,7 +382,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 bg-red-50 border-1 shadow-sm border-red-600">
+                <div className="p-4 bg-white border-1 shadow-sm border-red-600 rounded-xl">
                   <p className="text-sm text-red-800 font-medium mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                     You are about to delete:
                   </p>
@@ -403,7 +401,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                       id="confirm-delete"
                       checked={isConfirmed}
                       onChange={(e) => setIsConfirmed(e.target.checked)}
-                      className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
+                      className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500 rounded"
                       disabled={countdown > 0}
                     />
                     <label
@@ -421,21 +419,21 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
               <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
                 <button
                   onClick={handleCancel}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors rounded-lg"
                   disabled={actionLoading}
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmDelete}
                   disabled={countdown > 0 || !isConfirmed || actionLoading}
-                  className={`px-4 py-2 text-sm font-medium text-white transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium text-white transition-colors rounded-lg ${
                     countdown > 0 || !isConfirmed || actionLoading
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-red-600 hover:bg-red-700'
                   }`}
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                 >
                   {actionLoading ? (
                     <>
@@ -463,14 +461,33 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
             onClick={() => !actionLoading && handleCancel()}
           ></div>
           <div className="relative animate-in fade-in duration-300">
-            <div className="bg-white shadow-lg max-w-2xl w-full p-6">
+            <div className="bg-white shadow-lg max-w-2xl w-full p-6 rounded-xl">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
-                  <div className={`w-10 h-10 bg-${viewingCourse.color} flex items-center justify-center`}>
+                  <div 
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{
+                      background: viewingCourse.color === 'blue-900' 
+                        ? 'linear-gradient(to bottom right, #1e3a8a, #1e40af)'
+                        : viewingCourse.color === 'red-800'
+                        ? 'linear-gradient(to bottom right, #991b1b, #b91c1c)'
+                        : viewingCourse.color === 'emerald-800'
+                        ? 'linear-gradient(to bottom right, #047857, #065f46)'
+                        : viewingCourse.color === 'yellow-800'
+                        ? 'linear-gradient(to bottom right, #a16207, #854d0e)'
+                        : viewingCourse.color === 'orange-800'
+                        ? 'linear-gradient(to bottom right, #c2410c, #9a3412)'
+                        : viewingCourse.color === 'violet-800'
+                        ? 'linear-gradient(to bottom right, #7c3aed, #6b21a8)'
+                        : viewingCourse.color === 'purple-800'
+                        ? 'linear-gradient(to bottom right, #7e22ce, #6b21a8)'
+                        : 'linear-gradient(to bottom right, #1e3a8a, #1e40af)'
+                    }}
+                  >
                     <GraduationCap size={20} className="text-white" weight="fill" />
                   </div>
                   <h3
-                    className="text-lg font-semibold text-gray-900"
+                    className="text-lg font-medium text-gray-900"
                     style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                   >
                     Course Details
@@ -478,7 +495,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                 </div>
                 <button
                   onClick={handleCancel}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 transition-colors rounded-lg p-1 hover:bg-gray-100"
                   disabled={actionLoading}
                 >
                   <X size={20} />
@@ -496,7 +513,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                     >
                       Course Code
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}>
+                    <div className={`px-3 py-2 bg-white border-1 shadow-sm border-blue-900 rounded-lg`}>
                       <span
                         className="text-sm text-gray-900 font-medium"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
@@ -512,7 +529,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                     >
                       Course Name
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}>
+                    <div className={`px-3 py-2 bg-white border-1 shadow-sm border-blue-900 rounded-lg`}>
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -531,7 +548,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                   >
                     Description
                   </label>
-                  <div className={`px-4 py-3 bg-gray-100 border-1 shadow-sm border-blue-900 min-h-[120px]`}>
+                  <div className={`px-4 py-3 bg-white border-1 shadow-sm border-blue-900 min-h-[120px] rounded-xl`}>
                     <p
                       className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap"
                       style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -552,10 +569,27 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                     </label>
                     <div className="flex items-center space-x-2">
                       <div
-                        className={`w-100 p-3 max-h-10 flex items-center justify-center bg-${viewingCourse.color}`}
+                        className="w-full p-3 flex items-center justify-center rounded-lg"
+                        style={{
+                          background: viewingCourse.color === 'blue-900' 
+                            ? 'linear-gradient(to bottom right, #1e3a8a, #1e40af)'
+                            : viewingCourse.color === 'red-800'
+                            ? 'linear-gradient(to bottom right, #991b1b, #b91c1c)'
+                            : viewingCourse.color === 'emerald-800'
+                            ? 'linear-gradient(to bottom right, #047857, #065f46)'
+                            : viewingCourse.color === 'yellow-800'
+                            ? 'linear-gradient(to bottom right, #a16207, #854d0e)'
+                            : viewingCourse.color === 'orange-800'
+                            ? 'linear-gradient(to bottom right, #c2410c, #9a3412)'
+                            : viewingCourse.color === 'violet-800'
+                            ? 'linear-gradient(to bottom right, #7c3aed, #6b21a8)'
+                            : viewingCourse.color === 'purple-800'
+                            ? 'linear-gradient(to bottom right, #7e22ce, #6b21a8)'
+                            : 'linear-gradient(to bottom right, #1e3a8a, #1e40af)'
+                        }}
                       >
                         <p className="text-sm text-white capitalize" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-                          {viewingCourse.color.replace('-', ' ').replace('800', '')}
+                          {viewingCourse.color.replace('-', ' ').replace('800', '').replace('900', '')}
                         </p>
 
                       </div>
@@ -569,7 +603,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                     >
                       Created Date
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}>
+                    <div className={`px-3 py-2 bg-white border-1 shadow-sm border-blue-900 rounded-lg`}>
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -589,7 +623,7 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
                     >
                       Last Updated
                     </label>
-                    <div className={`px-3 py-2 bg-gray-100 border-1 shadow-sm border-blue-900`}>
+                    <div className={`px-3 py-2 bg-white border-1 shadow-sm border-blue-900 rounded-lg`}>
                       <span
                         className="text-sm text-gray-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -608,8 +642,8 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
               <div className="flex justify-end mt-8 pt-4 border-t border-gray-200">
                 <button
                   onClick={handleCancel}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors rounded-lg"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                 >
                   Close
                 </button>

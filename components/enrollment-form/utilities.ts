@@ -119,7 +119,7 @@ export const getSubjectIcon = (subject: any) => {
 // Function to get appropriate icon color based on background
 export const getIconColor = (color: string): string => {
   const colorMap: Record<string, string> = {
-    'blue-700': '#1d4ed8',
+    'blue-900': '#1d4ed8',
     'blue-900': '#1e40af',
     'red-700': '#b91c1c',
     'red-800': '#991b1b',
@@ -142,14 +142,14 @@ export const getIconColor = (color: string): string => {
 // Helper function to get color value (matches subject-form.tsx getCourseColorValue)
 export const getColorValue = (color: string): string => {
   const colorMap: Record<string, string> = {
-    'blue-800': '#1e40af',
+    'blue-900': '#1e40af',
     'red-800': '#991b1b',
     'emerald-800': '#065f46',
     'yellow-800': '#92400e',
     'orange-800': '#9a3412',
     'violet-800': '#5b21b6',
     'purple-800': '#6b21a8',
-    'blue-700': '#1d4ed8',
+    'blue-900': '#1d4ed8',
     'red-700': '#b91c1c',
     'emerald-700': '#047857',
     'yellow-700': '#a16207',

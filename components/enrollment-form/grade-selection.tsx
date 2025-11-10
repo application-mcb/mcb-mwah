@@ -15,14 +15,14 @@ type GradeSelectionStepProps = {
 
 const getColorValue = (color: string): string => {
   const colorMap: Record<string, string> = {
-    'blue-800': '#1e40af',
+    'blue-900': '#1e40af',
     'red-800': '#991b1b',
     'emerald-800': '#065f46',
     'yellow-800': '#92400e',
     'orange-800': '#9a3412',
     'violet-800': '#5b21b6',
     'purple-800': '#6b21a8',
-    'blue-700': '#1d4ed8',
+    'blue-900': '#1d4ed8',
     'red-700': '#b91c1c',
     'emerald-700': '#047857',
     'yellow-700': '#a16207',
@@ -46,13 +46,15 @@ export default function GradeSelectionStep({
   return (
     <div
       className={`space-y-6 transition-all duration-500 ${
-        animatingStep ? 'opacity-0 transform -translate-x-4' : 'opacity-100 transform translate-x-0'
+        animatingStep
+          ? 'opacity-0 transform -translate-x-4'
+          : 'opacity-100 transform translate-x-0'
       }`}
     >
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center">
               <GraduationCap size={20} className="text-white" weight="bold" />
             </div>
             <div>
@@ -62,7 +64,9 @@ export default function GradeSelectionStep({
               >
                 Select Your Grade Level
               </h2>
-              <p className="text-sm text-gray-600">Choose the grade level you wish to enroll in</p>
+              <p className="text-sm text-gray-600">
+                Choose the grade level you wish to enroll in
+              </p>
             </div>
           </div>
         </div>
@@ -73,12 +77,20 @@ export default function GradeSelectionStep({
 
       {grades.length === 0 ? (
         <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-sm border-blue-900">
-          <GraduationCap size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+          <GraduationCap
+            size={48}
+            className="mx-auto text-gray-400 mb-4"
+            weight="duotone"
+          />
+          <h3
+            className="text-lg font-medium text-gray-900 mb-2"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
             No grades available
           </h3>
           <p className="text-gray-600 text-justify border-1 shadow-sm border-blue-900 p-3 bg-blue-50">
-            There are currently no grade levels available for enrollment. Please contact your registrar or try again later.
+            There are currently no grade levels available for enrollment. Please
+            contact your registrar or try again later.
           </p>
         </Card>
       ) : (
@@ -95,22 +107,37 @@ export default function GradeSelectionStep({
               <div className="space-y-4 flex flex-col justify-between h-full">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 flex items-center justify-center bg-white`}>
-                      <GraduationCap size={20} weight="fill" style={{ color: getColorValue(grade.color) }} />
+                    <div
+                      className={`w-10 h-10 flex items-center justify-center bg-white`}
+                    >
+                      <GraduationCap
+                        size={20}
+                        weight="fill"
+                        style={{ color: getColorValue(grade.color) }}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-medium text-white" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                      <h3
+                        className="text-lg font-medium text-white"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
                         Grade {grade.gradeLevel} {grade.strand}
                       </h3>
-                      <p className="text-sm text-white">{grade.department} Department</p>
+                      <p className="text-sm text-white">
+                        {grade.department} Department
+                      </p>
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-white line-clamp-3">{grade.description}</p>
+                <p className="text-xs text-white line-clamp-3">
+                  {grade.description}
+                </p>
                 <div className="pt-2 border-t border-gray-200">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-white">Click to select</span>
-                    <div className={`w-4 h-4 border-2 border-white transition-colors`}></div>
+                    <div
+                      className={`w-4 h-4 border-2 border-white transition-colors`}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -121,5 +148,3 @@ export default function GradeSelectionStep({
     </div>
   )
 }
-
-

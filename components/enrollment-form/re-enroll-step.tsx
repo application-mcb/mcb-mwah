@@ -115,7 +115,31 @@ export default function ReEnrollStep({
                     className="ml-2 text-gray-900 font-medium"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
-                    Grade {previousEnrollment.enrollmentInfo.gradeLevel}
+                    {(() => {
+                      const gradeLevel = previousEnrollment.enrollmentInfo.gradeLevel
+                      const strand = previousEnrollment.enrollmentInfo?.strand
+                      const department = previousEnrollment.enrollmentInfo?.department
+                      if (department === 'SHS' && strand) {
+                        return `Grade ${gradeLevel} - ${strand}`
+                      }
+                      return `Grade ${gradeLevel}`
+                    })()}
+                  </span>
+                </div>
+              )}
+              {previousEnrollment.enrollmentInfo?.semester && previousEnrollment.enrollmentInfo?.level === 'high-school' && previousEnrollment.enrollmentInfo?.department === 'SHS' && (
+                <div>
+                  <span
+                    className="text-gray-600"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    Semester:
+                  </span>
+                  <span
+                    className="ml-2 text-gray-900 font-medium"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    {previousEnrollment.enrollmentInfo.semester === 'first-sem' ? 'First Semester' : 'Second Semester'}
                   </span>
                 </div>
               )}
@@ -152,6 +176,62 @@ export default function ReEnrollStep({
             </div>
           </div>
         )}
+
+        {/* Next Level Information (for High School - JHS only) */}
+        {previousEnrollment && (() => {
+          const prevLevel = previousEnrollment.enrollmentInfo?.level
+          const prevSemester = previousEnrollment.enrollmentInfo?.semester
+          const prevDept = previousEnrollment.enrollmentInfo?.department
+          const isHS = prevLevel === 'high-school' || (!prevLevel && !prevSemester)
+          const isSHS = prevDept === 'SHS'
+          // Skip next level info for SHS (they handle semester progression differently)
+          if (isSHS) return null
+          const prevGradeRaw = previousEnrollment.enrollmentInfo?.gradeLevel
+          const prevGradeNumStr = prevGradeRaw ? String(prevGradeRaw).match(/\d+/)?.[0] : undefined
+          const prevGrade = prevGradeNumStr ? parseInt(prevGradeNumStr, 10) : undefined
+          const nextGrade = isHS && prevGrade ? prevGrade + 1 : undefined
+          if (!isHS || !nextGrade || nextGrade > 12) return null
+          return (
+            <div className="bg-blue-50 border border-blue-200 p-4">
+              <h3
+                className="text-sm font-medium text-gray-900 mb-3"
+                style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+              >
+                Next Level Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span
+                    className="text-gray-600"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    Next Grade:
+                  </span>
+                  <span
+                    className="ml-2 text-gray-900 font-medium"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Grade {nextGrade}
+                  </span>
+                </div>
+                <div>
+                  <span
+                    className="text-gray-600"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    Previous Grade:
+                  </span>
+                  <span
+                    className="ml-2 text-gray-900 font-medium"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Grade {prevGrade}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Semester Info (for College students) */}
         {previousEnrollment?.enrollmentInfo?.level === 'college' &&

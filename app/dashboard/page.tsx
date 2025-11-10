@@ -1,17 +1,23 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from 'react-toastify';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/ui/modal";
-import { ProfileForm } from "@/components/profile-form";
-import EnrollmentForm from "@/components/enrollment-form";
-import DocumentsManager from "@/components/documents-manager";
-import MySubjectsView from "../../components/my-subjects-view";
-import AcademicRecords from "@/components/academic-records";
-import AccountSetupProgress from "@/components/account-setup-progress";
+import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'react-toastify'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Modal } from '@/components/ui/modal'
+import { ProfileForm } from '@/components/profile-form'
+import EnrollmentForm from '@/components/enrollment-form'
+import DocumentsManager from '@/components/documents-manager'
+import MySubjectsView from '../../components/my-subjects-view'
+import AcademicRecords from '@/components/academic-records'
+import AccountSetupProgress from '@/components/account-setup-progress'
 import {
   User,
   Calendar,
@@ -37,71 +43,98 @@ import {
   Palette,
   MusicNote,
   Book,
-  Books
-} from "@phosphor-icons/react";
-import { auth } from "@/lib/firebase";
-import { signOut } from "firebase/auth";
-import { UserProfile } from "@/lib/user-sync";
-import { getProfileAction } from "@/app/actions/profile";
+  Books,
+  List,
+} from '@phosphor-icons/react'
+import { auth } from '@/lib/firebase'
+import { signOut } from 'firebase/auth'
+import { UserProfile } from '@/lib/user-sync'
+import { getProfileAction } from '@/app/actions/profile'
 
-type ViewType = 'dashboard' | 'enrollment' | 'documents' | 'subjects' | 'schedule' | 'performance' | 'records';
+type ViewType =
+  | 'dashboard'
+  | 'enrollment'
+  | 'documents'
+  | 'subjects'
+  | 'schedule'
+  | 'performance'
+  | 'records'
 
 export default function Dashboard() {
-  const [user, setUser] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [enrollmentData, setEnrollmentData] = useState<any>(null);
-  const [sections, setSections] = useState<any[]>([]);
-  const [grades, setGrades] = useState<any[]>([]);
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [subjects, setSubjects] = useState<Record<string, any>>({});
-  const [subjectSets, setSubjectSets] = useState<Record<number, any[]>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
-  const [navCarouselIndex, setNavCarouselIndex] = useState(0);
-  const [subjectsCarouselIndex, setSubjectsCarouselIndex] = useState(0);
-  const [currentSystemConfig, setCurrentSystemConfig] = useState<{ ayCode: string; semester: string } | null>(null);
-  const [studentMainId, setStudentMainId] = useState<string | null>(null);
-  const router = useRouter();
+  const [user, setUser] = useState<any>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [profileImageError, setProfileImageError] = useState(false)
+  const [enrollmentData, setEnrollmentData] = useState<any>(null)
+  const [sections, setSections] = useState<any[]>([])
+  const [grades, setGrades] = useState<any[]>([])
+  const [documents, setDocuments] = useState<any[]>([])
+  const [subjects, setSubjects] = useState<Record<string, any>>({})
+  const [subjectSets, setSubjectSets] = useState<Record<number, any[]>>({})
+  const [isLoading, setIsLoading] = useState(true)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard')
+  const [navCarouselIndex, setNavCarouselIndex] = useState(0)
+  const [subjectsCarouselIndex, setSubjectsCarouselIndex] = useState(0)
+  const [enrolledSubjects, setEnrolledSubjects] = useState<any[]>([])
+  const [currentSystemConfig, setCurrentSystemConfig] = useState<{
+    ayCode: string
+    semester: string
+  } | null>(null)
+  const [studentMainId, setStudentMainId] = useState<string | null>(null)
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
+  const [isArrangeView, setIsArrangeView] = useState(false)
+  const router = useRouter()
 
   // Helper: robust enrollment fetch with fallbacks (handles API success:false and semester mismatches)
-  const fetchEnrollmentWithFallback = async (uid: string, currentSemester: string | null = null) => {
+  const fetchEnrollmentWithFallback = async (
+    uid: string,
+    currentSemester: string | null = null
+  ) => {
     try {
       // Try current semester first if provided
       if (currentSemester) {
-        const semesterParam = currentSemester === '1' ? 'first-sem' : currentSemester === '2' ? 'second-sem' : undefined;
+        const semesterParam =
+          currentSemester === '1'
+            ? 'first-sem'
+            : currentSemester === '2'
+            ? 'second-sem'
+            : undefined
         if (semesterParam) {
-          const res = await fetch(`/api/enrollment?userId=${uid}&semester=${semesterParam}`);
-          const data = await res.json();
+          const res = await fetch(
+            `/api/enrollment?userId=${uid}&semester=${semesterParam}`
+          )
+          const data = await res.json()
           if (res.ok && data.success && data.data) {
-            return data.data;
+            return data.data
           }
         }
       }
 
       // Try without semester (HS or any available)
       {
-        const res = await fetch(`/api/enrollment?userId=${uid}`);
-        const data = await res.json();
+        const res = await fetch(`/api/enrollment?userId=${uid}`)
+        const data = await res.json()
         if (res.ok && data.success && data.data) {
-          return data.data;
+          return data.data
         }
       }
 
       // Try explicit semesters for college (both)
       for (const sem of ['first-sem', 'second-sem']) {
-        const res = await fetch(`/api/enrollment?userId=${uid}&semester=${sem}`);
-        const data = await res.json();
+        const res = await fetch(`/api/enrollment?userId=${uid}&semester=${sem}`)
+        const data = await res.json()
         if (res.ok && data.success && data.data) {
-          return data.data;
+          return data.data
         }
       }
 
       // Last resort: use enrolled-subjects probe to infer enrollmentInfo
       {
-        const probe = await fetch(`/api/enrollment?userId=${uid}&getEnrolledSubjects=true`);
+        const probe = await fetch(
+          `/api/enrollment?userId=${uid}&getEnrolledSubjects=true`
+        )
         if (probe.ok) {
-          const probeData = await probe.json();
+          const probeData = await probe.json()
           if (probeData.success && probeData.enrollmentInfo) {
             // Construct minimal enrollment shape expected by UI
             return {
@@ -115,88 +148,101 @@ export default function Dashboard() {
                 semester: probeData.enrollmentInfo.semester,
                 status: 'enrolled',
               },
-            } as any;
+            } as any
           }
         }
       }
 
-      return null;
+      return null
     } catch (e) {
-      return null;
+      return null
     }
-  };
+  }
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { onAuthStateChanged } = await import("firebase/auth");
-        
+        const { onAuthStateChanged } = await import('firebase/auth')
+
         onAuthStateChanged(auth, async (user) => {
           if (user) {
-            setUser(user);
-            
+            setUser(user)
+
             // Get user profile from database through server action
             try {
-              const profileResult = await getProfileAction({ uid: user.uid });
-              const profile = profileResult.success ? profileResult.user : null;
+              const profileResult = await getProfileAction({ uid: user.uid })
+              const profile = profileResult.success ? profileResult.user : null
               if (profile && profile.firstName && profile.lastName) {
-                setUserProfile(profile);
+                setUserProfile(profile)
+                setProfileImageError(false) // Reset image error when profile changes
                 // Capture studentId if included in profile
                 if ((profile as any).studentId) {
-                  setStudentMainId((profile as any).studentId);
+                  setStudentMainId((profile as any).studentId)
                 }
               } else {
-                console.log('No complete profile found, redirecting to setup');
-                router.push('/setup');
-                return;
+                console.log('No complete profile found, redirecting to setup')
+                router.push('/setup')
+                return
               }
             } catch (error) {
-              console.log('Error getting profile, redirecting to setup:', error);
-              router.push('/setup');
-              return;
+              console.log('Error getting profile, redirecting to setup:', error)
+              router.push('/setup')
+              return
             }
 
             // Fetch system config first to get current semester
-            let currentSemester = '1';
+            let currentSemester = '1'
             try {
-              const configResponse = await fetch('/api/enrollment?getConfig=true');
+              const configResponse = await fetch(
+                '/api/enrollment?getConfig=true'
+              )
               if (configResponse.ok) {
-                const configData = await configResponse.json();
+                const configData = await configResponse.json()
                 setCurrentSystemConfig({
                   ayCode: configData.ayCode || 'AY2526',
-                  semester: configData.semester || '1'
-                });
-                currentSemester = configData.semester || '1';
+                  semester: configData.semester || '1',
+                })
+                currentSemester = configData.semester || '1'
               }
             } catch (error) {
-              console.log('Error fetching config:', error);
+              console.log('Error fetching config:', error)
             }
 
             // Fetch enrollment data and sections after profile is loaded
             try {
-              const data = await fetchEnrollmentWithFallback(user.uid, currentSemester);
+              const data = await fetchEnrollmentWithFallback(
+                user.uid,
+                currentSemester
+              )
               if (data) {
-                console.log('Enrollment data received:', data);
-                console.log('Enrollment status:', data?.enrollmentInfo?.status);
-                console.log('Section ID:', data?.enrollmentInfo?.sectionId);
-                setEnrollmentData(data);
+                console.log('Enrollment data received:', data)
+                console.log('Enrollment status:', data?.enrollmentInfo?.status)
+                console.log('Section ID:', data?.enrollmentInfo?.sectionId)
+                setEnrollmentData(data)
               } else {
-                console.log('No enrollment found, student may not be enrolled yet');
-                setEnrollmentData(null);
+                console.log(
+                  'No enrollment found, student may not be enrolled yet'
+                )
+                setEnrollmentData(null)
               }
             } catch (error) {
-              console.log('Error fetching enrollment data:', error);
-              setEnrollmentData(null);
+              console.log('Error fetching enrollment data:', error)
+              setEnrollmentData(null)
             }
 
             // Fetch main student document to get authoritative studentId
             try {
-              const resp = await fetch(`/api/user/profile?uids=${user.uid}`);
-              const data = await resp.json();
-              if (resp.ok && data.success && Array.isArray(data.users) && data.users.length > 0) {
-                const rec = data.users[0];
+              const resp = await fetch(`/api/user/profile?uids=${user.uid}`)
+              const data = await resp.json()
+              if (
+                resp.ok &&
+                data.success &&
+                Array.isArray(data.users) &&
+                data.users.length > 0
+              ) {
+                const rec = data.users[0]
                 if (rec && rec.studentId) {
-                  setStudentMainId(rec.studentId);
+                  setStudentMainId(rec.studentId)
                 }
               }
             } catch (e) {
@@ -205,543 +251,807 @@ export default function Dashboard() {
 
             // Fetch sections data
             try {
-              const sectionsResponse = await fetch('/api/sections');
-              const sectionsResult = await sectionsResponse.json();
+              const sectionsResponse = await fetch('/api/sections')
+              const sectionsResult = await sectionsResponse.json()
 
               if (sectionsResponse.ok && sectionsResult.sections) {
-                setSections(sectionsResult.sections);
+                setSections(sectionsResult.sections)
               } else {
-                console.log('No sections data found');
-                setSections([]);
+                console.log('No sections data found')
+                setSections([])
               }
             } catch (error) {
-              console.log('Error fetching sections data:', error);
-              setSections([]);
+              console.log('Error fetching sections data:', error)
+              setSections([])
             }
 
             // Fetch grades data
             try {
-              const gradesResponse = await fetch('/api/grades');
-              const gradesResult = await gradesResponse.json();
+              const gradesResponse = await fetch('/api/grades')
+              const gradesResult = await gradesResponse.json()
 
               if (gradesResponse.ok && gradesResult.grades) {
-                setGrades(gradesResult.grades);
+                setGrades(gradesResult.grades)
               } else {
-                console.log('No grades data found');
-                setGrades([]);
+                console.log('No grades data found')
+                setGrades([])
               }
             } catch (error) {
-              console.log('Error fetching grades data:', error);
-              setGrades([]);
+              console.log('Error fetching grades data:', error)
+              setGrades([])
             }
 
             // Fetch documents data
             try {
-              const documentsResponse = await fetch(`/api/documents?userId=${user.uid}`);
-              const documentsResult = await documentsResponse.json();
+              const documentsResponse = await fetch(
+                `/api/documents?userId=${user.uid}`
+              )
+              const documentsResult = await documentsResponse.json()
 
               if (documentsResponse.ok && documentsResult.success) {
-                setDocuments(documentsResult.documents || []);
+                setDocuments(documentsResult.documents || [])
               } else {
-                console.log('No documents data found');
-                setDocuments([]);
+                console.log('No documents data found')
+                setDocuments([])
               }
             } catch (error) {
-              console.log('Error fetching documents data:', error);
-              setDocuments([]);
+              console.log('Error fetching documents data:', error)
+              setDocuments([])
             }
 
-        // Fetch subjects/subject sets data
-        try {
-          const [subjectsResponse, subjectSetsResponse] = await Promise.all([
-            fetch('/api/subjects'),
-            fetch('/api/subject-sets')
-          ]);
+            // Fetch subjects/subject sets data
+            try {
+              const [subjectsResponse, subjectSetsResponse] = await Promise.all(
+                [fetch('/api/subjects'), fetch('/api/subject-sets')]
+              )
 
-          const [subjectsData, subjectSetsData] = await Promise.all([
-            subjectsResponse.json(),
-            subjectSetsResponse.json()
-          ]);
+              const [subjectsData, subjectSetsData] = await Promise.all([
+                subjectsResponse.json(),
+                subjectSetsResponse.json(),
+              ])
 
-          // Process subjects
-          if (subjectsResponse.ok && subjectsData.subjects) {
-            const subjectsMap: Record<string, any> = {};
-            subjectsData.subjects.forEach((subject: any) => {
-              subjectsMap[subject.id] = subject;
-            });
-            setSubjects(subjectsMap);
-          }
-
-          // Process subject sets
-          if (subjectSetsResponse.ok && subjectSetsData.subjectSets) {
-            const subjectSetsByGrade: Record<number, any[]> = {};
-            subjectSetsData.subjectSets.forEach((subjectSet: any) => {
-              const gradeLevel = subjectSet.gradeLevel;
-              if (!subjectSetsByGrade[gradeLevel]) {
-                subjectSetsByGrade[gradeLevel] = [];
+              // Process subjects
+              if (subjectsResponse.ok && subjectsData.subjects) {
+                const subjectsMap: Record<string, any> = {}
+                subjectsData.subjects.forEach((subject: any) => {
+                  subjectsMap[subject.id] = subject
+                })
+                setSubjects(subjectsMap)
               }
-              subjectSetsByGrade[gradeLevel].push(subjectSet);
-            });
-            setSubjectSets(subjectSetsByGrade);
+
+              // Process subject sets
+              if (subjectSetsResponse.ok && subjectSetsData.subjectSets) {
+                const subjectSetsByGrade: Record<number, any[]> = {}
+                subjectSetsData.subjectSets.forEach((subjectSet: any) => {
+                  const gradeLevel = subjectSet.gradeLevel
+                  if (!subjectSetsByGrade[gradeLevel]) {
+                    subjectSetsByGrade[gradeLevel] = []
+                  }
+                  subjectSetsByGrade[gradeLevel].push(subjectSet)
+                })
+                setSubjectSets(subjectSetsByGrade)
+              }
+            } catch (error) {
+              console.log('Error fetching subjects/subject sets data:', error)
+              setSubjects({})
+              setSubjectSets({})
+            }
+          } else {
+            router.push('/')
           }
-        } catch (error) {
-          console.log('Error fetching subjects/subject sets data:', error);
-          setSubjects({});
-          setSubjectSets({});
+          setIsLoading(false)
+        })
+      } catch (error) {
+        console.error('Auth check error:', error)
+        router.push('/')
+      }
+    }
+
+    checkAuth()
+  }, [router])
+
+  useEffect(() => {
+    const fetchEnrolledSubjects = async () => {
+      if (!user?.uid) {
+        setEnrolledSubjects([])
+        return
+      }
+
+      if (
+        !enrollmentData ||
+        enrollmentData.enrollmentInfo?.status !== 'enrolled'
+      ) {
+        setEnrolledSubjects([])
+        return
+      }
+
+      try {
+        const response = await fetch(
+          `/api/enrollment?userId=${user.uid}&getEnrolledSubjects=true`
+        )
+        if (!response.ok) {
+          setEnrolledSubjects([])
+          return
         }
 
-
-          } else {
-            router.push('/');
-          }
-          setIsLoading(false);
-        });
+        const data = await response.json()
+        if (data.success && Array.isArray(data.subjects)) {
+          setEnrolledSubjects(data.subjects)
+        } else {
+          setEnrolledSubjects([])
+        }
       } catch (error) {
-        console.error('Auth check error:', error);
-        router.push('/');
+        console.error('Error fetching enrolled subjects:', error)
+        setEnrolledSubjects([])
       }
-    };
+    }
 
-    checkAuth();
-  }, [router]);
+    fetchEnrolledSubjects()
+  }, [
+    user?.uid,
+    enrollmentData?.enrollmentInfo?.gradeLevel,
+    enrollmentData?.enrollmentInfo?.semester,
+    enrollmentData?.enrollmentInfo?.schoolYear,
+    enrollmentData?.enrollmentInfo?.status,
+  ])
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
-      router.push('/');
+      await signOut(auth)
+      router.push('/')
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error('Sign out error:', error)
     }
-  };
+  }
 
   const handleEditProfile = () => {
-    setIsEditModalOpen(true);
-  };
+    setIsEditModalOpen(true)
+  }
 
   const handleEditSuccess = async () => {
     // Refresh user profile data through server action
     if (user) {
       try {
-        const profileResult = await getProfileAction({ uid: user.uid });
-        const profile = profileResult.success ? profileResult.user : null;
+        const profileResult = await getProfileAction({ uid: user.uid })
+        const profile = profileResult.success ? profileResult.user : null
         if (profile) {
-          setUserProfile(profile);
+          setUserProfile(profile)
+          setProfileImageError(false) // Reset image error when profile changes
         }
 
         // Also refresh enrollment data
-    try {
-      const data = await fetchEnrollmentWithFallback(user.uid, currentSystemConfig?.semester || null);
-      setEnrollmentData(data);
-    } catch (error) {
-      console.error('Error refreshing enrollment data:', error);
-      setEnrollmentData(null);
-    }
+        try {
+          const data = await fetchEnrollmentWithFallback(
+            user.uid,
+            currentSystemConfig?.semester || null
+          )
+          setEnrollmentData(data)
+        } catch (error) {
+          console.error('Error refreshing enrollment data:', error)
+          setEnrollmentData(null)
+        }
 
         // Also refresh sections data
         try {
-          const sectionsResponse = await fetch('/api/sections');
-          const sectionsResult = await sectionsResponse.json();
+          const sectionsResponse = await fetch('/api/sections')
+          const sectionsResult = await sectionsResponse.json()
 
           if (sectionsResponse.ok && sectionsResult.sections) {
-            setSections(sectionsResult.sections);
+            setSections(sectionsResult.sections)
           } else {
-            setSections([]);
+            setSections([])
           }
         } catch (error) {
-          console.error('Error refreshing sections data:', error);
-          setSections([]);
+          console.error('Error refreshing sections data:', error)
+          setSections([])
         }
 
         // Also refresh grades data
         try {
-          const gradesResponse = await fetch('/api/grades');
-          const gradesResult = await gradesResponse.json();
+          const gradesResponse = await fetch('/api/grades')
+          const gradesResult = await gradesResponse.json()
 
           if (gradesResponse.ok && gradesResult.grades) {
-            setGrades(gradesResult.grades);
+            setGrades(gradesResult.grades)
           } else {
-            setGrades([]);
+            setGrades([])
           }
         } catch (error) {
-          console.error('Error refreshing grades data:', error);
-          setGrades([]);
+          console.error('Error refreshing grades data:', error)
+          setGrades([])
         }
 
         // Also refresh documents data
         try {
-          const documentsResponse = await fetch(`/api/documents?userId=${user.uid}`);
-          const documentsResult = await documentsResponse.json();
+          const documentsResponse = await fetch(
+            `/api/documents?userId=${user.uid}`
+          )
+          const documentsResult = await documentsResponse.json()
 
           if (documentsResponse.ok && documentsResult.success) {
-            setDocuments(documentsResult.documents || []);
+            setDocuments(documentsResult.documents || [])
           } else {
-            setDocuments([]);
+            setDocuments([])
           }
         } catch (error) {
-          console.error('Error refreshing documents data:', error);
-          setDocuments([]);
+          console.error('Error refreshing documents data:', error)
+          setDocuments([])
         }
 
         // Also refresh system config and subjects/subject sets data
         try {
-          const [configResponse, subjectsResponse, subjectSetsResponse] = await Promise.all([
-            fetch('/api/enrollment?getConfig=true'),
-            fetch('/api/subjects'),
-            fetch('/api/subject-sets')
-          ]);
+          const [configResponse, subjectsResponse, subjectSetsResponse] =
+            await Promise.all([
+              fetch('/api/enrollment?getConfig=true'),
+              fetch('/api/subjects'),
+              fetch('/api/subject-sets'),
+            ])
 
           // Refresh system config
           if (configResponse.ok) {
-            const configData = await configResponse.json();
+            const configData = await configResponse.json()
             setCurrentSystemConfig({
               ayCode: configData.ayCode || 'AY2526',
-              semester: configData.semester || '1'
-            });
+              semester: configData.semester || '1',
+            })
           }
 
           const [subjectsData, subjectSetsData] = await Promise.all([
             subjectsResponse.json(),
-            subjectSetsResponse.json()
-          ]);
+            subjectSetsResponse.json(),
+          ])
 
           // Process subjects
           if (subjectsResponse.ok && subjectsData.subjects) {
-            const subjectsMap: Record<string, any> = {};
+            const subjectsMap: Record<string, any> = {}
             subjectsData.subjects.forEach((subject: any) => {
-              subjectsMap[subject.id] = subject;
-            });
-            setSubjects(subjectsMap);
+              subjectsMap[subject.id] = subject
+            })
+            setSubjects(subjectsMap)
           }
 
           // Process subject sets
           if (subjectSetsResponse.ok && subjectSetsData.subjectSets) {
-            const subjectSetsByGrade: Record<number, any[]> = {};
+            const subjectSetsByGrade: Record<number, any[]> = {}
             subjectSetsData.subjectSets.forEach((subjectSet: any) => {
-              const gradeLevel = subjectSet.gradeLevel;
+              const gradeLevel = subjectSet.gradeLevel
               if (!subjectSetsByGrade[gradeLevel]) {
-                subjectSetsByGrade[gradeLevel] = [];
+                subjectSetsByGrade[gradeLevel] = []
               }
-              subjectSetsByGrade[gradeLevel].push(subjectSet);
-            });
-            setSubjectSets(subjectSetsByGrade);
+              subjectSetsByGrade[gradeLevel].push(subjectSet)
+            })
+            setSubjectSets(subjectSetsByGrade)
           }
         } catch (error) {
-          console.error('Error refreshing subjects/subject sets data:', error);
-          setSubjects({});
-          setSubjectSets({});
+          console.error('Error refreshing subjects/subject sets data:', error)
+          setSubjects({})
+          setSubjectSets({})
         }
-
       } catch (error) {
-        console.error('Error refreshing profile:', error);
+        console.error('Error refreshing profile:', error)
       }
     }
-    setIsEditModalOpen(false);
-  };
+    setIsEditModalOpen(false)
+  }
 
   const handleEditCancel = () => {
-    setIsEditModalOpen(false);
-  };
+    setIsEditModalOpen(false)
+  }
+
+  const handleToggleLeftSidebar = () => {
+    setIsLeftCollapsed((prev) => !prev)
+  }
+
+  const handleToggleArrangeView = () => {
+    setIsArrangeView((prev) => !prev)
+  }
+
+  const handleToggleKeyDown = (
+    event: React.KeyboardEvent,
+    onToggle: () => void
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onToggle()
+    }
+  }
+
+  const leftSidebarLayout = useMemo(() => {
+    if (isLeftCollapsed) {
+      return {
+        widthClass: 'w-[5.5rem]',
+        marginClass: 'ml-[5.5rem]',
+        contentAlignment: 'items-center',
+      }
+    }
+
+    return {
+      widthClass: 'w-80',
+      marginClass: 'ml-80',
+      contentAlignment: 'items-start',
+    }
+  }, [isLeftCollapsed])
+
+  const isArrangeViewActive = isArrangeView && !isLeftCollapsed
+
+  const navigationItems = useMemo(
+    () => [
+      {
+        view: 'dashboard' as ViewType,
+        label: 'Overview',
+        description: 'At a glance',
+        icon: House,
+      },
+      {
+        view: 'enrollment' as ViewType,
+        label: 'Enrollment',
+        description: 'Enroll now',
+        icon: GraduationCap,
+      },
+      {
+        view: 'documents' as ViewType,
+        label: 'Documents',
+        description: 'Upload files',
+        icon: FileText,
+      },
+      {
+        view: 'subjects' as ViewType,
+        label: 'Subjects',
+        description: 'Courses',
+        icon: BookOpen,
+        requiresEnrollment: true,
+      },
+      {
+        view: 'schedule' as ViewType,
+        label: 'Schedule',
+        description: 'Class times',
+        icon: Calendar,
+        requiresEnrollment: true,
+      },
+      {
+        view: 'performance' as ViewType,
+        label: 'Performance',
+        description: 'Grades & stats',
+        icon: ChartBar,
+        requiresEnrollment: true,
+      },
+      {
+        view: 'records' as ViewType,
+        label: 'Academic Records',
+        description: 'Transcripts',
+        icon: IdentificationCard,
+        requiresEnrollment: true,
+      },
+    ],
+    []
+  )
 
   const handleProgressUpdate = async () => {
     // Refresh enrollment data
     try {
-      const enrollmentResponse = await fetch(`/api/enrollment?userId=${user.uid}`);
-      const enrollmentResult = await enrollmentResponse.json();
+      const enrollmentResponse = await fetch(
+        `/api/enrollment?userId=${user.uid}`
+      )
+      const enrollmentResult = await enrollmentResponse.json()
 
       // Handle 404 (no enrollment found) as valid case
       if (enrollmentResponse.status === 404) {
-        setEnrollmentData(null);
+        setEnrollmentData(null)
       } else if (enrollmentResponse.ok && enrollmentResult.success) {
-        setEnrollmentData(enrollmentResult.data);
+        setEnrollmentData(enrollmentResult.data)
       } else {
-        setEnrollmentData(null);
+        setEnrollmentData(null)
       }
     } catch (error) {
-      console.error('Error refreshing enrollment data:', error);
-      setEnrollmentData(null);
+      console.error('Error refreshing enrollment data:', error)
+      setEnrollmentData(null)
     }
 
     // Refresh documents data
     try {
-      const documentsResponse = await fetch(`/api/documents?userId=${user.uid}`);
-      const documentsResult = await documentsResponse.json();
+      const documentsResponse = await fetch(`/api/documents?userId=${user.uid}`)
+      const documentsResult = await documentsResponse.json()
 
       if (documentsResponse.ok && documentsResult.success) {
-        setDocuments(documentsResult.documents || []);
+        setDocuments(documentsResult.documents || [])
       } else {
-        setDocuments([]);
+        setDocuments([])
       }
     } catch (error) {
-      console.error('Error refreshing documents data:', error);
-      setDocuments([]);
+      console.error('Error refreshing documents data:', error)
+      setDocuments([])
     }
 
     // Refresh subjects and subject sets data
     try {
       const [subjectsResponse, subjectSetsResponse] = await Promise.all([
         fetch('/api/subjects'),
-        fetch('/api/subject-sets')
-      ]);
+        fetch('/api/subject-sets'),
+      ])
 
       const [subjectsData, subjectSetsData] = await Promise.all([
         subjectsResponse.json(),
-        subjectSetsResponse.json()
-      ]);
+        subjectSetsResponse.json(),
+      ])
 
       // Process subjects
       if (subjectsResponse.ok && subjectsData.subjects) {
-        const subjectsMap: Record<string, any> = {};
+        const subjectsMap: Record<string, any> = {}
         subjectsData.subjects.forEach((subject: any) => {
-          subjectsMap[subject.id] = subject;
-        });
-        setSubjects(subjectsMap);
+          subjectsMap[subject.id] = subject
+        })
+        setSubjects(subjectsMap)
       }
 
       // Process subject sets
       if (subjectSetsResponse.ok && subjectSetsData.subjectSets) {
-        const subjectSetsByGrade: Record<number, any[]> = {};
+        const subjectSetsByGrade: Record<number, any[]> = {}
         subjectSetsData.subjectSets.forEach((subjectSet: any) => {
-          const gradeLevel = subjectSet.gradeLevel;
+          const gradeLevel = subjectSet.gradeLevel
           if (!subjectSetsByGrade[gradeLevel]) {
-            subjectSetsByGrade[gradeLevel] = [];
+            subjectSetsByGrade[gradeLevel] = []
           }
-          subjectSetsByGrade[gradeLevel].push(subjectSet);
-        });
-        setSubjectSets(subjectSetsByGrade);
+          subjectSetsByGrade[gradeLevel].push(subjectSet)
+        })
+        setSubjectSets(subjectSetsByGrade)
       }
     } catch (error) {
-      console.error('Error refreshing subjects/subject sets data:', error);
-      setSubjects({});
-      setSubjectSets({});
+      console.error('Error refreshing subjects/subject sets data:', error)
+      setSubjects({})
+      setSubjectSets({})
     }
-  };
+  }
 
   const formatPhoneNumber = (phone: string) => {
-    if (!phone) return 'Not provided';
-    return phone.startsWith('+63') ? phone : `+63${phone}`;
-  };
+    if (!phone) return 'Not provided'
+    return phone.startsWith('+63') ? phone : `+63${phone}`
+  }
 
   const getFullName = () => {
-    if (!userProfile) return 'Student';
-    const { firstName, middleName, lastName, nameExtension } = userProfile;
-    let fullName = firstName || '';
-    
+    if (!userProfile) return 'Student'
+    const { firstName, middleName, lastName, nameExtension } = userProfile
+    let fullName = firstName || ''
+
     if (middleName) {
       // Add middle name initial (first letter only)
-      fullName += ` ${middleName.charAt(0).toUpperCase()}.`;
+      fullName += ` ${middleName.charAt(0).toUpperCase()}.`
     }
-    
+
     if (lastName) {
-      fullName += ` ${lastName}`;
+      fullName += ` ${lastName}`
     }
-    
+
     if (nameExtension) {
-      fullName += ` ${nameExtension}`;
+      fullName += ` ${nameExtension}`
     }
-    
-    return fullName || 'Student';
-  };
+
+    return fullName || 'Student'
+  }
 
   const getAddress = () => {
-    if (!userProfile) return 'Not provided';
-    const { streetName, province, municipality, barangay, zipCode } = userProfile;
-    const parts = [streetName, municipality, province, zipCode].filter(Boolean);
-    return parts.length > 0 ? parts.join(', ') : 'Not provided';
-  };
+    if (!userProfile) return 'Not provided'
+    const { streetName, province, municipality, barangay, zipCode } =
+      userProfile
+    const parts = [streetName, municipality, province, zipCode].filter(Boolean)
+    return parts.length > 0 ? parts.join(', ') : 'Not provided'
+  }
 
   const getSectionDisplay = (sectionId: string) => {
     if (sectionId) {
-      const section = sections.find(s => s.id === sectionId);
-      if (!section) return sectionId;
-      const grade = grades.find(g => g.id === section.gradeId);
-      if (!grade) return section.sectionName;
+      const section = sections.find((s) => s.id === sectionId)
+      if (!section) return sectionId
+      const grade = grades.find((g) => g.id === section.gradeId)
+      if (!grade) return section.sectionName
       return {
         sectionName: section.sectionName,
         gradeLevel: grade.gradeLevel,
-        gradeColor: grade.color
-      };
+        gradeColor: grade.color,
+        strand: grade.strand || '',
+      }
     }
     // Fallback when enrolled but no section assigned yet
-    if (enrollmentData && (enrollmentData.enrollmentInfo?.status || 'enrolled') === 'enrolled') {
-      const info = enrollmentData.enrollmentInfo || {};
+    if (
+      enrollmentData &&
+      (enrollmentData.enrollmentInfo?.status || 'enrolled') === 'enrolled'
+    ) {
+      const info = enrollmentData.enrollmentInfo || {}
       if (info.level === 'college') {
-        const yr = info.yearLevel ? `${info.yearLevel}` : '';
-        return `${(info.courseCode || info.courseName || 'Course').trim()} ${yr}`.trim();
+        const yr = info.yearLevel ? `${info.yearLevel}` : ''
+        return `${(
+          info.courseCode ||
+          info.courseName ||
+          'Course'
+        ).trim()} ${yr}`.trim()
       }
       if (info.gradeLevel) {
-        return `Grade ${info.gradeLevel}`;
+        const baseGrade = `Grade ${info.gradeLevel}`
+        const strandLabel =
+          info.strand && typeof info.strand === 'string' && info.strand.trim()
+            ? ` ${info.strand.trim()}`
+            : ''
+        return `${baseGrade}${strandLabel}`
       }
     }
-    return 'Not Assigned';
-  };
+    return 'Not Assigned'
+  }
 
   const getGradeColor = (color: string): string => {
     const colorMap: { [key: string]: string } = {
-      'blue-800': '#1e40af',
+      'blue-900': '#1e40af',
       'red-800': '#991b1b',
       'emerald-800': '#064e3b',
       'yellow-800': '#92400e',
       'orange-800': '#9a3412',
       'violet-800': '#5b21b6',
-      'purple-800': '#581c87'
-    };
-    return colorMap[color] || '#1e40af';
-  };
+      'purple-800': '#581c87',
+    }
+    return colorMap[color] || '#1e40af'
+  }
 
   const getEnrollmentStatus = () => {
-    if (!enrollmentData) return 'Not Enrolled';
-    return enrollmentData.enrollmentInfo?.status || 'enrolled';
-  };
+    if (!enrollmentData) return 'Not Enrolled'
+    return enrollmentData.enrollmentInfo?.status || 'enrolled'
+  }
 
   const getCurrentGrade = () => {
-    if (!enrollmentData) return 'Not Enrolled';
-    const info = enrollmentData.enrollmentInfo || {};
+    if (!enrollmentData) return 'Not Enrolled'
+    const info = enrollmentData.enrollmentInfo || {}
     if (info.level === 'college') {
-      const yr = info.yearLevel ? String(info.yearLevel) : '';
-      const course = info.courseCode || info.courseName || 'N/A';
-      return `${course} ${yr}`.trim();
+      const yr = info.yearLevel ? String(info.yearLevel) : ''
+      const course = info.courseCode || info.courseName || 'N/A'
+      return `${course} ${yr}`.trim()
     }
-    const gradeLevel = info.gradeLevel;
-    return gradeLevel ? `Grade ${gradeLevel}` : 'Not Enrolled';
-  };
+    const gradeLevel = info.gradeLevel
+    return gradeLevel ? `Grade ${gradeLevel}` : 'Not Enrolled'
+  }
 
   const getStudentSubjects = useMemo(() => {
-    if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
-      return [];
+    if (enrolledSubjects.length > 0) {
+      return enrolledSubjects
+    }
+
+    if (
+      !enrollmentData ||
+      enrollmentData.enrollmentInfo?.status !== 'enrolled'
+    ) {
+      return []
     }
 
     // Check if student has been assigned to a section
-    const sectionId = enrollmentData.enrollmentInfo?.sectionId;
-    if (!sectionId || sectionId === 'Not Assigned' || sectionId.includes('Not Assigned')) {
-      return [];
+    const sectionId = enrollmentData.enrollmentInfo?.sectionId
+    if (
+      !sectionId ||
+      sectionId === 'Not Assigned' ||
+      sectionId.includes('Not Assigned')
+    ) {
+      return []
     }
 
     // For college students, verify enrollment matches current AY and semester (only if config is loaded)
     if (enrollmentData.enrollmentInfo?.level === 'college') {
       if (currentSystemConfig) {
-        const currentAY = currentSystemConfig.ayCode;
-        const currentSemester = currentSystemConfig.semester; // '1' or '2'
-        const enrollmentSemester = enrollmentData.enrollmentInfo?.semester; // 'first-sem' or 'second-sem'
-        
+        const currentAY = currentSystemConfig.ayCode
+        const currentSemester = currentSystemConfig.semester // '1' or '2'
+        const enrollmentSemester = enrollmentData.enrollmentInfo?.semester // 'first-sem' or 'second-sem'
+
         // Convert current semester to format
-        const currentSemesterFormat = currentSemester === '1' ? 'first-sem' : currentSemester === '2' ? 'second-sem' : null;
-        
+        const currentSemesterFormat =
+          currentSemester === '1'
+            ? 'first-sem'
+            : currentSemester === '2'
+            ? 'second-sem'
+            : null
+
         // Check if enrollment matches current AY and semester
-        if (enrollmentData.enrollmentInfo?.schoolYear !== currentAY || enrollmentSemester !== currentSemesterFormat) {
-          return [];
+        if (
+          enrollmentData.enrollmentInfo?.schoolYear !== currentAY ||
+          enrollmentSemester !== currentSemesterFormat
+        ) {
+          return []
         }
-      } else {
-        // Config not loaded yet, return empty to prevent showing wrong subjects
-        return [];
-      }
+      } // If config not loaded, fall through and use enrollment data as-is
     }
 
     // For high school, verify enrollment matches current AY (only if config is loaded)
     if (enrollmentData.enrollmentInfo?.level === 'high-school') {
       if (currentSystemConfig) {
-        const currentAY = currentSystemConfig.ayCode;
+        const currentAY = currentSystemConfig.ayCode
         if (enrollmentData.enrollmentInfo?.schoolYear !== currentAY) {
-          return [];
+          return []
         }
-      } else {
-        // Config not loaded yet, return empty to prevent showing wrong subjects
-        return [];
-      }
+      } // If config not loaded, fall through and use enrollment data as-is
     }
 
-    const gradeLevel = enrollmentData.enrollmentInfo?.gradeLevel;
-    if (!gradeLevel) return [];
+    const gradeLevel = enrollmentData.enrollmentInfo?.gradeLevel
+    if (!gradeLevel) return []
 
-    const gradeSubjectSets = subjectSets[parseInt(gradeLevel)] || [];
-    if (gradeSubjectSets.length === 0) return [];
+    const gradeSubjectSets = subjectSets[parseInt(gradeLevel)] || []
+    if (gradeSubjectSets.length === 0) return []
 
     // Get all subjects from all subject sets for this grade
-    const allSubjects = gradeSubjectSets.flatMap(set => set.subjects);
-    const uniqueSubjectIds = Array.from(new Set(allSubjects));
+    const allSubjects = gradeSubjectSets.flatMap((set) => set.subjects)
+    const uniqueSubjectIds = Array.from(new Set(allSubjects))
 
     // Map subject IDs to subject data
-    return uniqueSubjectIds.map(subjectId => subjects[subjectId]).filter(Boolean);
-  }, [enrollmentData, currentSystemConfig, subjectSets, subjects]);
+    return uniqueSubjectIds
+      .map((subjectId) => subjects[subjectId])
+      .filter(Boolean)
+  }, [
+    enrolledSubjects,
+    enrollmentData,
+    currentSystemConfig,
+    subjectSets,
+    subjects,
+  ])
 
   const getSubjectCount = useMemo(() => {
-    return getStudentSubjects.length;
-  }, [getStudentSubjects]);
-
-
+    return getStudentSubjects.length
+  }, [getStudentSubjects])
 
   // Navigation items for carousel
-  const navigationItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: House, color: 'bg-blue-900' },
-    { id: 'enrollment', label: 'Enrollment', icon: GraduationCap, color: 'bg-blue-900' },
-    { id: 'documents', label: 'Documents', icon: FileText, color: 'bg-blue-900' },
-    { id: 'subjects', label: 'My Subjects', icon: BookOpen, color: enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled' ? 'bg-blue-900' : 'bg-red-800' },
-    { id: 'schedule', label: 'Schedule', icon: Calendar, color: enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled' ? 'bg-blue-900' : 'bg-red-800' },
-    { id: 'performance', label: 'Performance', icon: ChartBar, color: enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled' ? 'bg-blue-900' : 'bg-red-800' },
-    { id: 'records', label: 'Academic Records', icon: IdentificationCard, color: enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled' ? 'bg-blue-900' : 'bg-red-800' }
-  ];
+  const carouselNavigationItems = [
+    { id: 'dashboard', label: 'Overview', icon: House, color: 'bg-blue-900' },
+    {
+      id: 'enrollment',
+      label: 'Enrollment',
+      icon: GraduationCap,
+      color: 'bg-blue-900',
+    },
+    {
+      id: 'documents',
+      label: 'Documents',
+      icon: FileText,
+      color: 'bg-blue-900',
+    },
+    {
+      id: 'subjects',
+      label: 'Subjects',
+      icon: BookOpen,
+      color:
+        enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled'
+          ? 'bg-blue-900'
+          : 'bg-red-800',
+    },
+    {
+      id: 'schedule',
+      label: 'Schedule',
+      icon: Calendar,
+      color:
+        enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled'
+          ? 'bg-blue-900'
+          : 'bg-red-800',
+    },
+    {
+      id: 'performance',
+      label: 'Performance',
+      icon: ChartBar,
+      color:
+        enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled'
+          ? 'bg-blue-900'
+          : 'bg-red-800',
+    },
+    {
+      id: 'records',
+      label: 'Academic Records',
+      icon: IdentificationCard,
+      color:
+        enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled'
+          ? 'bg-blue-900'
+          : 'bg-red-800',
+    },
+  ]
 
   // Subject icon helper function (from subject-list.tsx)
   const getSubjectIcon = (subject: any) => {
-    const subjectName = subject.name.toLowerCase();
-    const subjectCode = subject.code?.toLowerCase() || '';
+    const subjectName = subject.name.toLowerCase()
+    const subjectCode = subject.code?.toLowerCase() || ''
 
     // Math-related subjects
-    if (subjectName.includes('math') || subjectName.includes('calculus') || subjectName.includes('algebra') ||
-        subjectName.includes('geometry') || subjectName.includes('trigonometry') || subjectName.includes('statistics') ||
-        subjectCode.includes('math') || subjectCode.includes('calc')) {
-      return Calculator;
+    if (
+      subjectName.includes('math') ||
+      subjectName.includes('calculus') ||
+      subjectName.includes('algebra') ||
+      subjectName.includes('geometry') ||
+      subjectName.includes('trigonometry') ||
+      subjectName.includes('statistics') ||
+      subjectCode.includes('math') ||
+      subjectCode.includes('calc')
+    ) {
+      return Calculator
     }
 
     // Science-related subjects
-    if (subjectName.includes('science') || subjectName.includes('physics') || subjectName.includes('chemistry') ||
-        subjectName.includes('biology') || subjectName.includes('geology') || subjectName.includes('astronomy') ||
-        subjectCode.includes('sci') || subjectCode.includes('phy') || subjectCode.includes('chem') ||
-        subjectCode.includes('bio')) {
-      return Atom;
+    if (
+      subjectName.includes('science') ||
+      subjectName.includes('physics') ||
+      subjectName.includes('chemistry') ||
+      subjectName.includes('biology') ||
+      subjectName.includes('geology') ||
+      subjectName.includes('astronomy') ||
+      subjectCode.includes('sci') ||
+      subjectCode.includes('phy') ||
+      subjectCode.includes('chem') ||
+      subjectCode.includes('bio')
+    ) {
+      return Atom
     }
 
     // Language/English subjects
-    if (subjectName.includes('english') || subjectName.includes('language') || subjectName.includes('literature') ||
-        subjectName.includes('grammar') || subjectName.includes('reading') || subjectName.includes('writing') ||
-        subjectCode.includes('eng') || subjectCode.includes('lang')) {
-      return Book;
+    if (
+      subjectName.includes('english') ||
+      subjectName.includes('language') ||
+      subjectName.includes('literature') ||
+      subjectName.includes('grammar') ||
+      subjectName.includes('reading') ||
+      subjectName.includes('writing') ||
+      subjectCode.includes('eng') ||
+      subjectCode.includes('lang')
+    ) {
+      return Book
     }
 
     // Social Studies/History subjects
-    if (subjectName.includes('history') || subjectName.includes('social') || subjectName.includes('geography') ||
-        subjectName.includes('civics') || subjectName.includes('economics') || subjectName.includes('government') ||
-        subjectCode.includes('hist') || subjectCode.includes('soc') || subjectCode.includes('geo')) {
-      return Globe;
+    if (
+      subjectName.includes('history') ||
+      subjectName.includes('social') ||
+      subjectName.includes('geography') ||
+      subjectName.includes('civics') ||
+      subjectName.includes('economics') ||
+      subjectName.includes('government') ||
+      subjectCode.includes('hist') ||
+      subjectCode.includes('soc') ||
+      subjectCode.includes('geo')
+    ) {
+      return Globe
     }
 
     // Computer/Technology subjects
-    if (subjectName.includes('computer') || subjectName.includes('technology') || subjectName.includes('programming') ||
-        subjectName.includes('coding') || subjectName.includes('ict') || subjectName.includes('digital') ||
-        subjectCode.includes('comp') || subjectCode.includes('tech') || subjectCode.includes('prog')) {
-      return Monitor;
+    if (
+      subjectName.includes('computer') ||
+      subjectName.includes('technology') ||
+      subjectName.includes('programming') ||
+      subjectName.includes('coding') ||
+      subjectName.includes('ict') ||
+      subjectName.includes('digital') ||
+      subjectCode.includes('comp') ||
+      subjectCode.includes('tech') ||
+      subjectCode.includes('prog')
+    ) {
+      return Monitor
     }
 
     // Art subjects
-    if (subjectName.includes('art') || subjectName.includes('drawing') || subjectName.includes('painting') ||
-        subjectName.includes('visual') || subjectName.includes('design') ||
-        subjectCode.includes('art') || subjectCode.includes('draw')) {
-      return Palette;
+    if (
+      subjectName.includes('art') ||
+      subjectName.includes('drawing') ||
+      subjectName.includes('painting') ||
+      subjectName.includes('visual') ||
+      subjectName.includes('design') ||
+      subjectCode.includes('art') ||
+      subjectCode.includes('draw')
+    ) {
+      return Palette
     }
 
     // Music subjects
-    if (subjectName.includes('music') || subjectName.includes('choir') || subjectName.includes('band') ||
-        subjectName.includes('orchestra') || subjectCode.includes('music')) {
-      return MusicNote;
+    if (
+      subjectName.includes('music') ||
+      subjectName.includes('choir') ||
+      subjectName.includes('band') ||
+      subjectName.includes('orchestra') ||
+      subjectCode.includes('music')
+    ) {
+      return MusicNote
     }
 
     // Default icon for other subjects
-    return BookOpen;
-  };
+    return BookOpen
+  }
 
   // Color mapping helper (matching subject-list.tsx)
   const getSubjectColor = (color: string): string => {
     const colorMap: { [key: string]: string } = {
-      'blue-700': '#1d4ed8',
+      'blue-900': '#1d4ed8',
       'blue-800': '#1e40af',
       'red-700': '#b91c1c',
       'red-800': '#991b1b',
@@ -756,15 +1066,15 @@ export default function Dashboard() {
       'purple-700': '#7c3aed',
       'purple-800': '#6b21a8',
       'indigo-700': '#4338ca',
-      'indigo-800': '#312e81'
-    };
-    return colorMap[color] || '#1e40af';
-  };
+      'indigo-800': '#312e81',
+    }
+    return colorMap[color] || '#1e40af'
+  }
 
   const getIconColor = (color: string): string => {
     const colorMap: Record<string, string> = {
-      'blue-700': '#1d4ed8',
-      'blue-800': '#1e40af',
+      'blue-900': '#1d4ed8',
+      'blue-700': '#1e40af',
       'red-700': '#b91c1c',
       'red-800': '#991b1b',
       'emerald-700': '#047857',
@@ -778,49 +1088,60 @@ export default function Dashboard() {
       'purple-700': '#7c3aed',
       'purple-800': '#6b21a8',
       'indigo-700': '#4338ca',
-      'indigo-800': '#312e81'
-    };
-    return colorMap[color] || '#1e40af';
-  };
+      'indigo-800': '#312e81',
+    }
+    return colorMap[color] || '#1e40af'
+  }
 
   // Auto-scroll carousels
   useEffect(() => {
     const navInterval = setInterval(() => {
-      setNavCarouselIndex((prev) => (prev + 1) % Math.ceil(navigationItems.length / 3));
-    }, 3000);
+      setNavCarouselIndex(
+        (prev) => (prev + 1) % Math.ceil(carouselNavigationItems.length / 3)
+      )
+    }, 3000)
 
     const subjectsInterval = setInterval(() => {
       if (getStudentSubjects.length > 0) {
-        setSubjectsCarouselIndex((prev) => (prev + 1) % Math.ceil(getStudentSubjects.length / 3));
+        setSubjectsCarouselIndex(
+          (prev) => (prev + 1) % Math.ceil(getStudentSubjects.length / 3)
+        )
       }
-    }, 4000);
-
+    }, 4000)
 
     return () => {
-      clearInterval(navInterval);
-      clearInterval(subjectsInterval);
-    };
-  }, [navigationItems.length]);
+      clearInterval(navInterval)
+      clearInterval(subjectsInterval)
+    }
+  }, [carouselNavigationItems.length])
 
   const handleNavigationClick = (item: any) => {
-    if (item.id === 'subjects' || item.id === 'schedule' || item.id === 'performance' || item.id === 'records') {
-      if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
+    if (
+      item.id === 'subjects' ||
+      item.id === 'schedule' ||
+      item.id === 'performance' ||
+      item.id === 'records'
+    ) {
+      if (
+        !enrollmentData ||
+        enrollmentData.enrollmentInfo?.status !== 'enrolled'
+      ) {
         toast.info('You need to enroll first to access this feature.', {
           autoClose: 3000,
-          position: 'top-right'
-        });
-        return;
+          position: 'top-right',
+        })
+        return
       }
     }
-    setCurrentView(item.id as ViewType);
-  };
+    setCurrentView(item.id as ViewType)
+  }
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-900/30 border-t-blue-900"></div>
       </div>
-    );
+    )
   }
 
   if (!user) {
@@ -828,298 +1149,431 @@ export default function Dashboard() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
-            <p className="text-gray-600">Please sign in to access your dashboard.</p>
-            <Button 
-              onClick={() => router.push('/')}
-              className="mt-4"
-            >
+            <p className="text-gray-600">
+              Please sign in to access your dashboard.
+            </p>
+            <Button onClick={() => router.push('/')} className="mt-4">
               Go to Login
             </Button>
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-white to-blue-100 flex min-w-[1200px]">
       {/* Account Setup Progress Bar */}
       {user && (
-        <AccountSetupProgress
-          userId={user.uid}
-          userProfile={userProfile}
-          documents={documents}
-        />
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <AccountSetupProgress
+            userId={user.uid}
+            userProfile={userProfile}
+            documents={documents}
+          />
+        </div>
       )}
 
-      <div className="flex flex-1">
-        {/* Sidebar */}
-        <aside className="w-80 bg-white/50 shadow-lg flex flex-col animate-in slide-in-from-left-4 duration-500">
-        {/* Sidebar Header */}
-        <div className="p-6 border-blue-100">
-          <div className="flex flex-col items-center text-center">
-            <div className="flex items-center mb-2">
-              <img 
-                src="/logo.png" 
-                alt="Marian College Logo" 
-                className="w-12 h-12 object-contain aspect-square"
-              />
-              <div className="flex flex-col ml-2">
-              <h1 className="text-xl font-light text-gray-900 text-left">Student Portal</h1>
-              <p className="text-xs text-gray-600 font-bold uppercase font-mono text-left">Marian College of Baliuag, Inc.</p>
-            </div>
-            </div>
-            
-          </div>
-        </div>
-
-        {/* Student Profile Section */}
-        <div className="p-6 border-gray-200 bg-gray-100">
-          <div className="flex items-center space-x-4 mb-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-blue-900 flex items-center justify-center" >
-              {user.photoURL ? (
-                <img 
-                  src={user.photoURL} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover rounded-full aspect-square border-2 border-black"
-                />
-              ) : (
-                <User size={32} className="text-blue-900" weight="duotone" />
-              )}
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-medium text-gray-900">
-                {userProfile ? getFullName() : user.displayName || user.email?.split('@')[0] || 'Student'}
-              </h3>
-              <div className="text-xs text-gray-900 font-mono font-medium">
-                {(() => {
-                  const sectionDisplay = getSectionDisplay(enrollmentData?.enrollmentInfo?.sectionId);
-                  if (typeof sectionDisplay === 'string') {
-                    return <span>Section: {sectionDisplay}</span>;
+      {/* Left Sidebar */}
+      <aside
+        className={`${leftSidebarLayout.widthClass} bg-white/60 shadow-lg flex flex-col transition-all duration-300 h-screen fixed left-0 top-0 z-10 border-r border-blue-100`}
+      >
+        <div
+          className={`px-4 py-4 border-b bg-gradient-to-br from-blue-800 to-blue-900 flex items-center gap-3 w-full ${
+            isLeftCollapsed ? 'justify-center shadow-xl' : ''
+          }`}
+        >
+          {!isLeftCollapsed && (
+            <div className="flex items-center gap-2">
+              <div className="group relative w-[28px] h-[28px] rounded-xl bg-white shadow-md transition-all duration-300 hover:w-[120px] overflow-hidden">
+                <button
+                  type="button"
+                  onClick={
+                    userProfile
+                      ? handleEditProfile
+                      : () => router.push('/setup')
                   }
-                  return (
-                    <div className="flex items-center">
-                      <div
-                        className="w-3 h-3 mr-2 flex-shrink-0"
-                        style={{ backgroundColor: getGradeColor(sectionDisplay.gradeColor) }}
-                      ></div>
-                      <span>{sectionDisplay.gradeLevel} - {sectionDisplay.sectionName}</span>
-                    </div>
-                  );
-                })()}
+                  onKeyDown={(event) =>
+                    handleToggleKeyDown(
+                      event,
+                      userProfile
+                        ? handleEditProfile
+                        : () => router.push('/setup')
+                    )
+                  }
+                  aria-label="Open profile settings"
+                  className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-900 transition-all duration-300 group-hover:justify-start"
+                  tabIndex={0}
+                >
+                  <span className="w-6 h-6 ml-[6.5px] aspect-square rounded-lg bg-white flex items-center justify-center">
+                    <Gear size={18} weight="fill" className="text-blue-900" />
+                  </span>
+                  <span className="whitespace-nowrap text-blue-900 text-[11px] font-medium opacity-0 max-w-0 group-hover:max-w-[80px] group-hover:opacity-100 transition-all duration-200 overflow-hidden">
+                    Settings
+                  </span>
+                </button>
               </div>
-              <p className="text-xs text-gray-900 font-mono font-medium">ID: {studentMainId || userProfile?.studentId || enrollmentData?.enrollmentInfo?.studentId || 'Not Enrolled'}</p>
+              <div className="group relative w-[28px] h-[28px] rounded-xl bg-white shadow-md transition-all duration-300 hover:w-[135px] overflow-hidden">
+                <button
+                  type="button"
+                  onClick={handleToggleArrangeView}
+                  onKeyDown={(event) =>
+                    handleToggleKeyDown(event, handleToggleArrangeView)
+                  }
+                  aria-label="Toggle compact navigation view"
+                  aria-pressed={isArrangeViewActive}
+                  className={`absolute inset-0 flex items-center gap-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-900 transition-all duration-300 justify-center group-hover:justify-start ${
+                    isArrangeViewActive
+                      ? 'bg-white border border-blue-900'
+                      : 'bg-white'
+                  }`}
+                  tabIndex={0}
+                >
+                  <div className="w-6 h-6 ml-[6.5px] aspect-square rounded-lg flex items-center justify-center">
+                    <div className="grid grid-cols-2 gap-[2px]">
+                      <span className="w-1 h-1 rounded-sm bg-blue-900"></span>
+                      <span className="w-1 h-1 rounded-sm bg-blue-900"></span>
+                      <span className="w-1 h-1 rounded-sm bg-blue-900"></span>
+                      <span className="w-1 h-1 rounded-sm bg-blue-900"></span>
+                    </div>
+                  </div>
+                  <span className="whitespace-nowrap text-blue-900 text-[11px] font-medium opacity-0 max-w-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-200 overflow-hidden">
+                    {isArrangeViewActive ? 'Normal view' : 'Simplified view'}
+                  </span>
+                </button>
+              </div>
             </div>
-
-            
-          </div>
-          <Button 
-              variant="ghost"
-              className="border-1 shadow-sm border-blue-900 rounded-none w-full text-white bg-blue-900"
-              onClick={userProfile ? handleEditProfile : () => router.push('/setup')}
-            >
-              <Gear size={20} weight="fill" className="mr-1 transition-transform duration-200 hover:text-blue-900" />
-              {userProfile ? 'Edit Profile' : 'Complete Profile'}
-            </Button>
+          )}
+          <button
+            type="button"
+            onClick={handleToggleLeftSidebar}
+            onKeyDown={(event) =>
+              handleToggleKeyDown(event, handleToggleLeftSidebar)
+            }
+            aria-label={isLeftCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={`${
+              isLeftCollapsed ? '' : 'ml-auto'
+            } w-6 h-6 flex items-center aspect-square justify-center rounded-xl bg-white shadow-md transition-all duration-200 hover:from-blue-900 hover:to-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-900`}
+            tabIndex={0}
+          >
+            <span className="w-6 h-6 aspect-square rounded-lg bg-white flex items-center justify-center">
+              {isLeftCollapsed ? (
+                <List size={18} weight="bold" className="text-blue-900" />
+              ) : (
+                <CaretLeft size={18} weight="bold" className="text-blue-900" />
+              )}
+            </span>
+          </button>
         </div>
 
-        {/* Navigation Menu */}
-        <nav className="flex-1 p-6">
-          <div className="space-y-2">
-
-            <h4 className="text-sm font-medium text-blue-900 tracking-wider mb-[-2]">Hey {userProfile?.firstName}!</h4>
-            <h4 className="text-sm font-light text-blue-900 tracking-wider mb-4">What would you like to do?</h4>
-            
-            <Button 
-              variant="ghost"
-              className={`rounded-none border-l-5 font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-4 shadow-sm ${currentView === 'dashboard' ? 'bg-blue-50 border-blue-900' : ''}`}
-              onClick={() => setCurrentView('dashboard')}
-            >
-                <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
-              <User className="text-white" weight="fill" />
+        {!isLeftCollapsed && (
+          <div className="px-4 py-5 border-b border-blue-100 bg-gray-50/70 flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-xl overflow-hidden bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center border-2 border-blue-900 aspect-square">
+                {(userProfile?.photoURL || user?.photoURL) &&
+                !profileImageError ? (
+                  <img
+                    src={userProfile?.photoURL || user?.photoURL}
+                    alt="Profile"
+                    className="w-full h-full object-cover rounded-xl aspect-square"
+                    onError={() => setProfileImageError(true)}
+                  />
+                ) : (
+                  <span
+                    className="text-white text-xl font-bold"
+                    style={{ fontFamily: 'Poppins', fontWeight: 600 }}
+                  >
+                    {userProfile?.firstName?.charAt(0).toUpperCase() ||
+                      user?.displayName?.charAt(0).toUpperCase() ||
+                      user?.email?.charAt(0).toUpperCase() ||
+                      'S'}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {userProfile
+                    ? getFullName()
+                    : user?.displayName ||
+                      user?.email?.split('@')[0] ||
+                      'Student'}
+                </h3>
+                <p className="text-xs text-gray-900 font-mono font-medium">
+                  {user?.email}
+                </p>
+                <p className="text-xs text-gray-600 font-mono font-medium">
+                  {(() => {
+                    const sectionDisplay = getSectionDisplay(
+                      enrollmentData?.enrollmentInfo?.sectionId
+                    )
+                    if (!sectionDisplay) {
+                      return 'Not Assigned'
+                    }
+                    if (typeof sectionDisplay === 'string') {
+                      return sectionDisplay
+                    }
+                    const gradeLabel = `Grade ${sectionDisplay.gradeLevel}${
+                      sectionDisplay.strand
+                        ? ` ${sectionDisplay.strand}`.trim()
+                        : ''
+                    }`.trim()
+                    return sectionDisplay.sectionName
+                      ? `${gradeLabel} - ${sectionDisplay.sectionName}`
+                      : gradeLabel
+                  })()}
+                </p>
+              </div>
             </div>
-           
-              Dashboard
-            </Button>
+          </div>
+        )}
 
-            <Button
-              variant="ghost"
-              className={`rounded-none border-l-5 font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-4 shadow-sm ${currentView === 'enrollment' ? 'bg-blue-50 border-blue-900' : ''}`}
-              onClick={() => setCurrentView('enrollment')}
-            >
-                <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
-              <GraduationCap className="text-white" weight="fill" />
+        <nav className="flex-1 px-3 py-4 overflow-y-auto transition-all duration-300">
+          {!isLeftCollapsed && (
+            <div className="px-1 mb-3">
+              <h4 className="text-sm font-medium text-blue-900 tracking-wide">
+                Hey {userProfile?.firstName || 'Student'}!
+              </h4>
+              <p className="text-xs text-blue-900/70">
+                What would you like to do today?
+              </p>
             </div>
+          )}
 
-              Enrollment
-            </Button>
+          <div
+            className={
+              isLeftCollapsed
+                ? 'flex flex-col space-y-4'
+                : isArrangeViewActive
+                ? 'grid grid-cols-3 gap-3'
+                : 'flex flex-col space-y-3'
+            }
+          >
+            {navigationItems.map((item) => {
+              const IconComponent = item.icon
+              const isActive = currentView === item.view
+              const isDisabled =
+                item.requiresEnrollment &&
+                (!enrollmentData ||
+                  enrollmentData.enrollmentInfo?.status !== 'enrolled')
 
-            <Button
-              variant="ghost"
-              className={`rounded-none border-l-5 font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-4 shadow-sm ${currentView === 'documents' ? 'bg-blue-50 border-blue-900' : ''}`}
-              onClick={() => setCurrentView('documents')}
-            >
-                <div className="flex items-center justify-center bg-blue-900 aspect-square  w-6 h-6 " >
-              <FileText className="text-white" weight="fill" />
-            </div>
+              if (isArrangeViewActive) {
+                return (
+                  <button
+                    key={item.view}
+                    type="button"
+                    onClick={() => {
+                      if (isDisabled) {
+                        toast.info(
+                          'You need to enroll first to access this feature.',
+                          {
+                            autoClose: 3000,
+                            position: 'top-right',
+                          }
+                        )
+                        return
+                      }
+                      setCurrentView(item.view)
+                    }}
+                    onKeyDown={(event) =>
+                      handleToggleKeyDown(event, () => {
+                        if (isDisabled) {
+                          toast.info(
+                            'You need to enroll first to access this feature.',
+                            {
+                              autoClose: 3000,
+                              position: 'top-right',
+                            }
+                          )
+                          return
+                        }
+                        setCurrentView(item.view)
+                      })
+                    }
+                    aria-label={item.label}
+                    aria-current={isActive ? 'page' : undefined}
+                    title={item.label}
+                    tabIndex={0}
+                    disabled={isDisabled}
+                    className={`flex flex-col items-center justify-center gap-2 rounded-xl aspect-square border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-900 ${
+                      isActive
+                        ? 'bg-gradient-to-br from-blue-800 to-blue-900 border-blue-900 shadow-lg'
+                        : isDisabled
+                        ? 'bg-white/95 border-transparent opacity-50 cursor-not-allowed'
+                        : 'bg-white/95 border-transparent hover:border-blue-300 hover:shadow-lg'
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center aspect-square ${
+                        isActive
+                          ? 'bg-white'
+                          : isDisabled
+                          ? 'bg-red-800'
+                          : 'bg-gradient-to-br from-blue-800 to-blue-900'
+                      }`}
+                    >
+                      <IconComponent
+                        size={18}
+                        weight="fill"
+                        className={
+                          isActive
+                            ? 'text-blue-900'
+                            : isDisabled
+                            ? 'text-white'
+                            : 'text-white'
+                        }
+                      />
+                    </div>
+                    <span
+                      className={`text-[11px] font-medium text-center leading-tight ${
+                        isActive ? 'text-white' : 'text-blue-900'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
+                )
+              }
 
-              Documents
-            </Button>
-
-
-            
-            <Button
-              variant="ghost"
-              className={`rounded-none border-l-5 font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-4 shadow-sm ${
-                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
-                  ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
-                  : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
-              } border-1 shadow-sm ${currentView === 'subjects' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
-              onClick={() => {
-                if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
-                  // Show enrollment required message
-                  toast.info('You need to enroll first to access this feature.', {
-                    autoClose: 3000,
-                    position: 'top-right'
-                  });
-                  return;
-                }
-                setCurrentView('subjects');
-              }}
-            >
-                <div className={`flex items-center justify-center aspect-square w-6 h-6 ${
-                  !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
-                    ? 'bg-red-800'
-                    : 'bg-blue-900'
-                }`}>
-              <BookOpen className="text-white" weight="fill" />
-            </div>
-
-              My Subjects
-            </Button>
-            
-            <Button
-              variant="ghost"
-              className={`rounded-none border-l-5 font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-4 shadow-sm ${
-                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
-                  ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
-                  : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
-              } border-1 shadow-sm ${currentView === 'schedule' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
-              onClick={() => {
-                if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
-                  // Show enrollment required message
-                  toast.info('You need to enroll first to access this feature.', {
-                    autoClose: 3000,
-                    position: 'top-right'
-                  });
-                  return;
-                }
-                setCurrentView('schedule');
-              }}
-            >
-              <div className={`flex items-center justify-center aspect-square w-6 h-6 ${
-                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
-                  ? 'bg-red-800'
-                  : 'bg-blue-900'
-              }`}>
-              <Calendar className="text-white" weight="fill" />
-            </div>
-
-              Schedule
-            </Button>
-            
-            <Button
-              variant="ghost"
-              className={`rounded-none border-l-5 font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-4 shadow-sm ${
-                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
-                  ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
-                  : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
-              } border-1 shadow-sm ${currentView === 'performance' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
-              onClick={() => {
-                if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
-                  // Show enrollment required message
-                  toast.info('You need to enroll first to access this feature.', {
-                    autoClose: 3000,
-                    position: 'top-right'
-                  });
-                  return;
-                }
-                setCurrentView('performance');
-              }}
-            >
-              <div className={`flex items-center justify-center aspect-square w-6 h-6 ${
-                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
-                  ? 'bg-red-800'
-                  : 'bg-blue-900'
-              }`}>
-              <ChartBar className="text-white" weight="fill" />
-            </div>
-
-              Performance
-            </Button>
-            
-            <Button
-              variant="ghost"
-              className={`rounded-none border-l-5 font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-l-4 shadow-sm ${
-                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
-                  ? 'opacity-50 text-red-800 hover:bg-red-50 hover:text-red-900 border-red-800 cursor-not-allowed relative group'
-                  : 'hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900'
-              } border-1 shadow-sm ${currentView === 'records' ? (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled' ? 'bg-red-50 border-red-800' : 'bg-blue-50 border-blue-900') : ''}`}
-              onClick={() => {
-                if (!enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled') {
-                  // Show enrollment required message
-                  toast.info('You need to enroll first to access this feature.', {
-                    autoClose: 3000,
-                    position: 'top-right'
-                  });
-                  return;
-                }
-                setCurrentView('records');
-              }}
-            >
-              <div className={`flex items-center justify-center aspect-square w-6 h-6 ${
-                !enrollmentData || enrollmentData.enrollmentInfo?.status !== 'enrolled'
-                  ? 'bg-red-800'
-                  : 'bg-blue-900'
-              }`}>
-              <IdentificationCard className="text-white" weight="fill" />
-            </div>
-
-              Academic Records
-            </Button>
+              return (
+                <button
+                  key={item.view}
+                  type="button"
+                  onClick={() => {
+                    if (isDisabled) {
+                      toast.info(
+                        'You need to enroll first to access this feature.',
+                        {
+                          autoClose: 3000,
+                          position: 'top-right',
+                        }
+                      )
+                      return
+                    }
+                    setCurrentView(item.view)
+                  }}
+                  onKeyDown={(event) =>
+                    handleToggleKeyDown(event, () => {
+                      if (isDisabled) {
+                        toast.info(
+                          'You need to enroll first to access this feature.',
+                          {
+                            autoClose: 3000,
+                            position: 'top-right',
+                          }
+                        )
+                        return
+                      }
+                      setCurrentView(item.view)
+                    })
+                  }
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
+                  title={item.label}
+                  tabIndex={0}
+                  disabled={isDisabled}
+                  className={`w-full border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-900 ${
+                    isActive
+                      ? 'bg-gradient-to-br from-blue-800 to-blue-900 border-blue-900 shadow-md shadow-[0_0_18px_rgba(30,64,175,0.45)] text-white'
+                      : isDisabled
+                      ? 'bg-transparent border-transparent text-red-800 opacity-50 cursor-not-allowed'
+                      : 'bg-transparent border-transparent text-blue-900 hover:border-blue-300 hover:bg-blue-50'
+                  } ${
+                    isLeftCollapsed
+                      ? 'rounded-xl flex flex-col items-center gap-2 px-3 py-4'
+                      : 'rounded-xl flex items-center gap-3 px-4 py-3 justify-start text-left'
+                  }`}
+                >
+                  <span
+                    className={`flex items-center justify-center rounded-lg w-8 h-8 aspect-square ${
+                      isActive
+                        ? 'bg-white'
+                        : isDisabled
+                        ? 'bg-red-800'
+                        : 'bg-gradient-to-br from-blue-800 to-blue-900'
+                    }`}
+                  >
+                    <IconComponent
+                      size={16}
+                      weight="fill"
+                      className={
+                        isActive
+                          ? 'text-blue-900'
+                          : isDisabled
+                          ? 'text-white'
+                          : 'text-white'
+                      }
+                    />
+                  </span>
+                  {isLeftCollapsed ? (
+                    <span
+                      className={`text-[10px] font-medium uppercase tracking-wide ${
+                        isActive ? 'text-white' : 'text-blue-900'
+                      }`}
+                    >
+                      {item.label.split(' ')[0]}
+                    </span>
+                  ) : (
+                    <span className="flex flex-col items-start">
+                      <span
+                        className={`text-sm font-medium ${
+                          isActive ? 'text-white' : 'text-blue-900'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                      <span
+                        className={`text-[11px] ${
+                          isActive ? 'text-white/70' : 'text-blue-900/70'
+                        }`}
+                      >
+                        {item.description}
+                      </span>
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </nav>
 
-        {/* Sidebar Footer */}
-        <div className="p-6 border-t border-gray-200">
-       
-          <Button 
-            className="bg-red-800 text-white"
-            onClick={handleSignOut}
-          >
-            <div className="flex justify-center items-center bg-white aspect-square w-5 h-5 " >
-              <SignOut className="text-red-800" weight="fill" />
-            </div>
-
-            Sign Out  {userProfile?.firstName} {userProfile?.lastName}
-          </Button>
-        </div>
+        {!isLeftCollapsed && (
+          <div className="p-4 border-t border-blue-100">
+            <button
+              onClick={handleSignOut}
+              onKeyDown={(event) => handleToggleKeyDown(event, handleSignOut)}
+              className="w-full rounded-xl flex items-center gap-3 px-4 py-3 justify-start text-left bg-transparent border border-transparent text-red-800 hover:border-red-300 hover:bg-red-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-800"
+              aria-label="Sign out"
+            >
+              <span className="flex items-center justify-center rounded-lg w-8 h-8 aspect-square bg-red-800">
+                <SignOut size={16} weight="fill" className="text-white" />
+              </span>
+              <span className="flex flex-col items-start">
+                <span className="text-sm font-medium text-red-800">
+                  Sign Out {userProfile?.firstName || 'Student'}
+                </span>
+                <span className="text-[11px] text-red-800/70">Log out</span>
+              </span>
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${leftSidebarLayout.marginClass}`}
+      >
         <div className="p-6">
           {currentView === 'dashboard' && (
             <div className="space-y-8">
               {/* Welcome Section */}
-              <div className="bg-white p-6 border border-gray-200">
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-blue-900 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
                     <User size={32} className="text-white" weight="fill" />
                   </div>
                   <div>
                     <h1
-                      className="text-2xl font-medium text-gray-900"
+                      className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
                       style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                     >
                       Welcome back, {userProfile?.firstName}!
@@ -1136,26 +1590,46 @@ export default function Dashboard() {
 
               {/* Quick Stats */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="p-6 border-none bg-gray-50 border-1 shadow-sm border-blue-900">
+                <Card className="p-6 border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
-                      <GraduationCap size={24} className="text-white" weight="fill" />
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
+                      <GraduationCap
+                        size={24}
+                        className="text-white"
+                        weight="fill"
+                      />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                      <p
+                        className="text-sm text-gray-600"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
                         Current Grade
                       </p>
                       <div className="flex items-center gap-2">
-                        {enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled' && enrollmentData.enrollmentInfo?.sectionId && (() => {
-                          const sectionDisplay = getSectionDisplay(enrollmentData.enrollmentInfo.sectionId);
-                          return (
-                            <div
-                              className="w-4 h-4 flex-shrink-0"
-                              style={{ backgroundColor: getGradeColor(sectionDisplay.gradeColor) }}
-                            ></div>
-                          );
-                        })()}
-                        <p className="text-lg font-medium text-gray-900 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                        {enrollmentData &&
+                          enrollmentData.enrollmentInfo?.status ===
+                            'enrolled' &&
+                          enrollmentData.enrollmentInfo?.sectionId &&
+                          (() => {
+                            const sectionDisplay = getSectionDisplay(
+                              enrollmentData.enrollmentInfo.sectionId
+                            )
+                            return (
+                              <div
+                                className="w-4 h-4 flex-shrink-0 rounded"
+                                style={{
+                                  backgroundColor: getGradeColor(
+                                    sectionDisplay.gradeColor
+                                  ),
+                                }}
+                              ></div>
+                            )
+                          })()}
+                        <p
+                          className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent font-mono"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
                           {getCurrentGrade()}
                         </p>
                       </div>
@@ -1163,61 +1637,98 @@ export default function Dashboard() {
                   </div>
                 </Card>
 
-                <Card className="p-6 border-none bg-gray-50 border-1 shadow-sm border-blue-900">
+                <Card className="p-6 border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
-                      <BookOpen size={24} className="text-white" weight="fill" />
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
+                      <BookOpen
+                        size={24}
+                        className="text-white"
+                        weight="fill"
+                      />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                      <p
+                        className="text-sm text-gray-600"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
                         Subjects
                       </p>
                       <div className="flex items-center gap-2">
-                        <p className="text-lg font-medium text-gray-900 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                        <p
+                          className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent font-mono"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
                           {getSubjectCount}
                         </p>
-                        {enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled' && getStudentSubjects.length > 0 && (
-                          <div className="flex gap-1">
-                            {getStudentSubjects.map((subject) => (
-                              <div
-                                key={subject.id}
-                                className="w-3 h-3 flex-shrink-0"
-                                style={{ backgroundColor: getSubjectColor(subject.color) }}
-                              ></div>
-                            ))}
-                          </div>
-                        )}
+                        {enrollmentData &&
+                          enrollmentData.enrollmentInfo?.status ===
+                            'enrolled' &&
+                          getStudentSubjects.length > 0 && (
+                            <div className="flex gap-1">
+                              {getStudentSubjects.map((subject) => (
+                                <div
+                                  key={subject.id}
+                                  className="w-3 h-3 flex-shrink-0 rounded"
+                                  style={{
+                                    backgroundColor: getSubjectColor(
+                                      subject.color
+                                    ),
+                                  }}
+                                ></div>
+                              ))}
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>
                 </Card>
 
-                <Card className="p-6 border-none bg-gray-50 border-1 shadow-sm border-blue-900">
+                <Card className="p-6 border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
-                      <Calendar size={24} className="text-white" weight="fill" />
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
+                      <Calendar
+                        size={24}
+                        className="text-white"
+                        weight="fill"
+                      />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                      <p
+                        className="text-sm text-gray-600"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
                         Schedule
                       </p>
-                      <p className="text-lg font-medium text-gray-900 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                      <p
+                        className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent font-mono"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
                         Not Set
                       </p>
                     </div>
                   </div>
                 </Card>
 
-                <Card className="p-6 border-none bg-gray-50 border-1 shadow-sm border-blue-900">
+                <Card className="p-6 border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
-                      <ChartBar size={24} className="text-white" weight="fill" />
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
+                      <ChartBar
+                        size={24}
+                        className="text-white"
+                        weight="fill"
+                      />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                      <p
+                        className="text-sm text-gray-600"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
                         Performance
                       </p>
-                      <p className="text-lg font-medium text-gray-900 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                      <p
+                        className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent font-mono"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
                         N/A
                       </p>
                     </div>
@@ -1226,63 +1737,83 @@ export default function Dashboard() {
               </div>
 
               {/* What would you like to do? - Navigation Carousel */}
-              <div className="bg-white p-6 border border-gray-200">
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
                     <House size={20} className="text-white" weight="fill" />
                   </div>
                   <h2
-                    className="text-xl font-medium text-gray-900"
+                    className="text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
                     What would you like to do?
                   </h2>
                 </div>
-                
+
                 <div className="relative overflow-hidden">
-                  <div 
+                  <div
                     className="flex transition-transform duration-500 ease-in-out"
-                    style={{ transform: `translateX(-${navCarouselIndex * 100}%)` }}
+                    style={{
+                      transform: `translateX(-${navCarouselIndex * 100}%)`,
+                    }}
                   >
-                      {Array.from({ length: Math.ceil(navigationItems.length / 3) }).map((_, groupIndex) => (
-                        <div key={groupIndex} className="w-full flex-shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${groupIndex * 150}ms` }}>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {navigationItems.slice(groupIndex * 3, (groupIndex + 1) * 3).map((item, itemIndex) => (
-                            <Button
-                              key={item.id}
-                              variant="ghost"
-                              onClick={() => handleNavigationClick(item)}
-                              className="h-24 p-4 border border-blue-900 bg-blue-900 hover:bg-blue-800 transition-all duration-200 group animate-in fade-in slide-in-from-bottom-4"
-                              style={{ 
-                                fontFamily: 'Poppins', 
-                                fontWeight: 300,
-                                animationDelay: `${(groupIndex * 150) + (itemIndex * 75) + 200}ms`,
-                                animationFillMode: 'both'
-                              }}
-                            >
-                              <div className="flex flex-col items-center space-y-2 w-full">
-                                <div className="w-10 h-10 bg-white flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                                  <item.icon size={20} className="text-blue-900" weight="fill" />
+                    {Array.from({
+                      length: Math.ceil(carouselNavigationItems.length / 3),
+                    }).map((_, groupIndex) => (
+                      <div
+                        key={groupIndex}
+                        className="w-full flex-shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500"
+                        style={{ animationDelay: `${groupIndex * 150}ms` }}
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {carouselNavigationItems
+                            .slice(groupIndex * 3, (groupIndex + 1) * 3)
+                            .map((item, itemIndex) => (
+                              <Button
+                                key={item.id}
+                                variant="ghost"
+                                onClick={() => handleNavigationClick(item)}
+                                className="h-24 p-4 rounded-xl border border-blue-900 bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 transition-all duration-200 group animate-in fade-in slide-in-from-bottom-4 shadow-md"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 300,
+                                  animationDelay: `${
+                                    groupIndex * 150 + itemIndex * 75 + 200
+                                  }ms`,
+                                  animationFillMode: 'both',
+                                }}
+                              >
+                                <div className="flex flex-col items-center space-y-2 w-full">
+                                  <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center aspect-square group-hover:scale-110 transition-transform duration-200 shadow-sm">
+                                    <item.icon
+                                      size={20}
+                                      className="text-blue-900"
+                                      weight="fill"
+                                    />
+                                  </div>
+                                  <span className="text-xs text-white group-hover:text-white text-center">
+                                    {item.label}
+                                  </span>
                                 </div>
-                                <span className="text-xs text-white group-hover:text-white text-center">
-                                  {item.label}
-                                </span>
-                              </div>
-                            </Button>
-                          ))}
+                              </Button>
+                            ))}
                         </div>
                       </div>
                     ))}
                   </div>
-                  
+
                   {/* Navigation dots */}
                   <div className="flex justify-center mt-4 space-x-2">
-                    {Array.from({ length: Math.ceil(navigationItems.length / 3) }).map((_, index) => (
+                    {Array.from({
+                      length: Math.ceil(carouselNavigationItems.length / 3),
+                    }).map((_, index) => (
                       <button
                         key={index}
                         onClick={() => setNavCarouselIndex(index)}
                         className={`w-2 h-2 rounded-full transition-colors duration-200 ${
-                          index === navCarouselIndex ? 'bg-blue-900' : 'bg-gray-300'
+                          index === navCarouselIndex
+                            ? 'bg-blue-900'
+                            : 'bg-gray-300'
                         }`}
                       />
                     ))}
@@ -1291,108 +1822,195 @@ export default function Dashboard() {
               </div>
 
               {/* Your Subjects - Subjects Carousel */}
-              {enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled' && getStudentSubjects.length > 0 && (
-                <div className="bg-white p-6 border border-gray-200">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-                      <BookOpen size={20} className="text-white" weight="fill" />
-                    </div>
-                    <h2
-                      className="text-xl font-medium text-gray-900"
-                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                    >
-                      Your Subjects ({getSubjectCount})
-                    </h2>
-                  </div>
-                  
-                  <div className="relative overflow-hidden">
-                    <div 
-                      className="flex transition-transform duration-500 ease-in-out"
-                      style={{ transform: `translateX(-${subjectsCarouselIndex * 100}%)` }}
-                    >
-                      {Array.from({ length: Math.ceil(getStudentSubjects.length / 3) }).map((_, groupIndex) => (
-                        <div key={groupIndex} className="w-full flex-shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${groupIndex * 150}ms` }}>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {getStudentSubjects.slice(groupIndex * 3, (groupIndex + 1) * 3).map((subject, subjectIndex) => {
-                              const IconComponent = getSubjectIcon(subject);
-                              return (
-                                <div
-                                  key={subject.id}
-                                  className="group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-sm transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
-                                  style={{ 
-                                    backgroundColor: getSubjectColor(subject.color),
-                                    borderLeftColor: getSubjectColor(subject.color),
-                                    animationDelay: `${(groupIndex * 150) + (subjectIndex * 75) + 200}ms`,
-                                    animationFillMode: 'both'
-                                  }}
-                                >
-                                  {/* Card Header */}
-                                  <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-4">
-                                      <div className="w-16 h-16 bg-white flex items-center justify-center flex-shrink-0">
-                                        <IconComponent
-                                          size={32}
-                                          style={{ color: getIconColor(subject.color) }}
-                                          weight="fill"
-                                        />
-                                      </div>
-                                      <div>
-                                        <div className="flex items-center gap-3">
-                                          <h3
-                                            className="text-lg font-medium text-white"
-                                            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                                          >
-                                            {subject.code}
-                                          </h3>
-                                        </div>
-                                        <div className="flex gap-1">
-                                          <div className="w-3 h-3 bg-white"></div>
-                                          <div className="w-3 h-3 bg-white/80"></div>
-                                          <div className="w-3 h-3 bg-white/60"></div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-4 mb-4">
-                                    <div className="flex items-center p-1 text-xs font-medium rounded-none border border-white/30 bg-white/20 text-white">
-                                      <BookOpen size={12} className="mr-1" weight="duotone" />
-                                      Grade {subject.gradeLevel}
-                                    </div>
-                                    <div className="flex items-center p-1 text-xs font-medium rounded-none border border-white/30 bg-white/20 text-white">
-                                      <Calculator size={12} className="mr-1" weight="duotone" />
-                                      {(subject.lectureUnits || 0) + (subject.labUnits || 0)} units
-                                    </div>
-                                  </div>
-
-                                  <div className="flex flex-col text-xs truncate-2-lines font-light text-justify">
-                                    <span className="text-white text-sm font-medium">{subject.name}</span>
-                                    <span className="text-white">{subject.description}</span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Subjects carousel dots */}
-                    <div className="flex justify-center mt-4 space-x-2">
-                      {Array.from({ length: Math.ceil(getStudentSubjects.length / 3) }).map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setSubjectsCarouselIndex(index)}
-                          className={`w-2 h-2 rounded-full transition-colors duration-200 ${
-                            index === subjectsCarouselIndex ? 'bg-blue-900' : 'bg-gray-300'
-                          }`}
+              {enrollmentData &&
+                enrollmentData.enrollmentInfo?.status === 'enrolled' &&
+                getStudentSubjects.length > 0 && (
+                  <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
+                        <BookOpen
+                          size={20}
+                          className="text-white"
+                          weight="fill"
                         />
-                      ))}
+                      </div>
+                      <h2
+                        className="text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      >
+                        Your Subjects ({getSubjectCount})
+                      </h2>
+                    </div>
+
+                    <div className="relative overflow-hidden">
+                      <div
+                        className="flex transition-transform duration-500 ease-in-out"
+                        style={{
+                          transform: `translateX(-${
+                            subjectsCarouselIndex * 100
+                          }%)`,
+                        }}
+                      >
+                        {Array.from({
+                          length: Math.ceil(getStudentSubjects.length / 3),
+                        }).map((_, groupIndex) => (
+                          <div
+                            key={groupIndex}
+                            className="w-full flex-shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500"
+                            style={{
+                              animationDelay: `${groupIndex * 150}ms`,
+                            }}
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {getStudentSubjects
+                                .slice(groupIndex * 3, (groupIndex + 1) * 3)
+                                .map((subject, subjectIndex) => {
+                                  const IconComponent = getSubjectIcon(subject)
+                                  const subjectColor = getSubjectColor(
+                                    subject.color
+                                  )
+                                  const getGradientClass = (color: string) => {
+                                    const colorMap: Record<string, string> = {
+                                      'blue-900': 'from-blue-800 to-blue-900',
+                                      'blue-800': 'from-blue-700 to-blue-800',
+                                      'red-700': 'from-red-600 to-red-700',
+                                      'red-800': 'from-red-700 to-red-800',
+                                      'emerald-700':
+                                        'from-emerald-600 to-emerald-700',
+                                      'emerald-800':
+                                        'from-emerald-700 to-emerald-800',
+                                      'yellow-700':
+                                        'from-yellow-600 to-yellow-700',
+                                      'yellow-800':
+                                        'from-yellow-700 to-yellow-800',
+                                      'orange-700':
+                                        'from-orange-600 to-orange-700',
+                                      'orange-800':
+                                        'from-orange-700 to-orange-800',
+                                      'violet-700':
+                                        'from-violet-600 to-violet-700',
+                                      'violet-800':
+                                        'from-violet-700 to-violet-800',
+                                      'purple-700':
+                                        'from-purple-600 to-purple-700',
+                                      'purple-800':
+                                        'from-purple-700 to-purple-800',
+                                      'indigo-700':
+                                        'from-indigo-600 to-indigo-700',
+                                      'indigo-800':
+                                        'from-indigo-700 to-indigo-800',
+                                    }
+                                    return (
+                                      colorMap[subject.color] ||
+                                      'from-blue-800 to-blue-900'
+                                    )
+                                  }
+                                  return (
+                                    <div
+                                      key={subject.id}
+                                      className={`group p-6 rounded-xl hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out shadow-lg transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gradient-to-br ${getGradientClass(
+                                        subject.color
+                                      )}`}
+                                      style={{
+                                        animationDelay: `${
+                                          groupIndex * 150 +
+                                          subjectIndex * 75 +
+                                          200
+                                        }ms`,
+                                        animationFillMode: 'both',
+                                      }}
+                                    >
+                                      {/* Card Header */}
+                                      <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-4">
+                                          <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center flex-shrink-0 aspect-square shadow-md">
+                                            <IconComponent
+                                              size={32}
+                                              style={{
+                                                color: getIconColor(
+                                                  subject.color
+                                                ),
+                                              }}
+                                              weight="fill"
+                                            />
+                                          </div>
+                                          <div>
+                                            <div className="flex items-center gap-3">
+                                              <h3
+                                                className="text-lg font-medium text-white"
+                                                style={{
+                                                  fontFamily: 'Poppins',
+                                                  fontWeight: 500,
+                                                }}
+                                              >
+                                                {subject.code}
+                                              </h3>
+                                            </div>
+                                            <div className="flex gap-1">
+                                              <div className="w-3 h-3 rounded bg-white"></div>
+                                              <div className="w-3 h-3 rounded bg-white/80"></div>
+                                              <div className="w-3 h-3 rounded bg-white/60"></div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-4 mb-4">
+                                        <div className="flex items-center p-1 text-xs font-medium rounded-lg border border-white/30 bg-white/20 text-white">
+                                          <BookOpen
+                                            size={12}
+                                            className="mr-1"
+                                            weight="duotone"
+                                          />
+                                          Grade {subject.gradeLevel}
+                                        </div>
+                                        <div className="flex items-center p-1 text-xs font-medium rounded-lg border border-white/30 bg-white/20 text-white">
+                                          <Calculator
+                                            size={12}
+                                            className="mr-1"
+                                            weight="duotone"
+                                          />
+                                          {(subject.lectureUnits || 0) +
+                                            (subject.labUnits || 0)}{' '}
+                                          units
+                                        </div>
+                                      </div>
+
+                                      <div className="flex flex-col text-xs truncate-2-lines font-light text-justify">
+                                        <span className="text-white text-sm font-medium">
+                                          {subject.name}
+                                        </span>
+                                        <span className="text-white">
+                                          {subject.description}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Subjects carousel dots */}
+                      <div className="flex justify-center mt-4 space-x-2">
+                        {Array.from({
+                          length: Math.ceil(getStudentSubjects.length / 3),
+                        }).map((_, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setSubjectsCarouselIndex(index)}
+                            className={`w-2 h-2 rounded-full transition-colors duration-200 ${
+                              index === subjectsCarouselIndex
+                                ? 'bg-blue-900'
+                                : 'bg-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-
+                )}
             </div>
           )}
 
@@ -1422,12 +2040,12 @@ export default function Dashboard() {
           {currentView === 'schedule' && (
             <div className="space-y-6">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
                   <Calendar size={20} className="text-white" weight="fill" />
                 </div>
                 <div>
                   <h1
-                    className="text-2xl font-medium text-gray-900"
+                    className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
                     Class Schedule
@@ -1441,19 +2059,24 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-sm border-blue-900">
-                <Calendar size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+              <Card className="p-12 text-center border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
+                <Calendar
+                  size={48}
+                  className="mx-auto text-gray-400 mb-4"
+                  weight="duotone"
+                />
                 <h3
-                  className="text-lg font-medium text-gray-900 mb-2"
+                  className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent mb-2"
                   style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                 >
                   Schedule not available
                 </h3>
                 <p
-                  className="text-gray-600 text-justify border-1 shadow-sm border-blue-900 p-3 bg-blue-50"
+                  className="text-gray-600 text-justify rounded-xl border border-blue-100 shadow-sm p-3 bg-blue-50"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
-                  Your class schedule will be available once you're enrolled and your subjects are assigned.
+                  Your class schedule will be available once you're enrolled and
+                  your subjects are assigned.
                 </p>
               </Card>
             </div>
@@ -1462,12 +2085,12 @@ export default function Dashboard() {
           {currentView === 'performance' && (
             <div className="space-y-6">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
                   <ChartBar size={20} className="text-white" weight="fill" />
                 </div>
                 <div>
                   <h1
-                    className="text-2xl font-medium text-gray-900"
+                    className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
                     Academic Performance
@@ -1481,19 +2104,24 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-sm border-blue-900">
-                <ChartBar size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+              <Card className="p-12 text-center border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
+                <ChartBar
+                  size={48}
+                  className="mx-auto text-gray-400 mb-4"
+                  weight="duotone"
+                />
                 <h3
-                  className="text-lg font-medium text-gray-900 mb-2"
+                  className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent mb-2"
                   style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                 >
                   Performance data not available
                 </h3>
                 <p
-                  className="text-gray-600 text-justify border-1 shadow-sm border-blue-900 p-3 bg-blue-50"
+                  className="text-gray-600 text-justify rounded-xl border border-blue-100 shadow-sm p-3 bg-blue-50"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
-                  Your academic performance data will be available once you have completed assessments and grades have been recorded.
+                  Your academic performance data will be available once you have
+                  completed assessments and grades have been recorded.
                 </p>
               </Card>
             </div>
@@ -1524,7 +2152,6 @@ export default function Dashboard() {
           isModal={true}
         />
       </Modal>
-      </div>
     </div>
-  );
+  )
 }

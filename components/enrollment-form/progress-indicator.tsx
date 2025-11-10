@@ -14,6 +14,11 @@ type ProgressIndicatorProps = {
   onProgressStepClick: (step: 'compliance' | 're-enroll' | 'level-selection' | 'grade-selection' | 'course-selection' | 'year-selection' | 'semester-selection' | 'personal-info' | 'confirmation') => void
 }
 
+// Helper function to check if selected grade is SHS
+const isSHSGrade = (grade: any | null): boolean => {
+  return grade?.department === 'SHS'
+}
+
 export default function ProgressIndicator({
   currentStep,
   selectedLevel,
@@ -38,17 +43,31 @@ export default function ProgressIndicator({
             className="absolute top-6 left-6 h-1 bg-gradient-to-r from-blue-600 to-blue-900 transition-all duration-1000 ease-out z-10"
             style={{
               width: (() => {
+                const isSHS = isSHSGrade(selectedGrade)
                 let steps: string[]
+                
                 if (selectedLevel === 'college') {
                   steps = [
                     'compliance',
                     'level-selection',
                     'course-selection',
                     'year-selection',
+                    'semester-selection',
+                    'personal-info',
+                    'confirmation',
+                  ]
+                } else if (isSHS) {
+                  // SHS has semester selection like college
+                  steps = [
+                    'compliance',
+                    'level-selection',
+                    'grade-selection',
+                    'semester-selection',
                     'personal-info',
                     'confirmation',
                   ]
                 } else {
+                  // JHS - no semester
                   steps = [
                     'compliance',
                     'level-selection',
@@ -68,17 +87,29 @@ export default function ProgressIndicator({
                 ) {
                   stepIndex = steps.indexOf('grade-selection')
                 }
+                
+                // Handle semester-selection for SHS
+                if (
+                  stepIndex === -1 &&
+                  currentStep === 'semester-selection' &&
+                  isSHS
+                ) {
+                  stepIndex = steps.indexOf('semester-selection')
+                }
 
                 // Calculate based on step position with proper spacing
                 if (stepIndex >= 0) {
                   // Define progress positions as variables for easy editing
-                  const collegePositions = [0, 15, 30, 45, 60, 75, 93] // 7 steps
-                  const highSchoolPositions = [0, 22.5, 45, 69, 93] // 5 steps
+                  const collegePositions = [0, 12.5, 25, 37.5, 50, 62.5, 75, 93] // 8 steps (includes semester)
+                  const shsPositions = [0, 15, 30, 45, 60, 75, 93] // 7 steps (includes semester)
+                  const jhsPositions = [0, 22.5, 45, 69, 93] // 5 steps (no semester)
 
                   const positions =
                     selectedLevel === 'college'
                       ? collegePositions
-                      : highSchoolPositions
+                      : isSHS
+                      ? shsPositions
+                      : jhsPositions
                   return `${positions[stepIndex]}%`
                 }
 
@@ -272,8 +303,8 @@ export default function ProgressIndicator({
             </div>
           )}
 
-          {/* Step 5: Semester Selection (College only) */}
-          {selectedLevel === 'college' && (
+          {/* Step 5: Semester Selection (College and SHS) */}
+          {(selectedLevel === 'college' || isSHSGrade(selectedGrade)) && (
             <div
               key="semester-selection-step"
               className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${

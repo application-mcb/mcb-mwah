@@ -80,8 +80,8 @@ interface SubjectSelectionModalProps {
 // Helper function to get course color value
 const getCourseColorValue = (color: string): string => {
   const colorMap: Record<string, string> = {
-    'blue-700': '#1d4ed8',
-    'blue-800': '#1e40af',
+    'blue-900': '#1d4ed8',
+    'blue-900': '#1e40af',
     'red-700': '#b91c1c',
     'red-800': '#991b1b',
     'emerald-700': '#047857',
@@ -655,7 +655,7 @@ function SubjectSelectionModal({
                 onSubjectsRefresh?.()
               }}
               disabled={loadingSubjects}
-              className="text-xs text-blue-600 hover:text-blue-800 disabled:text-gray-400 px-3 py-1 border border-blue-200 rounded hover:bg-blue-50"
+              className="text-xs text-blue-600 hover:text-blue-900 disabled:text-gray-400 px-3 py-1 border border-blue-200 rounded hover:bg-blue-50"
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
             >
               {loadingSubjects ? 'Loading...' : 'Refresh'}
@@ -1308,7 +1308,7 @@ export default function SubjectSetForm({
 
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
           <p
-            className="text-sm text-blue-800 text-center"
+            className="text-sm text-blue-900 text-center"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             Subject sets help organize related subjects together for easier

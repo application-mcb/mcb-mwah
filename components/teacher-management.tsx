@@ -1,36 +1,56 @@
-'use client';
+'use client'
 
-import { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Modal } from '@/components/ui/modal';
-import { toast } from 'react-toastify';
-import { GraduationCap, Plus, User, Envelope, Phone, MapPin, BookOpen, Users, Eye, EyeSlash, Calendar, Gear, MagnifyingGlass, ArrowUp, ArrowDown, Pencil, Trash, Circle, UserPlus } from '@phosphor-icons/react';
-import TeacherAssignmentModal from './teacher-assignment-modal';
+import { useState, useEffect, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Modal } from '@/components/ui/modal'
+import { toast } from 'react-toastify'
+import {
+  GraduationCap,
+  Plus,
+  User,
+  Envelope,
+  Phone,
+  MapPin,
+  BookOpen,
+  Users,
+  Eye,
+  EyeSlash,
+  Calendar,
+  Gear,
+  MagnifyingGlass,
+  ArrowUp,
+  ArrowDown,
+  Pencil,
+  Trash,
+  Circle,
+  UserPlus,
+} from '@phosphor-icons/react'
+import TeacherAssignmentModal from './teacher-assignment-modal'
 
 interface TeacherManagementProps {
-  registrarUid: string;
+  registrarUid: string
 }
 
 interface Teacher {
-  id: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  extension?: string;
-  email: string;
-  phone: string;
-  createdAt: string;
-  updatedAt: string;
-  uid?: string; // Firebase user ID
-  status?: 'active' | 'inactive'; // Account status
+  id: string
+  firstName: string
+  middleName?: string
+  lastName: string
+  extension?: string
+  email: string
+  phone: string
+  createdAt: string
+  updatedAt: string
+  uid?: string // Firebase user ID
+  status?: 'active' | 'inactive' // Account status
 }
 
 // Helper functions defined outside component for better scoping
 const sendPasswordResetEmail = async (teacher: Teacher): Promise<void> => {
   if (!teacher.uid) {
-    toast.error('Teacher UID not found');
-    return;
+    toast.error('Teacher UID not found')
+    return
   }
 
   try {
@@ -40,88 +60,115 @@ const sendPasswordResetEmail = async (teacher: Teacher): Promise<void> => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ uid: teacher.uid }),
-    });
+    })
 
     if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to send password reset email');
+      const data = await response.json()
+      throw new Error(data.error || 'Failed to send password reset email')
     }
 
-    toast.success('Password reset email sent successfully!');
+    toast.success('Password reset email sent successfully!')
   } catch (error: any) {
-    console.error('Error sending password reset email:', error);
-    toast.error(error.message);
+    console.error('Error sending password reset email:', error)
+    toast.error(error.message)
   }
-};
+}
 
 const changePassword = (teacher: Teacher): void => {
   if (!teacher.uid) {
-    toast.error('Teacher UID not found');
-    return;
+    toast.error('Teacher UID not found')
+    return
   }
 
   // This function is now handled by the onClick in the component
   // The actual modal opening is done in the component
-};
+}
 
-export default function TeacherManagement({ registrarUid }: TeacherManagementProps) {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [assignmentCounts, setAssignmentCounts] = useState<Record<string, { subjects: number; sections: number }>>({});
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
-  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
-  const [passwordTeacher, setPasswordTeacher] = useState<Teacher | null>(null);
-  const [assignmentTeacher, setAssignmentTeacher] = useState<Teacher | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortOption, setSortOption] = useState<string>('a-z');
-
+export default function TeacherManagement({
+  registrarUid,
+}: TeacherManagementProps) {
+  const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [loading, setLoading] = useState(true)
+  const [assignmentCounts, setAssignmentCounts] = useState<
+    Record<string, { subjects: number; sections: number }>
+  >({})
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false)
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null)
+  const [passwordTeacher, setPasswordTeacher] = useState<Teacher | null>(null)
+  const [assignmentTeacher, setAssignmentTeacher] = useState<Teacher | null>(
+    null
+  )
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortOption, setSortOption] = useState<string>('a-z')
 
   // Filtered and sorted teachers
   const filteredAndSortedTeachers = (() => {
     // Filter teachers
-    let filtered = teachers;
+    let filtered = teachers
 
     // Apply search filter
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+      const query = searchQuery.toLowerCase()
       filtered = filtered.filter((teacher) => {
-        const fullName = `${teacher.firstName} ${teacher.middleName || ''} ${teacher.lastName} ${teacher.extension || ''}`.trim().toLowerCase();
-        const email = teacher.email.toLowerCase();
-        const phone = teacher.phone.toLowerCase();
+        const fullName = `${teacher.firstName} ${teacher.middleName || ''} ${
+          teacher.lastName
+        } ${teacher.extension || ''}`
+          .trim()
+          .toLowerCase()
+        const email = teacher.email.toLowerCase()
+        const phone = teacher.phone.toLowerCase()
 
-        return fullName.includes(query) ||
-               email.includes(query) ||
-               phone.includes(query);
-      });
+        return (
+          fullName.includes(query) ||
+          email.includes(query) ||
+          phone.includes(query)
+        )
+      })
     }
 
     // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
       switch (sortOption) {
         case 'a-z':
-          const nameA = `${a.firstName} ${a.middleName || ''} ${a.lastName} ${a.extension || ''}`.trim().toLowerCase();
-          const nameB = `${b.firstName} ${b.middleName || ''} ${b.lastName} ${b.extension || ''}`.trim().toLowerCase();
-          return nameA.localeCompare(nameB);
+          const nameA = `${a.firstName} ${a.middleName || ''} ${a.lastName} ${
+            a.extension || ''
+          }`
+            .trim()
+            .toLowerCase()
+          const nameB = `${b.firstName} ${b.middleName || ''} ${b.lastName} ${
+            b.extension || ''
+          }`
+            .trim()
+            .toLowerCase()
+          return nameA.localeCompare(nameB)
 
         case 'z-a':
-          const nameARev = `${a.firstName} ${a.middleName || ''} ${a.lastName} ${a.extension || ''}`.trim().toLowerCase();
-          const nameBRev = `${b.firstName} ${b.middleName || ''} ${b.lastName} ${b.extension || ''}`.trim().toLowerCase();
-          return nameBRev.localeCompare(nameARev);
+          const nameARev = `${a.firstName} ${a.middleName || ''} ${
+            a.lastName
+          } ${a.extension || ''}`
+            .trim()
+            .toLowerCase()
+          const nameBRev = `${b.firstName} ${b.middleName || ''} ${
+            b.lastName
+          } ${b.extension || ''}`
+            .trim()
+            .toLowerCase()
+          return nameBRev.localeCompare(nameARev)
 
         default:
-          return 0;
+          return 0
       }
-    });
+    })
 
-    return sorted;
-  })();
+    return sorted
+  })()
 
   // Load teachers on component mount
   useEffect(() => {
-    loadTeachers();
-  }, []);
+    loadTeachers()
+  }, [])
 
   // Load assignment counts per teacher when teachers list updates
   useEffect(() => {
@@ -130,113 +177,119 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
         const entries = await Promise.all(
           teachers.map(async (t) => {
             try {
-              const res = await fetch(`/api/teacher-assignments?teacherId=${encodeURIComponent(t.id)}`);
-              if (!res.ok) return [t.id, { subjects: 0, sections: 0 }] as const;
-              const data = await res.json();
-              const assignments: Record<string, string[]> = data.assignments || {};
-              const subjects = Object.keys(assignments).length;
-              const sectionSet = new Set<string>();
+              const res = await fetch(
+                `/api/teacher-assignments?teacherId=${encodeURIComponent(t.id)}`
+              )
+              if (!res.ok) return [t.id, { subjects: 0, sections: 0 }] as const
+              const data = await res.json()
+              const assignments: Record<string, string[]> =
+                data.assignments || {}
+              const subjects = Object.keys(assignments).length
+              const sectionSet = new Set<string>()
               Object.values(assignments).forEach((arr: string[]) => {
-                if (Array.isArray(arr)) arr.forEach(id => sectionSet.add(id));
-              });
-              const sections = sectionSet.size;
-              return [t.id, { subjects, sections }] as const;
+                if (Array.isArray(arr)) arr.forEach((id) => sectionSet.add(id))
+              })
+              const sections = sectionSet.size
+              return [t.id, { subjects, sections }] as const
             } catch {
-              return [t.id, { subjects: 0, sections: 0 }] as const;
+              return [t.id, { subjects: 0, sections: 0 }] as const
             }
           })
-        );
-        const map: Record<string, { subjects: number; sections: number }> = {};
-        for (const [id, counts] of entries) map[id] = counts;
-        setAssignmentCounts(map);
+        )
+        const map: Record<string, { subjects: number; sections: number }> = {}
+        for (const [id, counts] of entries) map[id] = counts
+        setAssignmentCounts(map)
       } catch {
         // ignore
       }
-    };
-    if (teachers.length > 0) loadCounts();
-    else setAssignmentCounts({});
-  }, [teachers]);
+    }
+    if (teachers.length > 0) loadCounts()
+    else setAssignmentCounts({})
+  }, [teachers])
 
   const loadTeachers = async () => {
     try {
-      setLoading(true);
-      const response = await fetch('/api/teachers');
+      setLoading(true)
+      const response = await fetch('/api/teachers')
       if (!response.ok) {
-        throw new Error('Failed to load teachers');
+        throw new Error('Failed to load teachers')
       }
-      const data = await response.json();
-      const teachersData = data.teachers || [];
+      const data = await response.json()
+      const teachersData = data.teachers || []
 
       // Check Firebase account status for each teacher
       const teachersWithStatus = await Promise.all(
         teachersData.map(async (teacher: Teacher) => {
           if (teacher.uid) {
             try {
-              const statusResponse = await fetch(`/api/teachers/status?uid=${teacher.uid}`);
+              const statusResponse = await fetch(
+                `/api/teachers/status?uid=${teacher.uid}`
+              )
               if (statusResponse.ok) {
-                const statusData = await statusResponse.json();
+                const statusData = await statusResponse.json()
                 return {
                   ...teacher,
-                  status: statusData.disabled ? 'inactive' : 'active'
-                };
+                  status: statusData.disabled ? 'inactive' : 'active',
+                }
               }
             } catch (error) {
-              console.warn(`Failed to get status for teacher ${teacher.uid}:`, error);
+              console.warn(
+                `Failed to get status for teacher ${teacher.uid}:`,
+                error
+              )
             }
           }
           // Default to active if we can't determine status
           return {
             ...teacher,
-            status: 'active' as const
-          };
+            status: 'active' as const,
+          }
         })
-      );
+      )
 
-      setTeachers(teachersWithStatus);
+      setTeachers(teachersWithStatus)
     } catch (error) {
-      console.error('Error loading teachers:', error);
-      setTeachers([]);
+      console.error('Error loading teachers:', error)
+      setTeachers([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleCreateTeacher = () => {
-    setEditingTeacher(null);
-    setShowCreateModal(true);
-  };
+    setEditingTeacher(null)
+    setShowCreateModal(true)
+  }
 
   const handleEditTeacher = (teacher: Teacher) => {
-    setEditingTeacher(teacher);
-    setShowCreateModal(true);
-  };
+    setEditingTeacher(teacher)
+    setShowCreateModal(true)
+  }
 
   const handleAssignTeacher = (teacher: Teacher) => {
-    setAssignmentTeacher(teacher);
-    setShowAssignmentModal(true);
-  };
-
-
+    setAssignmentTeacher(teacher)
+    setShowAssignmentModal(true)
+  }
 
   const handleCancel = () => {
-    setShowCreateModal(false);
-    setEditingTeacher(null);
-  };
+    setShowCreateModal(false)
+    setEditingTeacher(null)
+  }
 
   const handleAssignmentModalClose = () => {
-    setShowAssignmentModal(false);
-    setAssignmentTeacher(null);
-  };
+    setShowAssignmentModal(false)
+    setAssignmentTeacher(null)
+  }
 
   const handlePasswordModalCancel = () => {
-    setShowPasswordModal(false);
-    setPasswordTeacher(null);
-  };
+    setShowPasswordModal(false)
+    setPasswordTeacher(null)
+  }
 
   const handlePasswordChange = async (formData: any) => {
     if (!passwordTeacher?.uid) {
-      toast.error('Teacher UID not found');
-      return;
+      toast.error('Teacher UID not found')
+      return
     }
 
     try {
@@ -250,22 +303,21 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
           currentPassword: formData.currentPassword,
           newPassword: formData.newPassword,
         }),
-      });
+      })
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to change password');
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to change password')
       }
 
-      toast.success('Password changed successfully!');
-      setShowPasswordModal(false);
-      setPasswordTeacher(null);
+      toast.success('Password changed successfully!')
+      setShowPasswordModal(false)
+      setPasswordTeacher(null)
     } catch (error: any) {
-      console.error('Error changing password:', error);
-      toast.error(error.message);
+      console.error('Error changing password:', error)
+      toast.error(error.message)
     }
-  };
-
+  }
 
   const handleCreateTeacherSubmit = async (teacherData: any) => {
     try {
@@ -283,28 +335,28 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
           lastName: teacherData.lastName,
           extension: teacherData.extension,
           phone: teacherData.phone,
-          registrarUid
+          registrarUid,
         }),
-      });
+      })
 
       if (!authResponse.ok) {
-        const authData = await authResponse.json();
-        throw new Error(authData.error || 'Failed to create teacher account');
+        const authData = await authResponse.json()
+        throw new Error(authData.error || 'Failed to create teacher account')
       }
 
-      const authData = await authResponse.json();
+      const authData = await authResponse.json()
 
       // Refresh teachers list
-      await loadTeachers();
-      setShowCreateModal(false);
+      await loadTeachers()
+      setShowCreateModal(false)
     } catch (error: any) {
-      console.error('Error creating teacher:', error);
-      toast.error(error.message);
+      console.error('Error creating teacher:', error)
+      toast.error(error.message)
     }
-  };
+  }
 
   const handleEditTeacherSubmit = async (teacherData: any) => {
-    if (!editingTeacher) return;
+    if (!editingTeacher) return
 
     try {
       // Update teacher data via API
@@ -321,68 +373,68 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
           phone: teacherData.phone,
           // Note: Email and password updates would require special handling
         }),
-      });
+      })
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to update teacher account');
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to update teacher account')
       }
 
       // Refresh teachers list
-      await loadTeachers();
-      setShowCreateModal(false);
-      setEditingTeacher(null);
+      await loadTeachers()
+      setShowCreateModal(false)
+      setEditingTeacher(null)
     } catch (error: any) {
-      console.error('Error updating teacher:', error);
-      toast.error(error.message);
+      console.error('Error updating teacher:', error)
+      toast.error(error.message)
     }
-  };
+  }
 
   // Function to handle password modal opening
   const openPasswordModal = (teacher: Teacher) => {
     if (teacher.uid) {
-      setPasswordTeacher(teacher);
-      setShowPasswordModal(true);
+      setPasswordTeacher(teacher)
+      setShowPasswordModal(true)
     } else {
-      toast.error('Teacher UID not found');
+      toast.error('Teacher UID not found')
     }
-  };
+  }
 
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <GraduationCap size={20} className="text-white" weight="fill" />
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-8 h-8 aspect-square bg-white rounded-xl flex items-center justify-center">
+              <GraduationCap size={20} weight="fill" className="text-blue-900" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-light text-white flex items-center gap-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                Teacher Management
+              </h1>
+              <p
+                className="text-xs text-blue-100 mt-1"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Manage teachers and their subject assignments
+              </p>
+            </div>
           </div>
-          <div>
-            <h1
-              className="text-2xl font-medium text-gray-900"
-               
-            >
-              Teacher Management
-            </h1>
-            <p
-              className="text-xs text-gray-600"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              Manage teachers and their subject assignments
-            </p>
-          </div>
+          <Button
+            onClick={handleCreateTeacher}
+            disabled={loading}
+            className="rounded-lg bg-white hover:bg-blue-50 text-blue-900 border border-blue-200"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
+            <Plus size={16} className="mr-2" />
+            Add Teacher
+          </Button>
         </div>
-        <Button
-          onClick={handleCreateTeacher}
-          disabled={loading}
-          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-        >
-          <Plus size={16} className="mr-2" />
-          Add Teacher
-        </Button>
       </div>
 
       {/* Controls Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4 flex-1">
           <div className="flex-1 max-w-md">
             <input
@@ -390,15 +442,11 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
               placeholder="Search teachers..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              className="w-full pr-4 py-2 border border-blue-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             />
           </div>
         </div>
-      </div>
-
-      {/* Sorting and Filtering */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-wrap gap-2">
           {[
             { key: 'a-z', label: 'A-Z', icon: ArrowUp },
@@ -407,79 +455,82 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
             <button
               key={option.key}
               onClick={() => setSortOption(option.key)}
-              className={`px-4 py-2 rounded-none text-xs font-medium transition-all duration-200 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
                 sortOption === option.key
-                  ? 'bg-blue-900 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
               }`}
-               
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
-              <div className="flex items-center gap-2">
-                <option.icon size={14} weight="bold" />
-                {option.label}
-              </div>
+              <option.icon size={12} weight="bold" />
+              {option.label}
             </button>
           ))}
         </div>
-        <div className="text-xs text-gray-500"  >
-          Showing {filteredAndSortedTeachers.length} of {teachers.length} teachers
+        <div className="text-xs text-gray-600 flex items-center gap-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+          <div className="w-3 h-3 aspect-square rounded-md bg-gradient-to-br from-blue-800 to-blue-900"></div>
+          Showing {filteredAndSortedTeachers.length} of {teachers.length}{' '}
+          teachers
         </div>
       </div>
 
       {/* Teachers Table */}
-      <Card className="overflow-hidden pb-0 pt-0 mt-2">
+      <Card className="overflow-hidden pb-0 pt-0 mt-0 mb-0 border border-gray-200 shadow-lg rounded-xl">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-100 border-b-2 border-gray-300">
+            <thead className="bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg border-b border-blue-900">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                     >
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <User size={12} weight="bold" className="text-white" />
+                    <div className="w-6 h-6 aspect-square bg-white rounded-md flex items-center justify-center">
+                      <User size={12} weight="bold" className="text-blue-900" />
                     </div>
                     Teacher
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                     >
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <Users size={12} weight="bold" className="text-white" />
+                    <div className="w-6 h-6 aspect-square bg-white rounded-md flex items-center justify-center">
+                      <Users size={12} weight="bold" className="text-blue-900" />
                     </div>
                     Assignments
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                     >
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <Envelope size={12} weight="bold" className="text-white" />
+                    <div className="w-6 h-6 aspect-square bg-white rounded-md flex items-center justify-center">
+                      <Envelope
+                        size={12}
+                        weight="bold"
+                        className="text-blue-900"
+                      />
                     </div>
                     Contact
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                     >
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-                      <Calendar size={12} weight="bold" className="text-white" />
+                    <div className="w-6 h-6 aspect-square bg-white rounded-md flex items-center justify-center">
+                      <Calendar
+                        size={12}
+                        weight="bold"
+                        className="text-blue-900"
+                      />
                     </div>
                     Created
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                     >
+                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r-0">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <Gear size={12} weight="bold" className="text-white" />
+                    <div className="w-6 h-6 aspect-square bg-white rounded-md flex items-center justify-center">
+                      <Gear size={12} weight="bold" className="text-blue-900" />
                     </div>
                     Actions
                   </div>
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-200 rounded-b-xl">
               {loading ? (
                 // Loading skeleton rows
                 Array.from({ length: 5 }).map((_, index) => (
@@ -514,33 +565,45 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
                     </td>
                   </tr>
                 ))
-              ) : filteredAndSortedTeachers.length === 0 && teachers.length > 0 ? (
+              ) : filteredAndSortedTeachers.length === 0 &&
+                teachers.length > 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500 border-t border-gray-200"
-                       >
+                  <td
+                    colSpan={5}
+                    className="px-6 py-8 text-center text-gray-500 border-t border-gray-200"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
                     No teachers match your search.
                   </td>
                 </tr>
               ) : teachers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center border-t border-gray-200">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-8 text-center border-t border-gray-200"
+                  >
                     <div className="flex flex-col items-center">
-                      <GraduationCap size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
-                      <h3
-                        className="text-lg font-medium text-gray-900 mb-2"
-                         
-                      >
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center mx-auto mb-4">
+                        <GraduationCap
+                          size={32}
+                          className="text-white"
+                          weight="fill"
+                        />
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                         No teachers found
                       </h3>
                       <p
                         className="text-xs text-gray-600 mb-6"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                       >
-                        Get started by creating teacher accounts for your school staff
+                        Get started by creating teacher accounts for your school
+                        staff
                       </p>
                       <Button
                         onClick={handleCreateTeacher}
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                        className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                       >
                         <Plus size={16} className="mr-2" />
                         Add First Teacher
@@ -550,81 +613,110 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
                 </tr>
               ) : (
                 filteredAndSortedTeachers.map((teacher) => (
-                  <tr key={teacher.id} className="hover:bg-gray-50">
+                  <tr key={teacher.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="flex items-center">
                         <div className="relative flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-blue-900 flex items-center justify-center">
-                            <span className="text-white text-xs font-medium" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
-                              {teacher.firstName.charAt(0)}{teacher.lastName.charAt(0)}
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center">
+                            <span
+                              className="text-white text-xs font-medium"
+                              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                            >
+                              {teacher.firstName.charAt(0)}
+                              {teacher.lastName.charAt(0)}
                             </span>
                           </div>
                           <span
                             className={`absolute -bottom-0 -right-0 w-3 h-3 border-2 border-white ${
-                              teacher.status === 'active' ? 'bg-emerald-700' : 'bg-red-600'
+                              teacher.status === 'active'
+                                ? 'bg-emerald-700'
+                                : 'bg-red-600'
                             }`}
-                            aria-label={teacher.status === 'active' ? 'Enabled' : 'Disabled'}
+                            aria-label={
+                              teacher.status === 'active'
+                                ? 'Enabled'
+                                : 'Disabled'
+                            }
                           ></span>
                         </div>
                         <div className="ml-4">
-                          <div className="text-xs font-medium text-gray-900"
-                               style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
-                            {teacher.firstName} {teacher.middleName && `${teacher.middleName} `}{teacher.lastName}{teacher.extension && ` ${teacher.extension}`}
+                          <div
+                            className="text-xs font-medium text-gray-900"
+                            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                          >
+                            {teacher.firstName}{' '}
+                            {teacher.middleName && `${teacher.middleName} `}
+                            {teacher.lastName}
+                            {teacher.extension && ` ${teacher.extension}`}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                      <div className="text-xs text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                        {assignmentCounts[teacher.id]?.subjects || 0} Subject{(assignmentCounts[teacher.id]?.subjects || 0) !== 1 ? 's' : ''}
+                      <div
+                        className="text-xs text-gray-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      >
+                        {assignmentCounts[teacher.id]?.subjects || 0} Subject
+                        {(assignmentCounts[teacher.id]?.subjects || 0) !== 1
+                          ? 's'
+                          : ''}
                       </div>
-                      <div className="text-xs text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-                        {assignmentCounts[teacher.id]?.sections || 0} Section{(assignmentCounts[teacher.id]?.sections || 0) !== 1 ? 's' : ''}
+                      <div
+                        className="text-xs text-gray-500"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        {assignmentCounts[teacher.id]?.sections || 0} Section
+                        {(assignmentCounts[teacher.id]?.sections || 0) !== 1
+                          ? 's'
+                          : ''}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="space-y-1">
-                        <div className="text-xs text-gray-900 font-mono"
-                             style={{fontWeight: 400 }}>
+                        <div
+                          className="text-xs text-gray-900 font-mono"
+                          style={{ fontWeight: 400 }}
+                        >
                           {teacher.email}
                         </div>
-                        <div className="text-xs text-gray-500 font-mono"
-                              >
+                        <div className="text-xs text-gray-500 font-mono">
                           {teacher.phone}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200 text-xs text-gray-500 font-mono"
-                         >
+                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200 text-xs text-gray-500 font-mono">
                       {new Date(teacher.createdAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
-                        year: 'numeric'
+                        year: 'numeric',
                       })}
                     </td>
-                  
+
                     <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
                       <div className="flex gap-2">
                         <Button
                           size="sm"
-                          className="bg-blue-900 hover:bg-blue-800 text-white border"
+                          className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
                           onClick={() => handleEditTeacher(teacher)}
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                         >
                           <Pencil size={14} className="mr-1" />
                           Edit
                         </Button>
                         <Button
                           size="sm"
-                          className="bg-blue-900 hover:bg-blue-800 text-white border"
+                          className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
                           onClick={() => handleAssignTeacher(teacher)}
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                         >
                           <UserPlus size={14} className="mr-1" />
                           Assign
                         </Button>
                         <Button
                           size="sm"
-                          className="bg-red-600 hover:bg-red-700 text-white border"
-
+                          className="rounded-lg bg-red-600 hover:bg-red-700 text-white border"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                         >
                           <Trash size={14} className="mr-1" />
                           Remove
@@ -643,15 +735,19 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
       <Modal
         isOpen={showCreateModal}
         onClose={handleCancel}
-        title={editingTeacher ? "Edit Teacher Account" : "Add New Teacher"}
+        title={editingTeacher ? 'Edit Teacher Account' : 'Add New Teacher'}
         size="2xl"
       >
         <TeacherForm
-          onSubmit={editingTeacher ? handleEditTeacherSubmit : handleCreateTeacherSubmit}
+          onSubmit={
+            editingTeacher ? handleEditTeacherSubmit : handleCreateTeacherSubmit
+          }
           onCancel={handleCancel}
           loading={loading}
           teacher={editingTeacher}
-          onSendPasswordResetEmail={editingTeacher ? sendPasswordResetEmail : undefined}
+          onSendPasswordResetEmail={
+            editingTeacher ? sendPasswordResetEmail : undefined
+          }
           onOpenPasswordModal={editingTeacher ? openPasswordModal : undefined}
         />
       </Modal>
@@ -679,85 +775,114 @@ export default function TeacherManagement({ registrarUid }: TeacherManagementPro
         registrarUid={registrarUid}
       />
     </div>
-  );
+  )
 }
 
 // Password Change Form Component
 interface PasswordChangeFormProps {
-  onSubmit: (formData: any) => void;
-  onCancel: () => void;
-  loading: boolean;
-  teacher: Teacher | null;
+  onSubmit: (formData: any) => void
+  onCancel: () => void
+  loading: boolean
+  teacher: Teacher | null
 }
 
-function PasswordChangeForm({ onSubmit, onCancel, loading, teacher }: PasswordChangeFormProps) {
+function PasswordChangeForm({
+  onSubmit,
+  onCancel,
+  loading,
+  teacher,
+}: PasswordChangeFormProps) {
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: ''
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    confirmPassword: '',
+  })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
+    e.preventDefault()
+    setErrors({})
 
     // Validation
-    const newErrors: Record<string, string> = {};
+    const newErrors: Record<string, string> = {}
 
     if (!formData.currentPassword.trim()) {
-      newErrors.currentPassword = 'Current password is required';
+      newErrors.currentPassword = 'Current password is required'
     }
 
     if (!formData.newPassword.trim()) {
-      newErrors.newPassword = 'New password is required';
+      newErrors.newPassword = 'New password is required'
     } else if (formData.newPassword.length < 6) {
-      newErrors.newPassword = 'Password must be at least 6 characters';
+      newErrors.newPassword = 'Password must be at least 6 characters'
     }
 
     if (!formData.confirmPassword.trim()) {
-      newErrors.confirmPassword = 'Please confirm your new password';
+      newErrors.confirmPassword = 'Please confirm your new password'
     } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = 'Passwords do not match'
     }
 
     if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
+      setErrors(newErrors)
+      return
     }
 
-    onSubmit(formData);
-  };
+    onSubmit(formData)
+  }
 
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h4 className="text-sm font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+        <h4
+          className="text-sm font-medium text-gray-900 mb-2"
+          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+        >
           Change Password for {teacher?.firstName} {teacher?.lastName}
         </h4>
-        <p className="text-xs text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+        <p
+          className="text-xs text-gray-600"
+          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+        >
           Enter your current password and choose a new secure password.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+          <label
+            className="block text-xs font-medium text-gray-700 mb-1"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
             Current Password *
           </label>
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            <svg
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
             </svg>
             <input
-              type={showCurrentPassword ? "text" : "password"}
+              type={showCurrentPassword ? 'text' : 'password'}
               value={formData.currentPassword}
-              onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  currentPassword: e.target.value,
+                }))
+              }
               placeholder="Enter current password"
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
               disabled={loading}
             />
@@ -767,30 +892,48 @@ function PasswordChangeForm({ onSubmit, onCancel, loading, teacher }: PasswordCh
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               disabled={loading}
             >
-              {showCurrentPassword ? (
-                <EyeSlash size={20} />
-              ) : (
-                <Eye size={20} />
-              )}
+              {showCurrentPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
             </button>
           </div>
-          {errors.currentPassword && <p className="text-xs text-red-600 mt-1">{errors.currentPassword}</p>}
+          {errors.currentPassword && (
+            <p className="text-xs text-red-600 mt-1">
+              {errors.currentPassword}
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+          <label
+            className="block text-xs font-medium text-gray-700 mb-1"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
             New Password *
           </label>
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            <svg
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
             </svg>
             <input
-              type={showNewPassword ? "text" : "password"}
+              type={showNewPassword ? 'text' : 'password'}
               value={formData.newPassword}
-              onChange={(e) => setFormData(prev => ({ ...prev, newPassword: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  newPassword: e.target.value,
+                }))
+              }
               placeholder="Enter new password"
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
               disabled={loading}
             />
@@ -800,30 +943,46 @@ function PasswordChangeForm({ onSubmit, onCancel, loading, teacher }: PasswordCh
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               disabled={loading}
             >
-              {showNewPassword ? (
-                <EyeSlash size={20} />
-              ) : (
-                <Eye size={20} />
-              )}
+              {showNewPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
             </button>
           </div>
-          {errors.newPassword && <p className="text-xs text-red-600 mt-1">{errors.newPassword}</p>}
+          {errors.newPassword && (
+            <p className="text-xs text-red-600 mt-1">{errors.newPassword}</p>
+          )}
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+          <label
+            className="block text-xs font-medium text-gray-700 mb-1"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
             Confirm New Password *
           </label>
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            <svg
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
             </svg>
             <input
-              type={showConfirmPassword ? "text" : "password"}
+              type={showConfirmPassword ? 'text' : 'password'}
               value={formData.confirmPassword}
-              onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  confirmPassword: e.target.value,
+                }))
+              }
               placeholder="Confirm new password"
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
               disabled={loading}
             />
@@ -833,21 +992,21 @@ function PasswordChangeForm({ onSubmit, onCancel, loading, teacher }: PasswordCh
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
               disabled={loading}
             >
-              {showConfirmPassword ? (
-                <EyeSlash size={20} />
-              ) : (
-                <Eye size={20} />
-              )}
+              {showConfirmPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
             </button>
           </div>
-          {errors.confirmPassword && <p className="text-xs text-red-600 mt-1">{errors.confirmPassword}</p>}
+          {errors.confirmPassword && (
+            <p className="text-xs text-red-600 mt-1">
+              {errors.confirmPassword}
+            </p>
+          )}
         </div>
 
         <div className="flex gap-3 pt-4">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-gray-500 text-white text-xs font-medium hover:bg-gray-600 transition-colors"
+            className="flex-1 px-4 py-2 rounded-lg bg-gray-500 text-white text-xs font-medium hover:bg-gray-600 transition-colors"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             disabled={loading}
           >
@@ -855,7 +1014,7 @@ function PasswordChangeForm({ onSubmit, onCancel, loading, teacher }: PasswordCh
           </button>
           <button
             type="submit"
-            className="flex-1 px-4 py-2 bg-amber-600 text-white text-xs font-medium hover:bg-amber-700 transition-colors"
+            className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white text-xs font-medium transition-colors"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             disabled={loading}
           >
@@ -864,20 +1023,27 @@ function PasswordChangeForm({ onSubmit, onCancel, loading, teacher }: PasswordCh
         </div>
       </form>
     </div>
-  );
+  )
 }
 
 // Teacher Form Component
 interface TeacherFormProps {
-  onSubmit: (teacherData: any) => void;
-  onCancel: () => void;
-  loading: boolean;
-  teacher?: Teacher | null;
-  onSendPasswordResetEmail?: (teacher: Teacher) => void;
-  onOpenPasswordModal?: (teacher: Teacher) => void;
+  onSubmit: (teacherData: any) => void
+  onCancel: () => void
+  loading: boolean
+  teacher?: Teacher | null
+  onSendPasswordResetEmail?: (teacher: Teacher) => void
+  onOpenPasswordModal?: (teacher: Teacher) => void
 }
 
-function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordResetEmail, onOpenPasswordModal }: TeacherFormProps) {
+function TeacherForm({
+  onSubmit,
+  onCancel,
+  loading,
+  teacher,
+  onSendPasswordResetEmail,
+  onOpenPasswordModal,
+}: TeacherFormProps) {
   const [formData, setFormData] = useState({
     firstName: '',
     middleName: '',
@@ -886,11 +1052,11 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
     email: '',
     password: '',
     confirmPassword: '',
-    phone: ''
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    phone: '',
+  })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Reset or pre-fill form when modal opens or teacher changes
   useEffect(() => {
@@ -904,8 +1070,8 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
         email: teacher.email || '',
         password: '', // Don't pre-fill password for security
         confirmPassword: '',
-        phone: teacher.phone || ''
-      });
+        phone: teacher.phone || '',
+      })
     } else {
       // Reset form for creating new teacher
       setFormData({
@@ -916,115 +1082,141 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
         email: '',
         password: '',
         confirmPassword: '',
-        phone: ''
-      });
+        phone: '',
+      })
     }
-    setErrors({});
-    setShowPassword(false);
-    setShowConfirmPassword(false);
-  }, [teacher]);
+    setErrors({})
+    setShowPassword(false)
+    setShowConfirmPassword(false)
+  }, [teacher])
 
   // Phone number formatter
   const formatPhoneNumber = (value: string) => {
     // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
+    const digits = value.replace(/\D/g, '')
 
     // If empty, return empty
-    if (!digits) return '';
+    if (!digits) return ''
 
     // If starts with 63, keep it
     if (digits.startsWith('63')) {
-      const withoutCountryCode = digits.substring(2);
+      const withoutCountryCode = digits.substring(2)
       if (withoutCountryCode.length <= 10) {
         // Format as +63 XXX XXX XXXX
-        const formatted = withoutCountryCode.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
-        return `+63${formatted}`;
+        const formatted = withoutCountryCode.replace(
+          /(\d{3})(\d{3})(\d{4})/,
+          '$1 $2 $3'
+        )
+        return `+63${formatted}`
       }
     }
 
     // If starts with 0, remove it and add +63
     if (digits.startsWith('0')) {
-      const withoutZero = digits.substring(1);
+      const withoutZero = digits.substring(1)
       if (withoutZero.length <= 10) {
-        const formatted = withoutZero.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
-        return `+63${formatted}`;
+        const formatted = withoutZero.replace(
+          /(\d{3})(\d{3})(\d{4})/,
+          '$1 $2 $3'
+        )
+        return `+63${formatted}`
       }
     }
 
     // If doesn't start with 63 or 0, treat as local number
     if (digits.length <= 10) {
-      const formatted = digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
-      return `+63${formatted}`;
+      const formatted = digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')
+      return `+63${formatted}`
     }
 
     // If too long, truncate to 10 digits
-    const truncated = digits.substring(0, 10);
-    const formatted = truncated.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
-    return `+63${formatted}`;
-  };
+    const truncated = digits.substring(0, 10)
+    const formatted = truncated.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')
+    return `+63${formatted}`
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
+    e.preventDefault()
+    setErrors({})
 
     // Basic validation
-    const newErrors: Record<string, string> = {};
+    const newErrors: Record<string, string> = {}
 
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    if (!formData.password.trim()) newErrors.password = 'Password is required';
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
+    if (!formData.firstName.trim())
+      newErrors.firstName = 'First name is required'
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required'
+    if (!formData.email.trim()) newErrors.email = 'Email is required'
+    if (!formData.password.trim()) newErrors.password = 'Password is required'
+    if (formData.password !== formData.confirmPassword)
+      newErrors.confirmPassword = 'Passwords do not match'
+    if (!formData.phone.trim()) newErrors.phone = 'Phone is required'
 
-    setErrors(newErrors);
+    setErrors(newErrors)
 
     if (Object.keys(newErrors).length === 0) {
-      onSubmit(formData);
+      onSubmit(formData)
     }
-  };
+  }
 
   return (
     <div className="p-6 max-h-[80vh] overflow-y-auto">
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Personal Information */}
         <div>
-          <h4 className="text-lg font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+          <h4
+            className="text-lg font-medium text-gray-900 mb-2"
+            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+          >
             Personal Information
           </h4>
-          <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-blue-100 mb-4">
-            Provide the teacher's complete personal details for identification and contact purposes. This information helps establish their professional profile and enables effective communication within the school system.
+          <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-white rounded-xl mb-4" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+            Provide the teacher's complete personal details for identification
+            and contact purposes. This information helps establish their
+            professional profile and enables effective communication within the
+            school system.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1"  >
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 First Name *
               </label>
               <div>
                 <input
                   type="text"
                   value={formData.firstName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      firstName: e.target.value,
+                    }))
+                  }
                   placeholder="Enter first name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   disabled={loading}
                 />
               </div>
-              {errors.firstName && <p className="text-xs text-red-600 mt-1">{errors.firstName}</p>}
+              {errors.firstName && (
+                <p className="text-xs text-red-600 mt-1">{errors.firstName}</p>
+              )}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1"  >
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Middle Name
               </label>
               <div>
                 <input
                   type="text"
                   value={formData.middleName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, middleName: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      middleName: e.target.value,
+                    }))
+                  }
                   placeholder="Enter middle name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   disabled={loading}
                 />
@@ -1032,34 +1224,46 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1"  >
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Last Name *
               </label>
               <div>
                 <input
                   type="text"
                   value={formData.lastName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      lastName: e.target.value,
+                    }))
+                  }
                   placeholder="Enter last name"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   disabled={loading}
                 />
               </div>
-              {errors.lastName && <p className="text-xs text-red-600 mt-1">{errors.lastName}</p>}
+              {errors.lastName && (
+                <p className="text-xs text-red-600 mt-1">{errors.lastName}</p>
+              )}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1"  >
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Extension
               </label>
               <div>
                 <input
                   type="text"
                   value={formData.extension}
-                  onChange={(e) => setFormData(prev => ({ ...prev, extension: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      extension: e.target.value,
+                    }))
+                  }
                   placeholder="e.g., Jr., Sr., III"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   disabled={loading}
                 />
@@ -1070,59 +1274,82 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
 
         {/* Account Information */}
         <div>
-          <h4 className="text-lg font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+          <h4
+            className="text-lg font-medium text-gray-900 mb-2"
+            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+          >
             Account Information
           </h4>
-          <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-blue-100 mb-4">
-            Set up secure login credentials for the teacher account. This includes email verification and password creation to ensure authorized access to the system and protect sensitive educational data.
+          <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-white rounded-xl mb-4" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+            Set up secure login credentials for the teacher account. This
+            includes email verification and password creation to ensure
+            authorized access to the system and protect sensitive educational
+            data.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1"  >
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Email Address *
               </label>
               <div className="relative">
-                <Envelope size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                <Envelope
+                  size={20}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  weight="duotone"
+                />
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, email: e.target.value }))
+                  }
                   placeholder="teacher@mcb.edu.ph"
-                  className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   disabled={loading}
                 />
               </div>
-              {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
+              {errors.email && (
+                <p className="text-xs text-red-600 mt-1">{errors.email}</p>
+              )}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1"  >
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Phone Number *
               </label>
               <div className="relative">
-                <Phone size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                <Phone
+                  size={20}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  weight="duotone"
+                />
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => {
-                    const formatted = formatPhoneNumber(e.target.value);
-                    setFormData(prev => ({ ...prev, phone: formatted }));
+                    const formatted = formatPhoneNumber(e.target.value)
+                    setFormData((prev) => ({ ...prev, phone: formatted }))
                   }}
                   placeholder="+63962 781 1434"
-                  className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   disabled={loading}
                 />
               </div>
-              {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone}</p>}
+              {errors.phone && (
+                <p className="text-xs text-red-600 mt-1">{errors.phone}</p>
+              )}
             </div>
           </div>
 
           {/* Account Actions - Show for editing existing teachers */}
           {teacher && (
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <h5 className="text-sm font-medium text-gray-900 mb-4" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+              <h5
+                className="text-sm font-medium text-gray-900 mb-4"
+                style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+              >
                 Account Management
               </h5>
             </div>
@@ -1132,19 +1359,34 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
           {!teacher && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1"  >
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Password *
                 </label>
                 <div className="relative">
-                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  <svg
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
                   </svg>
                   <input
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     value={formData.password}
-                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        password: e.target.value,
+                      }))
+                    }
                     placeholder="Enter secure password"
-                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                     disabled={loading}
                   />
@@ -1154,30 +1396,43 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     disabled={loading}
                   >
-                    {showPassword ? (
-                      <EyeSlash size={20} />
-                    ) : (
-                      <Eye size={20} />
-                    )}
+                    {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
-                {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password}</p>}
+                {errors.password && (
+                  <p className="text-xs text-red-600 mt-1">{errors.password}</p>
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1"  >
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Confirm Password *
                 </label>
                 <div className="relative">
-                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  <svg
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
                   </svg>
                   <input
-                    type={showConfirmPassword ? "text" : "password"}
+                    type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
-                    onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        confirmPassword: e.target.value,
+                      }))
+                    }
                     placeholder="Confirm your password"
-                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                     disabled={loading}
                   />
@@ -1194,13 +1449,15 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
                     )}
                   </button>
                 </div>
-                {errors.confirmPassword && <p className="text-xs text-red-600 mt-1">{errors.confirmPassword}</p>}
+                {errors.confirmPassword && (
+                  <p className="text-xs text-red-600 mt-1">
+                    {errors.confirmPassword}
+                  </p>
+                )}
               </div>
             </div>
           )}
         </div>
-
-
 
         {/* Form Actions */}
         <div className="flex justify-end space-x-4 pt-6">
@@ -1209,29 +1466,41 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
             onClick={onCancel}
             variant="outline"
             disabled={loading}
-            className="px-6 py-2"
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            className="px-6 py-2 rounded-lg"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
           >
             Cancel
           </Button>
 
-                <Button
-                  type="button"
-                  onClick={() => teacher && sendPasswordResetEmail(teacher)}
-                  className="bg-blue-900 hover:bg-blue-800 text-white border"
-                  disabled={loading}
-                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Send Password Reset
-                </Button>
+          {teacher && (
+            <Button
+              type="button"
+              onClick={() => teacher && sendPasswordResetEmail(teacher)}
+              className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
+              disabled={loading}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <svg
+                className="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Send Password Reset
+            </Button>
+          )}
           <Button
             type="submit"
             disabled={loading}
-            className="px-6 py-2"
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            className="px-6 py-2 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
           >
             {loading ? (
               <>
@@ -1252,5 +1521,5 @@ function TeacherForm({ onSubmit, onCancel, loading, teacher, onSendPasswordReset
         </div>
       </form>
     </div>
-  );
+  )
 }

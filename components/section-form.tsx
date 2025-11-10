@@ -3,10 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { Department, DEPARTMENTS, SectionRank, SECTION_RANKS, GradeData, SectionData } from '@/lib/types/grade-section';
 import { CourseData } from '@/lib/types/course';
-import { Plus, X, Pencil, BookOpen, Users, Trophy, FileText, Building, GraduationCap } from '@phosphor-icons/react';
+import { Plus, X, Pencil } from '@phosphor-icons/react';
 
 interface SectionFormData {
   sectionType: 'grade' | 'course';
@@ -253,41 +252,7 @@ export default function SectionForm({
   };
 
   return (
-    <Card className="w-full max-w-2xl p-6 bg-gray-50 border-0 border-r-0 border-b-0 border-t-5 border-blue-900">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <div className={`w-10 h-10 bg-blue-900 flex items-center justify-center`}>
-            {isEditing ? (
-              <Pencil size={20} className="text-white" />
-            ) : (
-              <Plus size={20} className="text-white" />
-            )}
-          </div>
-          <div>
-            <h2
-              className="text-xl font-medium text-gray-900"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-            >
-              {isEditing ? 'Edit Section' : 'Create New Section'}
-            </h2>
-            <p
-              className="text-sm text-gray-600"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              {isEditing ? 'Update section information' : 'Add a new section to a grade level or course'}
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onCancel}
-          disabled={loading}
-          className="text-gray-500 hover:text-gray-700"
-        >
-          <X size={20} />
-        </Button>
-      </div>
+    <div className="p-6">
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-6">
@@ -304,36 +269,30 @@ export default function SectionForm({
                 <button
                   type="button"
                   onClick={() => handleSectionTypeChange('grade')}
-                  className={`flex-1 px-4 py-3 border-2 transition-all ${
+                  className={`flex-1 px-4 py-3 border-2 rounded-lg transition-all ${
                     formData.sectionType === 'grade'
                       ? 'border-blue-900 bg-blue-50'
                       : 'border-gray-300 bg-white hover:border-gray-400'
                   }`}
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
-                  <div className="flex items-center justify-center gap-2">
-                    <BookOpen size={20} className={formData.sectionType === 'grade' ? 'text-blue-900' : 'text-gray-600'} />
-                    <span className={formData.sectionType === 'grade' ? 'text-blue-900 font-medium' : 'text-gray-600'}>
-                      Grade Level (JHS/SHS)
-                    </span>
-                  </div>
+                  <span className={formData.sectionType === 'grade' ? 'text-blue-900 font-medium' : 'text-gray-600'}>
+                    Grade Level (JHS/SHS)
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSectionTypeChange('course')}
-                  className={`flex-1 px-4 py-3 border-2 transition-all ${
+                  className={`flex-1 px-4 py-3 border-2 rounded-lg transition-all ${
                     formData.sectionType === 'course'
                       ? 'border-blue-900 bg-blue-50'
                       : 'border-gray-300 bg-white hover:border-gray-400'
                   }`}
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
-                  <div className="flex items-center justify-center gap-2">
-                    <GraduationCap size={20} className={formData.sectionType === 'course' ? 'text-blue-900' : 'text-gray-600'} />
-                    <span className={formData.sectionType === 'course' ? 'text-blue-900 font-medium' : 'text-gray-600'}>
-                      Course (College)
-                    </span>
-                  </div>
+                  <span className={formData.sectionType === 'course' ? 'text-blue-900 font-medium' : 'text-gray-600'}>
+                    Course (College)
+                  </span>
                 </button>
               </div>
             </div>
@@ -349,29 +308,22 @@ export default function SectionForm({
               >
                 Select Grade Level *
               </label>
-              <div className="relative">
-                <select
-                  id="grade-select"
-                  value={formData.gradeId}
-                  onChange={(e) => handleGradeChange(e.target.value)}
-                  disabled={loading || isEditing}
-                  className={`w-full pl-10 pr-3 py-2 border-1 shadow-sm border-blue-900 rounded-none bg-white text-base shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.gradeId ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  aria-describedby={errors.gradeId ? 'grade-error' : undefined}
-                >
-                  <option value="">Select a Grade Level</option>
-                  {availableGrades.map((grade) => (
-                    <option key={grade.id} value={grade.id}>
-                      {formatGradeLevel(grade)} - {grade.department}
-                    </option>
-                  ))}
-                </select>
-                <BookOpen
-                  size={18}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  weight="duotone"
-                />
-              </div>
+              <select
+                id="grade-select"
+                value={formData.gradeId}
+                onChange={(e) => handleGradeChange(e.target.value)}
+                disabled={loading || isEditing}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:border-blue-900 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.gradeId ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                aria-describedby={errors.gradeId ? 'grade-error' : undefined}
+              >
+                <option value="">Select a Grade Level</option>
+                {availableGrades.map((grade) => (
+                  <option key={grade.id} value={grade.id}>
+                    {formatGradeLevel(grade)} - {grade.department}
+                  </option>
+                ))}
+              </select>
               {errors.gradeId && (
                 <p
                   id="grade-error"
@@ -402,29 +354,22 @@ export default function SectionForm({
               >
                 Select Course *
               </label>
-              <div className="relative">
-                <select
-                  id="course-select"
-                  value={formData.courseId}
-                  onChange={(e) => handleCourseChange(e.target.value)}
-                  disabled={loading || isEditing}
-                  className={`w-full pl-10 pr-3 py-2 border-1 shadow-sm border-blue-900 rounded-none bg-white text-base shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.courseId ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  aria-describedby={errors.courseId ? 'course-error' : undefined}
-                >
-                  <option value="">Select a Course</option>
-                  {availableCourses.map((course) => (
-                    <option key={course.code} value={course.code}>
-                      {course.code} - {course.name}
-                    </option>
-                  ))}
-                </select>
-                <GraduationCap
-                  size={18}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  weight="duotone"
-                />
-              </div>
+              <select
+                id="course-select"
+                value={formData.courseId}
+                onChange={(e) => handleCourseChange(e.target.value)}
+                disabled={loading || isEditing}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:border-blue-900 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.courseId ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                aria-describedby={errors.courseId ? 'course-error' : undefined}
+              >
+                <option value="">Select a Course</option>
+                {availableCourses.map((course) => (
+                  <option key={course.code} value={course.code}>
+                    {course.code} - {course.name}
+                  </option>
+                ))}
+              </select>
               {errors.courseId && (
                 <p
                   id="course-error"
@@ -454,24 +399,17 @@ export default function SectionForm({
             >
               Section Name *
             </label>
-            <div className="relative">
-              <Input
-                id="section-name"
-                type="text"
-                placeholder="e.g., Falcon"
-                value={formData.sectionName}
-                onChange={(e) => handleInputChange('sectionName', e.target.value)}
-                disabled={loading}
-                className={`pl-10 border-1 shadow-sm border-blue-900 rounded-none ${errors.sectionName ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                aria-describedby={errors.sectionName ? 'section-name-error' : undefined}
-              />
-              <Users
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                weight="duotone"
-              />
-            </div>
+            <Input
+              id="section-name"
+              type="text"
+              placeholder="e.g., Falcon"
+              value={formData.sectionName}
+              onChange={(e) => handleInputChange('sectionName', e.target.value)}
+              disabled={loading}
+              className={`border border-gray-300 rounded-lg ${errors.sectionName ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              aria-describedby={errors.sectionName ? 'section-name-error' : undefined}
+            />
             {errors.sectionName && (
               <p
                 id="section-name-error"
@@ -492,37 +430,30 @@ export default function SectionForm({
             >
               Section Rank *
             </label>
-            <div className="relative">
-              <select
-                id="section-rank"
-                value={formData.rank}
-                onChange={(e) => handleInputChange('rank', e.target.value as SectionRank)}
-                disabled={loading || getAvailableRanks().length === 0}
-                className={`w-full pl-10 pr-3 py-2 border-1 shadow-sm border-blue-900 rounded-none bg-white text-base shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.rank ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                aria-describedby={errors.rank ? 'rank-error' : undefined}
-              >
-                {getAvailableRanks().length === 0 ? (
-                  <option value="">
-                    No ranks available
+            <select
+              id="section-rank"
+              value={formData.rank}
+              onChange={(e) => handleInputChange('rank', e.target.value as SectionRank)}
+              disabled={loading || getAvailableRanks().length === 0}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:border-blue-900 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${errors.rank ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              aria-describedby={errors.rank ? 'rank-error' : undefined}
+            >
+              {getAvailableRanks().length === 0 ? (
+                <option value="">
+                  No ranks available
+                </option>
+              ) : (
+                getAvailableRanks().map((rank) => (
+                  <option key={rank} value={rank}>
+                    {rank}
                   </option>
-                ) : (
-                  getAvailableRanks().map((rank) => (
-                    <option key={rank} value={rank}>
-                      {rank}
-                    </option>
-                  ))
-                )}
-              </select>
-              <Trophy
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                weight="duotone"
-              />
-            </div>
+                ))
+              )}
+            </select>
             {getAvailableRanks().length === 0 && (formData.gradeId || formData.courseId) && (
               <p
-                className="text-sm text-orange-600 bg-orange-50 border border-orange-200 p-2 rounded-none"
+                className="text-sm text-gray-900 bg-white border border-gray-200 p-2 rounded-xl"
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
               >
                 All ranks (A-H) are already taken. Please select a different {formData.sectionType} or contact an administrator.
@@ -547,45 +478,31 @@ export default function SectionForm({
             >
               {formData.sectionType === 'grade' ? 'Grade' : 'Course'}
             </label>
-            <div className="relative">
-              <Input
-                type="text"
-                value={formData.grade}
-                disabled
-                className="pl-10 border-1 shadow-sm border-gray-300 bg-gray-100 text-gray-600"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-              />
-              <BookOpen
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                weight="duotone"
-              />
-            </div>
+            <Input
+              type="text"
+              value={formData.grade}
+              disabled
+              className="border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            />
           </div>
 
           <div className="space-y-2">
             <label
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               Department
             </label>
-            <div className="relative">
-              <Input
-                type="text"
-                value={formData.department === 'JHS' ? 'Junior High School' :
-                       formData.department === 'SHS' ? 'Senior High School' :
-                       'College'}
-                disabled
-                className="pl-10 border-1 shadow-sm border-gray-300 bg-gray-100 text-gray-600"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-              />
-              <Building
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                weight="duotone"
-              />
-            </div>
+            <Input
+              type="text"
+              value={formData.department === 'JHS' ? 'Junior High School' :
+                     formData.department === 'SHS' ? 'Senior High School' :
+                     'College'}
+              disabled
+              className="border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            />
           </div>
 
           {/* Section Description */}
@@ -597,25 +514,18 @@ export default function SectionForm({
             >
               Section Description *
             </label>
-            <div className="relative">
-              <textarea
-                id="section-description"
-                placeholder="Provide a detailed description of the section, including class composition, special features, or focus areas..."
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                disabled={loading}
-                className={`border-1 shadow-sm border-blue-900 rounded-none flex min-h-[100px] w-full bg-white pl-10 pr-3 py-2 text-base shadow-lg placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-blue-500 focus-visible:ring-blue-500' : ''}`}
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                aria-describedby={errors.description ? 'description-error' : undefined}
-                maxLength={200}
-                rows={4}
-              />
-              <FileText
-                size={18}
-                className="absolute left-3 top-4 text-gray-400"
-                weight="duotone"
-              />
-            </div>
+            <textarea
+              id="section-description"
+              placeholder="Provide a detailed description of the section, including class composition, special features, or focus areas..."
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              disabled={loading}
+              className={`border border-gray-300 rounded-xl flex min-h-[100px] w-full bg-white px-3 py-2 text-base placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:border-blue-900 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${errors.description ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              aria-describedby={errors.description ? 'description-error' : undefined}
+              maxLength={200}
+              rows={4}
+            />
             <div className="flex justify-between items-center">
               {errors.description && (
                 <p
@@ -636,7 +546,7 @@ export default function SectionForm({
           </div>
         </div>
 
-        <p className="text-sm text-gray-800 font-light p-3 bg-blue-100 border-1 border-blue-900 text-justify">
+        <p className="text-sm text-gray-600 font-light p-3 bg-white border border-gray-200 rounded-xl text-justify">
           This form will determine the identity of the section in the system. Sections are ranked (A-H) to help with organization and student placement.
         </p>
 
@@ -647,6 +557,7 @@ export default function SectionForm({
             variant="outline"
             onClick={onCancel}
             disabled={loading}
+            className="rounded-lg"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             Cancel
@@ -654,6 +565,7 @@ export default function SectionForm({
           <Button
             type="submit"
             disabled={loading || !(formData.gradeId || formData.courseId) || !formData.sectionName || !formData.rank || !formData.description || getAvailableRanks().length === 0}
+            className="bg-gradient-to-br from-blue-900 to-blue-800 text-white hover:from-blue-800 hover:to-blue-900 rounded-lg"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             {loading ? (
@@ -669,6 +581,6 @@ export default function SectionForm({
           </Button>
         </div>
       </form>
-    </Card>
+    </div>
   );
 }

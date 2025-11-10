@@ -391,12 +391,12 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
       )}
       
       <div className={`${isModal ? 'w-full' : 'max-w-4xl mx-auto relative z-10'}`}>
-        <Card className={`${isModal ? 'shadow-lg border-0' : 'shadow-2xl border-0 bg-gradient-to-br from-white to-gray-50'}`}>
+        <Card className={`${isModal ? 'shadow-lg border border-blue-100 rounded-xl bg-white/80 backdrop-blur-sm' : 'shadow-2xl border border-blue-100 rounded-xl bg-white/80 backdrop-blur-sm'}`}>
           <CardHeader className="text-center pb-8">
-            <CardTitle className="text-3xl font-light text-gray-900">
+            <CardTitle className="text-3xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
               {userProfile ? 'Edit Your Profile' : 'Setup Your Account'}
             </CardTitle>
-            <CardDescription className="text-gray-500 text-base">
+            <CardDescription className="text-gray-600 text-base" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
               {userProfile 
                 ? 'Update your personal details, contact information, and background information.'
                 : 'Finish setting up your profile by providing accurate personal details, contact information, and background to access features and begin smoothly.'
@@ -407,12 +407,14 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
           <CardContent className="space-y-8">
             {/* Personal Information Section */}
             <div className="space-y-6">
-              <div className="pb-4 border-b border-gray-200">
+              <div className="pb-4 border-b border-blue-100">
                 <div className="flex items-center gap-3 mb-2">
-                  <IdentificationCard size={20} className="text-blue-900" weight="duotone" />
-                  <h3 className="text-lg font-medium text-gray-900">Personal Information</h3>
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
+                    <IdentificationCard size={18} className="text-white" weight="fill" />
+                  </div>
+                  <h3 className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>Personal Information</h3>
                 </div>
-                <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-blue-100">
+                <p className="text-xs text-blue-900 font-light text-justify rounded-xl border border-blue-100 shadow-sm p-3 bg-blue-50" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                   {userProfile 
                     ? 'Update your essential personal details for account verification, including your full name, updated contact information, and a concise overview of your professional background.'
                     : 'Submit your essential personal details for account verification, including your full name, updated contact information, and a concise overview of your professional background. Ensure the information is accurate and complete to facilitate smooth verification and secure access to your account.'
@@ -428,7 +430,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="firstName"
                       type="text"
                       placeholder="First Name"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.firstName}
                       onChange={(e) => handleInputChange('firstName', e.target.value)}
                     />
@@ -442,7 +444,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="middleName"
                       type="text"
                       placeholder="Middle Name"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.middleName}
                       onChange={(e) => handleInputChange('middleName', e.target.value)}
                     />
@@ -456,7 +458,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="lastName"
                       type="text"
                       placeholder="Last Name"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.lastName}
                       onChange={(e) => handleInputChange('lastName', e.target.value)}
                     />
@@ -470,7 +472,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="nameExtension"
                       type="text"
                       placeholder="Jr., Sr., III, etc."
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.nameExtension}
                       onChange={(e) => handleInputChange('nameExtension', e.target.value)}
                     />
@@ -487,7 +489,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       type="email"
                       value={user?.email || ''}
                       disabled
-                      className="w-full px-3 py-2 h-10 bg-gray-50 border-2 border-gray-200 text-gray-500"
+                      className="w-full px-3 py-2 h-10 rounded-xl bg-gray-50 border-2 border-gray-200 text-gray-500"
                     />
                   </div>
                 </div>
@@ -499,7 +501,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="phoneNumber"
                       type="tel"
                       placeholder="+63962 781 1434"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.phoneNumber}
                       onChange={(e) => handlePhoneNumberChange(e.target.value)}
                     />
@@ -511,7 +513,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <select
-                        className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                        className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                         value={formData.birthMonth || ''}
                         onChange={(e) => handleInputChange('birthMonth', e.target.value)}
                       >
@@ -532,7 +534,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                     </div>
                     <div>
                       <select
-                        className="w-full px-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                        className="w-full px-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                         value={formData.birthDay || ''}
                         onChange={(e) => handleInputChange('birthDay', e.target.value)}
                       >
@@ -546,7 +548,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                     </div>
                     <div>
                       <select
-                        className="w-full px-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                        className="w-full px-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                         value={formData.birthYear || ''}
                         onChange={(e) => handleInputChange('birthYear', e.target.value)}
                       >
@@ -566,7 +568,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                   <div>
                     <select
                       id="gender"
-                      className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                      className="w-full px-3 pr-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                       value={formData.gender}
                       onChange={(e) => handleInputChange('gender', e.target.value)}
                     >
@@ -582,7 +584,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                   <div>
                     <select
                       id="civilStatus"
-                      className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                      className="w-full px-3 pr-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                       value={formData.civilStatus}
                       onChange={(e) => handleInputChange('civilStatus', e.target.value)}
                     >
@@ -603,7 +605,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="religion"
                       type="text"
                       placeholder="Religion"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.religion}
                       onChange={(e) => handleInputChange('religion', e.target.value)}
                     />
@@ -617,7 +619,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="placeOfBirth"
                       type="text"
                       placeholder="Place of Birth"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.placeOfBirth}
                       onChange={(e) => handleInputChange('placeOfBirth', e.target.value)}
                     />
@@ -631,7 +633,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="citizenship"
                       type="text"
                       placeholder="Citizenship"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.citizenship}
                       onChange={(e) => handleInputChange('citizenship', e.target.value)}
                     />
@@ -642,12 +644,14 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
             {/* Address Information Section */}
             <div className="space-y-6">
-              <div className="pb-4 border-b border-gray-200">
+              <div className="pb-4 border-b border-blue-100">
                 <div className="flex items-center gap-3 mb-2">
-                  <House size={20} className="text-blue-900" weight="duotone" />
-                  <h3 className="text-lg font-medium text-gray-900">Address Information</h3>
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
+                    <House size={18} className="text-white" weight="fill" />
+                  </div>
+                  <h3 className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>Address Information</h3>
                 </div>
-                <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-blue-100">
+                <p className="text-xs text-blue-900 font-light text-justify rounded-xl border border-blue-100 shadow-sm p-3 bg-blue-50" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                   {userProfile 
                     ? 'Update your full residential address details, including street, city, state, and postal code, for accurate location verification.'
                     : 'Provide your full residential address details, including street, city, state, and postal code, for accurate location verification. Ensure all information is correct and up to date to confirm your residence and complete the verification process successfully.'
@@ -659,12 +663,11 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                 <div className="space-y-2">
                   <Label htmlFor="streetName" className="text-sm font-medium text-gray-700">Street Name <span className="text-red-500">*</span></Label>
                   <div>
-                    <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                     <Input
                       id="streetName"
                       type="text"
                       placeholder="Street Name"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.streetName}
                       onChange={(e) => handleInputChange('streetName', e.target.value)}
                     />
@@ -675,10 +678,9 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                   <div className="space-y-2">
                     <Label htmlFor="province" className="text-sm font-medium text-gray-700">Province <span className="text-red-500">*</span></Label>
                     <div>
-                      <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                       <select
                         id="province"
-                        className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                        className="w-full px-3 pr-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                         value={selectedProvince?.code || ''}
                         onChange={(e) => handleProvinceChange(e.target.value)}
                       >
@@ -695,10 +697,9 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                   <div className="space-y-2">
                     <Label htmlFor="municipality" className="text-sm font-medium text-gray-700">Municipality <span className="text-red-500">*</span></Label>
                     <div>
-                      <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                       <select
                         id="municipality"
-                        className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                        className="w-full px-3 pr-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                         value={selectedMunicipality?.code || ''}
                         onChange={(e) => handleMunicipalityChange(e.target.value)}
                         disabled={!selectedProvince}
@@ -718,10 +719,9 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                   <div className="space-y-2">
                     <Label htmlFor="barangay" className="text-sm font-medium text-gray-700">Barangay <span className="text-red-500">*</span></Label>
                     <div>
-                      <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                       <select
                         id="barangay"
-                        className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                        className="w-full px-3 pr-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                         value={selectedBarangay?.code || ''}
                         onChange={(e) => handleBarangayChange(e.target.value)}
                         disabled={!selectedMunicipality}
@@ -739,12 +739,11 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                   <div className="space-y-2">
                     <Label htmlFor="zipCode" className="text-sm font-medium text-gray-700">ZIP/Postal Code <span className="text-red-500">*</span></Label>
                     <div>
-                      <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                       <Input
                         id="zipCode"
                         type="text"
                         placeholder="ZIP Code"
-                        className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                        className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                         value={formData.zipCode}
                         onChange={(e) => handleInputChange('zipCode', e.target.value)}
                       />
@@ -756,12 +755,14 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
             {/* Guardian Information Section */}
             <div className="space-y-6">
-              <div className="pb-4 border-b border-gray-200">
+              <div className="pb-4 border-b border-blue-100">
                 <div className="flex items-center gap-3 mb-2">
-                  <Shield size={20} className="text-blue-900" weight="duotone" />
-                  <h3 className="text-lg font-medium text-gray-900">Guardian Information</h3>
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
+                    <Shield size={18} className="text-white" weight="fill" />
+                  </div>
+                  <h3 className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>Guardian Information</h3>
                 </div>
-                <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-blue-100">
+                <p className="text-xs text-blue-900 font-light text-justify rounded-xl border border-blue-100 shadow-sm p-3 bg-blue-50" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                   {userProfile 
                     ? 'Update emergency contact and guardian details for safety purposes, including full name, relationship, and accurate contact information.'
                     : 'Submit emergency contact and guardian details for safety purposes, including full name, relationship, and accurate contact information. This ensures proper communication and support in case of emergencies, helping verify identity and maintaining safety throughout the verification process.'
@@ -777,7 +778,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="guardianName"
                       type="text"
                       placeholder="Guardian Name"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.guardianName}
                       onChange={(e) => handleInputChange('guardianName', e.target.value)}
                     />
@@ -787,10 +788,9 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                 <div className="space-y-2">
                   <Label htmlFor="guardianRelationship" className="text-sm font-medium text-gray-700">Relationship <span className="text-red-500">*</span></Label>
                   <div>
-                    <Shield size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
                     <select
                       id="guardianRelationship"
-                      className="w-full px-3 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                      className="w-full px-3 pr-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                       value={formData.guardianRelationship}
                       onChange={(e) => handleInputChange('guardianRelationship', e.target.value)}
                     >
@@ -811,7 +811,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="guardianPhone"
                       type="tel"
                       placeholder="+63962 781 1434"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.guardianPhone}
                       onChange={(e) => handleGuardianPhoneChange(e.target.value)}
                     />
@@ -825,7 +825,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="guardianEmail"
                       type="email"
                       placeholder="Guardian Email"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.guardianEmail}
                       onChange={(e) => handleInputChange('guardianEmail', e.target.value)}
                     />
@@ -839,7 +839,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="emergencyContact"
                       type="text"
                       placeholder="Emergency Contact"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.emergencyContact}
                       onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
                     />
@@ -850,12 +850,14 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
             {/* Previous School Information Section */}
             <div className="space-y-6">
-              <div className="pb-4 border-b border-gray-200">
+              <div className="pb-4 border-b border-blue-100">
                 <div className="flex items-center gap-3 mb-2">
-                  <GraduationCap size={20} className="text-blue-900" weight="duotone" />
-                  <h3 className="text-lg font-medium text-gray-900">Previous School Information</h3>
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
+                    <GraduationCap size={18} className="text-white" weight="fill" />
+                  </div>
+                  <h3 className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>Previous School Information</h3>
                 </div>
-                <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-blue-100">
+                <p className="text-xs text-blue-900 font-light text-justify rounded-xl border border-blue-100 shadow-sm p-3 bg-blue-50" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                 Provide details about your previous educational institution, including the school name, type (private or public), and location. This information helps us understand your academic background and ensures proper record keeping.</p>
               </div>
 
@@ -867,7 +869,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                       id="previousSchoolName"
                       type="text"
                       placeholder="Name of School"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200"
                       value={formData.previousSchoolName}
                       onChange={(e) => handleInputChange('previousSchoolName', e.target.value)}
                     />
@@ -879,7 +881,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                   <div>
                     <select
                       id="previousSchoolType"
-                      className="w-full px-3 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                      className="w-full px-3 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                       value={formData.previousSchoolType}
                       onChange={(e) => handleInputChange('previousSchoolType', e.target.value)}
                     >
@@ -892,11 +894,10 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                 <div className="space-y-2">
                   <Label htmlFor="previousSchoolProvince" className="text-sm font-medium text-gray-700">Province <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <select
                       id="previousSchoolProvince"
-                      className="w-full pl-10 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                      className="w-full px-3 pr-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                       value={formData.previousSchoolProvince}
                       onChange={(e) => handlePreviousSchoolProvinceChange(e.target.value)}
                     >
@@ -912,11 +913,10 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
                 <div className="space-y-2">
                   <Label htmlFor="previousSchoolMunicipality" className="text-sm font-medium text-gray-700">Municipality <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <MapPin size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" weight="duotone" />
+                  <div>
                     <select
                       id="previousSchoolMunicipality"
-                      className="w-full pl-10 pr-4 py-2 h-10 border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 rounded-md bg-white"
+                      className="w-full px-3 pr-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
                       value={formData.previousSchoolMunicipality}
                       onChange={(e) => handleInputChange('previousSchoolMunicipality', e.target.value)}
                       disabled={!formData.previousSchoolProvince}
@@ -935,37 +935,38 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
             {/* Academic Data Usage Agreement */}
             <div className="">
-              <div className="flex items-start gap-3 p-4 border-1 shadow-sm border-blue-900 bg-blue-100 text-blue-900">
+              <div className="flex items-start gap-3 p-4 rounded-xl border border-blue-100 shadow-sm bg-blue-50 text-blue-900">
                 <div className="flex items-center">
                   
                 </div>
                 <div className="flex-1">
-                  <label htmlFor="academicUse" className="text-xs text-blue-900 font-light cursor-pointer">
-                    <span className="font-medium text-blue-900">Academic Data Usage Agreement</span>
+                  <label htmlFor="academicUse" className="text-xs text-blue-900 font-light cursor-pointer" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                    <span className="font-medium text-blue-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>Academic Data Usage Agreement</span>
                     <br />
                     I agree that the data provided in this form may be used for academic research, educational purposes, and institutional analysis. This data will be handled in accordance with applicable privacy laws and institutional policies.
                   </label>
                 </div>
                 
               </div>
-              <div className="flex items-center text-xs text-blue-900 font-light cursor-pointer">
+              <div className="flex items-center text-xs text-blue-900 font-light cursor-pointer mt-3" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                 <input
                   type="checkbox"
                   id="academicUse"
                   checked={agreedToAcademicUse}
                   onChange={(e) => setAgreedToAcademicUse(e.target.checked)}
-                  className="w-4 mb-5 mr-2 mt-5 h-4 text-blue-900 bg-white border-gray-300 rounded focus:ring-blue-900 focus:ring-2"
+                  className="w-4 mr-2 h-4 text-blue-900 bg-white border-gray-300 rounded-lg focus:ring-blue-900 focus:ring-2"
                 />
                 I agree with the terms and conditions
               </div>
             </div>
 
-            <div className="pt-4 flex gap-4">
+            <div className="pt-4 flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={handleSave}
-                className="flex-1 bg-blue-900 hover:bg-blue-900 text-white font-medium py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-lg"
+                className="flex-1 bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white font-medium py-3 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
                 loading={isLoading}
                 disabled={!agreedToAcademicUse}
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
                 {userProfile ? 'Update Profile' : 'Complete Setup'}
               </Button>
@@ -974,7 +975,8 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                 <Button
                   onClick={onCancel}
                   variant="outline"
-                  className="px-8 py-3"
+                  className="px-8 py-3 rounded-xl"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
                   Cancel
                 </Button>

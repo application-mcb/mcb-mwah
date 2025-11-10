@@ -1,28 +1,48 @@
-'use client';
+'use client'
 
-import { GradeColor, GRADE_COLORS } from '@/lib/types/grade-section';
-import { GraduationCap } from '@phosphor-icons/react';
+import { GradeColor, GRADE_COLORS } from '@/lib/types/grade-section'
+import { GraduationCap } from '@phosphor-icons/react'
 
 interface GradeColorPickerProps {
-  selectedColor: GradeColor;
-  onColorChange: (color: GradeColor) => void;
-  disabled?: boolean;
+  selectedColor: GradeColor
+  onColorChange: (color: GradeColor) => void
+  disabled?: boolean
 }
 
 const colorMap = {
-  'blue-800': { bg: 'bg-blue-800', border: 'border-blue-600', name: 'Blue' },
+  'blue-900': { bg: 'bg-blue-900', border: 'border-blue-600', name: 'Blue' },
   'red-800': { bg: 'bg-red-800', border: 'border-red-600', name: 'Red' },
-  'emerald-800': { bg: 'bg-emerald-800', border: 'border-emerald-600', name: 'Emerald' },
-  'yellow-800': { bg: 'bg-yellow-800', border: 'border-yellow-600', name: 'Yellow' },
-  'orange-800': { bg: 'bg-orange-800', border: 'border-orange-600', name: 'Orange' },
-  'violet-800': { bg: 'bg-violet-800', border: 'border-violet-600', name: 'Violet' },
-  'purple-800': { bg: 'bg-purple-800', border: 'border-purple-600', name: 'Purple' },
-};
+  'emerald-800': {
+    bg: 'bg-emerald-800',
+    border: 'border-emerald-600',
+    name: 'Emerald',
+  },
+  'yellow-800': {
+    bg: 'bg-yellow-800',
+    border: 'border-yellow-600',
+    name: 'Yellow',
+  },
+  'orange-800': {
+    bg: 'bg-orange-800',
+    border: 'border-orange-600',
+    name: 'Orange',
+  },
+  'violet-800': {
+    bg: 'bg-violet-800',
+    border: 'border-violet-600',
+    name: 'Violet',
+  },
+  'purple-800': {
+    bg: 'bg-purple-800',
+    border: 'border-purple-600',
+    name: 'Purple',
+  },
+}
 
 export default function GradeColorPicker({
   selectedColor,
   onColorChange,
-  disabled = false
+  disabled = false,
 }: GradeColorPickerProps) {
   return (
     <div className="space-y-3">
@@ -35,8 +55,8 @@ export default function GradeColorPicker({
 
       <div className="grid grid-cols-7 gap-3">
         {GRADE_COLORS.map((color) => {
-          const isSelected = selectedColor === color;
-          const colorInfo = colorMap[color];
+          const isSelected = selectedColor === color
+          const colorInfo = colorMap[color]
 
           return (
             <button
@@ -47,8 +67,16 @@ export default function GradeColorPicker({
               className={`
                 relative w-12 h-12 border-2 transition-all duration-200
                 ${colorInfo.bg}
-                ${isSelected ? colorInfo.border + ' ring-2 ring-offset-2 ring-blue-500' : 'border-gray-300'}
-                ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110 cursor-pointer'}
+                ${
+                  isSelected
+                    ? colorInfo.border + ' ring-2 ring-offset-2 ring-blue-500'
+                    : 'border-gray-300'
+                }
+                ${
+                  disabled
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:scale-110 cursor-pointer'
+                }
                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
                 flex items-center justify-center
               `}
@@ -56,15 +84,16 @@ export default function GradeColorPicker({
               aria-label={`Select ${colorInfo.name} color`}
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
             >
-
-              <GraduationCap size={16} className="text-white/80" weight="fill" />
+              <GraduationCap
+                size={16}
+                className="text-white/80"
+                weight="fill"
+              />
               {isSelected && (
-                <div className="absolute inset-0 flex items-center justify-center">
-
-                </div>
+                <div className="absolute inset-0 flex items-center justify-center"></div>
               )}
             </button>
-          );
+          )
         })}
       </div>
 
@@ -72,8 +101,11 @@ export default function GradeColorPicker({
         className="text-xs text-gray-500"
         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
       >
-        Selected: <span className="font-medium text-gray-700">{colorMap[selectedColor].name}</span>
+        Selected:{' '}
+        <span className="font-medium text-gray-700">
+          {colorMap[selectedColor].name}
+        </span>
       </p>
     </div>
-  );
+  )
 }

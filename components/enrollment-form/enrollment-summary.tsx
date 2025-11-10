@@ -10,7 +10,6 @@ type EnrollmentSummaryProps = {
   loadingSubjects: boolean
   subjectsCarouselIndex: number
   onSetSubjectsCarouselIndex: (index: number) => void
-  onShowDeleteModal: () => void
 }
 
 export default function EnrollmentSummary({
@@ -19,7 +18,6 @@ export default function EnrollmentSummary({
   loadingSubjects,
   subjectsCarouselIndex,
   onSetSubjectsCarouselIndex,
-  onShowDeleteModal,
 }: EnrollmentSummaryProps) {
   const formatDate = (dateInput: any) => {
     try {
@@ -139,20 +137,20 @@ export default function EnrollmentSummary({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white p-6 border border-gray-200">
+      <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
               <Check size={20} className="text-white" weight="bold" />
             </div>
             <div>
               <h1
-                className="text-2xl font-medium text-gray-900"
+                className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
                 Enrollment Submitted
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                 Your enrollment application has been submitted and is being
                 processed
               </p>
@@ -166,14 +164,14 @@ export default function EnrollmentSummary({
         {/* First Row - Personal Info, Academic Info, Actions */}
 
         {/* Second Row - Subjects Carousel */}
-        <div className="bg-white p-6 border border-gray-200">
+        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-8 h-8 bg-blue-900 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
               <BookOpen size={16} className="text-white" weight="bold" />
             </div>
             <h3
-              className="text-lg font-medium text-gray-900"
-              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+              className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               Enrolled Subjects
             </h3>
@@ -183,7 +181,7 @@ export default function EnrollmentSummary({
           <div className="relative overflow-hidden">
             {loadingSubjects ? (
               <div className="flex justify-center">
-                <div className="p-8 bg-gray-50 border border-gray-200 text-center">
+                <div className="p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-900/30 border-t-blue-900 mx-auto mb-3"></div>
                   <h4
                     className="text-sm font-medium text-gray-500 mb-2"
@@ -222,14 +220,11 @@ export default function EnrollmentSummary({
                               return (
                                 <div
                                   key={subject.id}
-                                  className="group p-6 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-sm transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4"
+                                  className="group p-6 rounded-xl border-none hover:shadow-xl transition-all duration-300 ease-in-out shadow-lg transform hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4"
                                   style={{
-                                    backgroundColor: getColorValue(
+                                    background: `linear-gradient(135deg, ${getColorValue(
                                       subject.color
-                                    ),
-                                    borderLeftColor: getColorValue(
-                                      subject.color
-                                    ),
+                                    )} 0%, ${getColorValue(subject.color)}dd 100%)`,
                                     animationDelay: `${
                                       groupIndex * 150 +
                                       subjectIndex * 75 +
@@ -241,7 +236,7 @@ export default function EnrollmentSummary({
                                   {/* Card Header */}
                                   <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center gap-4">
-                                      <div className="w-16 h-16 bg-white flex items-center justify-center flex-shrink-0">
+                                      <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center flex-shrink-0 aspect-square shadow-md">
                                         <IconComponent
                                           size={32}
                                           style={{
@@ -274,7 +269,7 @@ export default function EnrollmentSummary({
                                   </div>
 
                                   <div className="flex items-center gap-4 mb-4">
-                                    <div className="flex items-center p-1 text-xs font-medium rounded-none border border-white/30 bg-white/20 text-white">
+                                    <div className="flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-white/30 bg-white/20 text-white">
                                       <BookOpen
                                         size={12}
                                         className="mr-1"
@@ -282,7 +277,7 @@ export default function EnrollmentSummary({
                                       />
                                       Grade {subject.gradeLevel}
                                     </div>
-                                    <div className="flex items-center p-1 text-xs font-medium rounded-none border border-white/30 bg-white/20 text-white">
+                                    <div className="flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-white/30 bg-white/20 text-white">
                                       <Stack size={12} className="mr-1" weight="duotone" />
                                       {(subject.lectureUnits || 0) +
                                         (subject.labUnits || 0)}{' '}
@@ -326,13 +321,16 @@ export default function EnrollmentSummary({
               </>
             ) : (
               <div className="flex-shrink-0 w-full">
-                <div className="p-8 bg-gray-50 border border-gray-200 text-center">
-                  <BookOpen
-                    size={32}
-                    className="mx-auto text-gray-400 mb-3"
-                  />
+                <div className="p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg text-center">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md mx-auto mb-3">
+                    <BookOpen
+                      size={24}
+                      className="text-white"
+                      weight="fill"
+                    />
+                  </div>
                   <h4
-                    className="text-sm font-medium text-gray-500 mb-2"
+                    className="text-sm font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent mb-2"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
                     No subjects found
@@ -350,16 +348,7 @@ export default function EnrollmentSummary({
         </div>
       </div>
 
-      <div className="flex justify-center">
-        <Button
-          onClick={onShowDeleteModal}
-          variant="outline"
-          className="text-red-600 border-red-200 hover:bg-red-50"
-        >
-          <X size={16} className="mr-2" />
-          Delete Enrollment Submission
-        </Button>
-      </div>
+    {/* Delete Enrollment button removed per new requirements */}
     </div>
   )
 }

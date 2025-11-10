@@ -98,10 +98,23 @@ export const checkCourseChangeRequired = (
 export const validateEnrollmentAvailability = async (
   selectedLevel: string,
   selectedSemester: string,
-  selectedCourse: any,
+  selectedCourseOrGrade: any,
   userId: string
 ) => {
-  if (selectedLevel !== 'college' || !selectedCourse || !selectedSemester) {
+  // For college, require course and semester
+  if (selectedLevel === 'college') {
+    if (!selectedCourseOrGrade || !selectedSemester) {
+      return { isValid: true, message: '' }
+    }
+  } 
+  // For SHS, require grade and semester
+  else if (selectedLevel === 'high-school' && selectedCourseOrGrade?.department === 'SHS') {
+    if (!selectedCourseOrGrade || !selectedSemester) {
+      return { isValid: true, message: '' }
+    }
+  }
+  // For JHS, no semester check needed
+  else {
     return { isValid: true, message: '' }
   }
 

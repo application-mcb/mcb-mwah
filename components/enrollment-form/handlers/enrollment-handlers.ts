@@ -1,10 +1,37 @@
 import { toast } from 'react-toastify'
 import { GradeData } from '@/lib/grade-section-database'
-import { determineStudentType, checkCourseChangeRequired, validateEnrollmentAvailability } from '../utils/enrollment-business-logic'
-import { validatePersonalInfo, validateCompliance, validateDocuments } from '../utils/enrollment-validation'
-import { formatPhoneNumber, calculateAgeFromValues, isRegularGradeLevel, isRegularYearSemester } from '../utils/enrollment-utils'
+import {
+  determineStudentType,
+  checkCourseChangeRequired,
+  validateEnrollmentAvailability,
+} from '../utils/enrollment-business-logic'
+import {
+  validatePersonalInfo,
+  validateCompliance,
+  validateDocuments,
+} from '../utils/enrollment-validation'
+import {
+  formatPhoneNumber,
+  calculateAgeFromValues,
+  isRegularGradeLevel,
+  isRegularYearSemester,
+} from '../utils/enrollment-utils'
 
-export const createEnrollmentHandlers = (state: any, changeStep: (step: 'compliance' | 're-enroll' | 'level-selection' | 'grade-selection' | 'course-selection' | 'year-selection' | 'semester-selection' | 'personal-info' | 'confirmation') => void) => {
+export const createEnrollmentHandlers = (
+  state: any,
+  changeStep: (
+    step:
+      | 'compliance'
+      | 're-enroll'
+      | 'level-selection'
+      | 'grade-selection'
+      | 'course-selection'
+      | 'year-selection'
+      | 'semester-selection'
+      | 'personal-info'
+      | 'confirmation'
+  ) => void
+) => {
   const handleComplianceCheck = () => {
     state.setComplianceChecked(!state.complianceChecked)
   }
@@ -50,6 +77,55 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
   const handleGradeSelect = (grade: GradeData) => {
     state.setSelectingGrade(grade.id)
 
+    // Check if this is SHS (Senior High School) - Grade 11-12 with department === 'SHS'
+    const isSHS = grade.department === 'SHS'
+
+    // Check for strand change for SHS re-enrollment
+    if (isSHS && state.previousEnrollment) {
+      const prevInfo = state.previousEnrollment.enrollmentInfo
+      const prevStrand = prevInfo?.strand || ''
+      const currentStrand = grade.strand || ''
+
+      // If strand changed, reset to Grade 11 First Semester (irregular)
+      if (prevStrand && currentStrand && prevStrand !== currentStrand) {
+        // Check if selected grade is Grade 11
+        if (grade.gradeLevel === 11) {
+          // Set as irregular and proceed to semester selection
+          setTimeout(() => {
+            state.setSelectedGrade(grade)
+            state.setStudentType('irregular')
+            state.setSelectingGrade(null)
+            changeStep('semester-selection')
+          }, 600)
+          return
+        } else {
+          // If not Grade 11, show warning and reset to Grade 11
+          toast.warning(
+            'Strand change detected. You will be reset to Grade 11 First Semester.',
+            {
+              autoClose: 6000,
+            }
+          )
+          // Find Grade 11 with new strand
+          const grade11 = state.grades.find(
+            (g: GradeData) =>
+              g.gradeLevel === 11 &&
+              g.department === 'SHS' &&
+              g.strand === currentStrand
+          )
+          if (grade11) {
+            setTimeout(() => {
+              state.setSelectedGrade(grade11)
+              state.setStudentType('irregular')
+              state.setSelectingGrade(null)
+              changeStep('semester-selection')
+            }, 600)
+            return
+          }
+        }
+      }
+    }
+
     // Check if this is an irregular grade level
     const isRegular = isRegularGradeLevel(grade.gradeLevel)
 
@@ -62,12 +138,19 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
         state.setSelectedGrade(grade)
       }, 600)
     } else {
-      // Regular grade level - proceed normally
+      // Regular grade level - proceed based on department
       setTimeout(() => {
         state.setSelectedGrade(grade)
         state.setStudentType('regular')
         state.setSelectingGrade(null)
-        changeStep('personal-info')
+
+        if (isSHS) {
+          // SHS students go to semester selection (like college)
+          changeStep('semester-selection')
+        } else {
+          // JHS students go directly to personal info (no semester)
+          changeStep('personal-info')
+        }
       }, 600)
     }
   }
@@ -116,8 +199,75 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
   const handleSemesterSelect = async (semester: 'first-sem' | 'second-sem') => {
     state.setSelectedSemester(semester)
 
+    // For SHS re-enrollment, check if strand changed
+    const isSHS = state.selectedGrade?.department === 'SHS'
+    if (isSHS && state.previousEnrollment && state.isReEnrolling) {
+      const prevInfo = state.previousEnrollment.enrollmentInfo
+      const prevStrand = prevInfo?.strand || ''
+      const currentStrand = state.selectedGrade?.strand || ''
+
+      // If strand changed, must be Grade 11 First Semester (irregular)
+      if (prevStrand && currentStrand && prevStrand !== currentStrand) {
+        if (
+          state.selectedGrade?.gradeLevel === 11 &&
+          semester === 'first-sem'
+        ) {
+          state.setStudentType('irregular')
+        } else {
+          // Force Grade 11 First Semester
+          toast.warning(
+            'Strand change detected. Resetting to Grade 11 First Semester.',
+            {
+              autoClose: 6000,
+            }
+          )
+          const grade11 = state.grades.find(
+            (g: GradeData) =>
+              g.gradeLevel === 11 &&
+              g.department === 'SHS' &&
+              g.strand === currentStrand
+          )
+          if (grade11) {
+            state.setSelectedGrade(grade11)
+            state.setSelectedSemester('first-sem')
+            state.setStudentType('irregular')
+          }
+        }
+      } else {
+        // Same strand - check if continuing progression
+        const prevGradeLevel = parseInt(prevInfo?.gradeLevel || '0')
+        const currentGradeLevel = state.selectedGrade?.gradeLevel || 0
+        const prevSemester = prevInfo?.semester
+
+        // If continuing from previous semester/grade, it's regular
+        if (
+          prevSemester === 'first-sem' &&
+          semester === 'second-sem' &&
+          prevGradeLevel === currentGradeLevel
+        ) {
+          state.setStudentType('regular')
+        } else if (
+          prevSemester === 'second-sem' &&
+          semester === 'first-sem' &&
+          currentGradeLevel === prevGradeLevel + 1
+        ) {
+          state.setStudentType('regular')
+        } else if (currentGradeLevel === 11 && semester === 'first-sem') {
+          // Starting Grade 11 First Semester is regular
+          state.setStudentType('regular')
+        } else {
+          // Otherwise, irregular
+          state.setStudentType('irregular')
+        }
+      }
+    }
+
     // For college students, check if this is a non-starting year/semester combination
-    if (state.selectedLevel === 'college' && state.selectedYear && !state.isReEnrolling) {
+    if (
+      state.selectedLevel === 'college' &&
+      state.selectedYear &&
+      !state.isReEnrolling
+    ) {
       const isRegular = isRegularYearSemester(state.selectedYear, semester)
       if (!isRegular) {
         // This is an irregular year/semester combination - set student as irregular
@@ -137,26 +287,47 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
       }
     }
 
-    // Check enrollment availability
-    const availabilityCheck = await validateEnrollmentAvailability(
-      state.selectedLevel,
-      semester,
-      state.selectedCourse,
-      state.userId
-    )
+    // For SHS students, check enrollment availability
+    if (isSHS) {
+      // Check enrollment availability for SHS
+      const availabilityCheck = await validateEnrollmentAvailability(
+        state.selectedLevel,
+        semester,
+        state.selectedGrade, // Pass grade instead of course for SHS
+        state.userId
+      )
 
-    if (!availabilityCheck.isValid) {
-      toast.error(availabilityCheck.message, {
-        autoClose: 8000,
-      })
-      state.setSelectedSemester(null)
-      return
+      if (!availabilityCheck.isValid) {
+        toast.error(availabilityCheck.message, {
+          autoClose: 8000,
+        })
+        state.setSelectedSemester(null)
+        return
+      }
+    } else if (state.selectedLevel === 'college') {
+      // Check enrollment availability for college
+      const availabilityCheck = await validateEnrollmentAvailability(
+        state.selectedLevel,
+        semester,
+        state.selectedCourse,
+        state.userId
+      )
+
+      if (!availabilityCheck.isValid) {
+        toast.error(availabilityCheck.message, {
+          autoClose: 8000,
+        })
+        state.setSelectedSemester(null)
+        return
+      }
     }
 
     changeStep('personal-info')
   }
 
-  const handleReEnrollSemesterSelect = (semester: 'first-sem' | 'second-sem') => {
+  const handleReEnrollSemesterSelect = (
+    semester: 'first-sem' | 'second-sem'
+  ) => {
     state.setReEnrollSemester(semester)
     state.setSelectedSemester(semester)
   }
@@ -170,7 +341,11 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
     state.setPersonalInfo(updated)
 
     // Calculate age immediately with updated values
-    if (field === 'birthMonth' || field === 'birthDay' || field === 'birthYear') {
+    if (
+      field === 'birthMonth' ||
+      field === 'birthDay' ||
+      field === 'birthYear'
+    ) {
       const age = calculateAgeFromValues(
         updated.birthMonth,
         updated.birthDay,
@@ -188,7 +363,9 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
     })
   }
 
-  const handlePhoneNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handlePhoneNumberKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
     // Prevent deletion of +63 prefix
     if (
       e.key === 'Backspace' &&
@@ -213,7 +390,10 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
       return
     }
 
-    console.log('Proceeding to confirmation with personal info:', state.personalInfo)
+    console.log(
+      'Proceeding to confirmation with personal info:',
+      state.personalInfo
+    )
     changeStep('confirmation')
   }
 
@@ -254,7 +434,9 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
           state.setSelectedCourse(course)
         }
       }
-      state.setSelectedYear(prevInfo.yearLevel ? parseInt(prevInfo.yearLevel) : null)
+      state.setSelectedYear(
+        prevInfo.yearLevel ? parseInt(prevInfo.yearLevel) : null
+      )
       // Automatically determine opposite semester from previous enrollment
       if (prevInfo.semester === 'first-sem') {
         state.setReEnrollSemester('second-sem')
@@ -265,12 +447,67 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
       }
     } else {
       state.setSelectedLevel('high-school')
-      if (prevInfo.gradeLevel) {
-        const grade = state.grades.find(
-          (g: GradeData) => g.id === `grade-${prevInfo.gradeLevel}`
-        )
-        if (grade) {
-          state.setSelectedGrade(grade)
+
+      // Check if previous enrollment was SHS
+      const prevIsSHS = prevInfo?.department === 'SHS'
+      const prevStrand = prevInfo?.strand || ''
+      const prevGradeLevel = prevInfo?.gradeLevel
+
+      // Ensure grades list is available
+      if (state.grades.length === 0) {
+        try {
+          await state.loadGrades()
+        } catch (e) {}
+      }
+
+      if (prevIsSHS) {
+        // For SHS re-enrollment, check for strand changes
+        // If strand changes, reset to Grade 11 First Semester (irregular)
+        // If same strand, continue to next semester/grade (regular)
+
+        // For now, let user select grade - we'll check strand in handleGradeSelect
+        state.setSelectedGrade(null)
+        changeStep('grade-selection')
+      } else {
+        // JHS: Determine next grade level (prev + 1), capped at 12
+        let nextGradeLevel: number | null = null
+        if (prevGradeLevel) {
+          const numStr = String(prevGradeLevel).match(/\d+/)?.[0]
+          const prev = numStr ? parseInt(numStr, 10) : NaN
+          if (!Number.isNaN(prev)) {
+            const candidate = prev + 1
+            nextGradeLevel = candidate <= 12 ? candidate : null
+          }
+        }
+
+        if (nextGradeLevel) {
+          // Prefer id pattern `grade-X`, fallback by gradeLevel equality
+          let nextGrade = state.grades.find((g: GradeData) =>
+            g.id.startsWith(`grade-${nextGradeLevel}`)
+          )
+          if (!nextGrade) {
+            nextGrade = state.grades.find(
+              (g: GradeData) =>
+                parseInt(String(g.gradeLevel), 10) === nextGradeLevel
+            ) as GradeData | undefined
+          }
+          if (nextGrade) {
+            state.setSelectedGrade(nextGrade)
+            // Proceed to re-enroll step UI
+            changeStep('re-enroll')
+          } else {
+            // If not found, guide user to pick the appropriate next grade
+            state.setSelectedGrade(null)
+            toast.info(
+              `Grade ${nextGradeLevel} is not configured yet. Please select your grade.`,
+              { autoClose: 6000 }
+            )
+            changeStep('grade-selection')
+          }
+        } else {
+          // If no valid next grade (e.g., 12), leave unselected
+          state.setSelectedGrade(null)
+          changeStep('grade-selection')
         }
       }
     }
@@ -298,7 +535,7 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
       })
     }
 
-    changeStep('re-enroll')
+    // Moved re-enroll navigation inside HS/college branches after selections
   }
 
   const handleProceedToReEnrollConfirmation = () => {
@@ -346,7 +583,14 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
   const confirmIrregularStudent = () => {
     state.setStudentType('irregular')
     state.setShowIrregularModal(false)
-    changeStep('personal-info')
+
+    // Check if SHS - route to semester selection
+    const isSHS = state.selectedGrade?.department === 'SHS'
+    if (isSHS) {
+      changeStep('semester-selection')
+    } else {
+      changeStep('personal-info')
+    }
   }
 
   const cancelIrregularStudent = () => {
@@ -366,7 +610,9 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
       state.setShowCourseChangeModal(false)
       state.setPendingCourse(null)
 
-      console.log('🔍 After setStudentType("irregular") - should be set now')
+      console.log(
+        'CONSOLE :: After setStudentType("irregular") - should be set now'
+      )
 
       if (state.selectedLevel === 'college') {
         changeStep('year-selection')
@@ -374,7 +620,9 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
 
       // Verification log after state update
       setTimeout(() => {
-        console.log('🔍 Verification: studentType should be irregular now')
+        console.log(
+          'CONSOLE :: Verification: studentType should be irregular now'
+        )
       }, 100)
     }
   }
@@ -415,6 +663,10 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
 
     try {
       state.setEnrolling(true)
+      toast.info('Submitting enrollment...', {
+        autoClose: false,
+        toastId: 'enrollment-submit',
+      })
 
       // CRITICAL: Final check for course changes - detect if student is shifting courses
       let finalStudentType = state.studentType
@@ -452,8 +704,10 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
           state.existingEnrollment &&
           state.existingEnrollment.enrollmentInfo?.level === 'college'
         ) {
-          const existingSemester = state.existingEnrollment.enrollmentInfo?.semester
-          const existingCourseCode = state.existingEnrollment.enrollmentInfo?.courseCode
+          const existingSemester =
+            state.existingEnrollment.enrollmentInfo?.semester
+          const existingCourseCode =
+            state.existingEnrollment.enrollmentInfo?.courseCode
 
           // Only mark as irregular if enrolled in different semester AND different course
           // But at this point we don't have selectedSemester yet, so skip this check
@@ -473,7 +727,8 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
         // If studentType is still null/undefined and we're in college, default to regular
         // But ONLY if we haven't detected a course change
         if (!finalStudentType) {
-          finalStudentType = state.selectedLevel === 'college' ? 'regular' : 'regular'
+          finalStudentType =
+            state.selectedLevel === 'college' ? 'regular' : 'regular'
         }
 
         console.log(
@@ -506,14 +761,28 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
             semester: state.selectedSemester,
             level: 'college',
           })
-        } else if (state.selectedLevel === 'high-school' && state.selectedGrade) {
+        } else if (
+          state.selectedLevel === 'high-school' &&
+          state.selectedGrade
+        ) {
           // High school enrollment
-          Object.assign(enrollmentData, {
+          const enrollmentInfo: any = {
             gradeId: state.selectedGrade.id,
             gradeLevel: state.selectedGrade.gradeLevel,
             department: state.selectedGrade.department,
             level: 'high-school',
-          })
+          }
+
+          // Add semester for SHS students
+          if (
+            state.selectedGrade.department === 'SHS' &&
+            state.selectedSemester
+          ) {
+            enrollmentInfo.semester = state.selectedSemester
+            enrollmentInfo.strand = state.selectedGrade.strand || ''
+          }
+
+          Object.assign(enrollmentData, enrollmentInfo)
         }
 
         const response = await fetch('/api/enrollment', {
@@ -534,7 +803,26 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
         state.setSubmitModalOpen(false)
         state.setCountdown(5)
 
+        toast.dismiss('enrollment-submit')
         toast.success('Enrollment submitted successfully!')
+
+        // Dispatch custom event to notify enrollment-management of new enrollment
+        if (typeof window !== 'undefined') {
+          try {
+            window.dispatchEvent(
+              new CustomEvent('enrollmentSubmitted', {
+                detail: {
+                  userId: state.userId,
+                  status: 'submitted',
+                  timestamp: Date.now(),
+                },
+              })
+            )
+          } catch (error) {
+            // Silently fail - Firestore realtime listener will catch changes
+            console.warn('Failed to dispatch enrollmentSubmitted event:', error)
+          }
+        }
 
         // Refresh enrollment data by re-checking existing enrollment
         // This ensures we get the actual data from the database
@@ -553,8 +841,8 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
         state.setPersonalInfo({
           firstName: '',
           middleName: '',
-        lastName: '',
-        nameExtension: '',
+          lastName: '',
+          nameExtension: '',
           email: '',
           phone: '',
           birthMonth: '',
@@ -568,14 +856,22 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
         })
       } else if (state.selectedLevel === 'high-school' && state.selectedGrade) {
         // High school enrollment
-        const enrollmentData = {
+        const enrollmentData: any = {
           userId: state.userId,
           gradeId: state.selectedGrade.id,
           gradeLevel: state.selectedGrade.gradeLevel,
           department: state.selectedGrade.department,
           personalInfo: state.personalInfo,
-          studentType: 'regular', // High school is always regular
+          studentType: state.studentType || 'regular',
           documents: {}, // Empty documents object - documents will be referenced separately
+        }
+
+        // Add semester for SHS students
+        if (
+          state.selectedGrade.department === 'SHS' &&
+          state.selectedSemester
+        ) {
+          enrollmentData.semester = state.selectedSemester
         }
 
         const response = await fetch('/api/enrollment', {
@@ -592,7 +888,28 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
           throw new Error(data.error || 'Failed to submit enrollment')
         }
 
-        toast.success('Enrollment submitted successfully! You will be notified once it\'s processed.')
+        toast.dismiss('enrollment-submit')
+        toast.success(
+          "Enrollment submitted successfully! You will be notified once it's processed."
+        )
+
+        // Dispatch custom event to notify enrollment-management of new enrollment
+        if (typeof window !== 'undefined') {
+          try {
+            window.dispatchEvent(
+              new CustomEvent('enrollmentSubmitted', {
+                detail: {
+                  userId: state.userId,
+                  status: 'submitted',
+                  timestamp: Date.now(),
+                },
+              })
+            )
+          } catch (error) {
+            // Silently fail - Firestore realtime listener will catch changes
+            console.warn('Failed to dispatch enrollmentSubmitted event:', error)
+          }
+        }
 
         // Trigger progress update callback
         if (state.onProgressUpdate) {
@@ -600,6 +917,7 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
         }
       }
     } catch (error: any) {
+      toast.dismiss('enrollment-submit')
       toast.error(error.message || 'Failed to submit enrollment')
     } finally {
       state.setEnrolling(false)
@@ -647,8 +965,8 @@ export const createEnrollmentHandlers = (state: any, changeStep: (step: 'complia
         state.setPersonalInfo({
           firstName: '',
           middleName: '',
-        lastName: '',
-        nameExtension: '',
+          lastName: '',
+          nameExtension: '',
           email: '',
           phone: '',
           birthMonth: '',

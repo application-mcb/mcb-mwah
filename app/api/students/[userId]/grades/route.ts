@@ -1,7 +1,109 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, getDocs, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase-server';
 import { EnrollmentDatabase } from '@/lib/enrollment-database';
+import { SectionDatabase, GradeDatabase } from '@/lib/grade-section-database';
+
+// Helper function to refresh student metadata in studentGrades document
+async function refreshStudentMetadata(userId: string, ayCode: string): Promise<void> {
+  try {
+    // Get enrollment data - try without semester first (works for high school and fallback for college)
+    let enrollmentResult = await EnrollmentDatabase.getEnrollment(userId, ayCode);
+    
+    // If not found and might be college, try both semesters
+    if (!enrollmentResult.success || !enrollmentResult.data) {
+      enrollmentResult = await EnrollmentDatabase.getEnrollment(userId, ayCode, 'first-sem');
+      if (!enrollmentResult.success || !enrollmentResult.data) {
+        enrollmentResult = await EnrollmentDatabase.getEnrollment(userId, ayCode, 'second-sem');
+      }
+    }
+    
+    if (!enrollmentResult.success || !enrollmentResult.data) {
+      return;
+    }
+
+    const enrollmentData = enrollmentResult.data;
+    const enrollmentInfo = enrollmentData.enrollmentInfo || {};
+    const level = enrollmentInfo.level;
+
+    // Build studentName
+    let studentName = '';
+    if (enrollmentData.personalInfo) {
+      const { firstName, middleName, lastName, nameExtension } = enrollmentData.personalInfo;
+      const nameParts = [
+        firstName || '',
+        middleName || '',
+        lastName || '',
+        nameExtension || ''
+      ].filter(part => part.trim() !== '');
+      studentName = nameParts.join(' ').trim();
+    }
+
+    // Build studentSection
+    let studentSection = '';
+    const sectionId = enrollmentInfo.sectionId;
+    if (sectionId) {
+      try {
+        const section = await SectionDatabase.getSection(sectionId);
+        if (section) {
+          studentSection = section.sectionName;
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch section ${sectionId}:`, error);
+      }
+    }
+
+    // Build studentLevel and studentSemester
+    let studentLevel = '';
+    let studentSemester = '';
+
+    if (level === 'college') {
+      const courseCode = enrollmentInfo.courseCode || '';
+      const yearLevel = enrollmentInfo.yearLevel || '';
+      const semester = enrollmentInfo.semester || '';
+      
+      const semesterNumber = semester === 'first-sem' ? '1' : semester === 'second-sem' ? '2' : '';
+      studentLevel = courseCode && yearLevel ? `${courseCode} ${yearLevel}${semesterNumber ? ` - S${semesterNumber}` : ''}` : '';
+      studentSemester = semester || '';
+    } else {
+      const gradeLevel = enrollmentInfo.gradeLevel || '';
+      const gradeId = enrollmentInfo.gradeId;
+      let strand = '';
+
+      if (gradeId) {
+        try {
+          const grade = await GradeDatabase.getGrade(gradeId);
+          if (grade && grade.department === 'SHS' && grade.strand) {
+            strand = grade.strand;
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch grade ${gradeId}:`, error);
+        }
+      }
+
+      if (gradeLevel) {
+        studentLevel = `Grade ${gradeLevel}${strand ? ` ${strand}` : ''}`;
+      }
+      studentSemester = '';
+    }
+
+    // Update studentGrades document with metadata
+    const studentGradesRef = doc(db, 'students', userId, 'studentGrades', ayCode);
+    const gradesDocSnap = await getDoc(studentGradesRef);
+    
+    if (gradesDocSnap.exists()) {
+      await updateDoc(studentGradesRef, {
+        studentName,
+        studentSection,
+        studentLevel,
+        studentSemester,
+        updatedAt: serverTimestamp()
+      });
+    }
+  } catch (error) {
+    console.warn(`Failed to refresh student metadata:`, error);
+  }
+}
 
 // GET /api/students/[userId]/grades - Get student grades for a specific AY or batch grades for multiple students
 export async function GET(
@@ -11,6 +113,9 @@ export async function GET(
   try {
     const { searchParams } = new URL(request.url);
     const userIds = searchParams.get('userIds'); // For batch requests
+    const listPeriods = searchParams.get('listPeriods') === 'true';
+    const explicitAyCode = searchParams.get('ayCode') || undefined;
+    const includeMetadata = searchParams.get('includeMetadata') === 'true';
 
     // Get current academic year from system config
     const systemConfig = await EnrollmentDatabase.getSystemConfig();
@@ -32,7 +137,8 @@ export async function GET(
           }
 
           const gradesData = gradesSnap.data();
-          const { createdAt, updatedAt, ...grades } = gradesData;
+          // Exclude metadata fields from grades response
+          const { createdAt, updatedAt, studentName, studentSection, studentLevel, studentSemester, ...grades } = gradesData;
 
           return { userId: studentId, grades };
         } catch (error) {
@@ -50,10 +156,23 @@ export async function GET(
       });
     }
 
+    // Handle list of all grade periods/documents for a single student
+    if (listPeriods) {
+      const subcolRef = collection(db, 'students', userId, 'studentGrades');
+      const snap = await getDocs(subcolRef);
+      const periods = snap.docs.map((d) => ({ id: d.id, label: d.id, ayCode: d.id }));
+      // Sort newest first by ID string (assumes AY format comparable lexicographically)
+      periods.sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
+      return NextResponse.json({ periods, count: periods.length });
+    }
+
     // Handle single student grades request
 
+    // Prefer explicit ayCode from query if provided, otherwise system config
+    const targetAyCode = explicitAyCode || ayCode;
+
     // Get student grades for the specified AY
-    const gradesRef = doc(db, 'students', userId, 'studentGrades', ayCode);
+    const gradesRef = doc(db, 'students', userId, 'studentGrades', targetAyCode);
     const gradesSnap = await getDoc(gradesRef);
 
     if (!gradesSnap.exists()) {
@@ -65,10 +184,20 @@ export async function GET(
 
     const gradesData = gradesSnap.data();
 
-    // Remove metadata fields
-    const { createdAt, updatedAt, ...grades } = gradesData;
+    // Remove metadata fields from grades response
+    const { createdAt, updatedAt, studentName, studentSection, studentLevel, studentSemester, ...grades } = gradesData;
+    const metadata: Record<string, any> = {};
 
-    return NextResponse.json({ grades });
+    if (studentName !== undefined) metadata.studentName = studentName;
+    if (studentSection !== undefined) metadata.studentSection = studentSection;
+    if (studentLevel !== undefined) metadata.studentLevel = studentLevel;
+    if (studentSemester !== undefined) metadata.studentSemester = studentSemester;
+
+    if (includeMetadata) {
+      return NextResponse.json({ grades, ayCode: targetAyCode, metadata });
+    }
+
+    return NextResponse.json({ grades, ayCode: targetAyCode });
   } catch (error) {
     console.error('Error fetching student grades:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch student grades';
@@ -94,14 +223,20 @@ export async function PUT(
       );
     }
 
+    const { searchParams } = new URL(request.url);
+    const explicitAyCode = searchParams.get('ayCode') || undefined;
+
     // Get current academic year from system config
     const systemConfig = await EnrollmentDatabase.getSystemConfig();
-    const ayCode = systemConfig.ayCode;
+    const defaultAyCode = systemConfig.ayCode;
 
     const { userId } = await params;
 
+    // Determine target AY
+    const targetAyCode = explicitAyCode || defaultAyCode;
+
     // Update student grades
-    const gradesRef = doc(db, 'students', userId, 'studentGrades', ayCode);
+    const gradesRef = doc(db, 'students', userId, 'studentGrades', targetAyCode);
 
     // Prepare update data
     const updateData = {
@@ -123,7 +258,10 @@ export async function PUT(
       });
     }
 
-    console.log(`  Updated grades for student ${userId} in AY ${ayCode}`);
+    // Refresh student metadata to ensure it's up-to-date
+    await refreshStudentMetadata(userId, targetAyCode);
+
+    console.log(`  Updated grades for student ${userId} in AY ${targetAyCode}`);
 
     return NextResponse.json({
       success: true,

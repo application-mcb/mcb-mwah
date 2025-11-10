@@ -14,7 +14,16 @@ export interface EnrollmentState {
   selectedYear: number | null
   selectedSemester: 'first-sem' | 'second-sem' | null
   complianceChecked: boolean
-  currentStep: 'compliance' | 're-enroll' | 'level-selection' | 'grade-selection' | 'course-selection' | 'year-selection' | 'semester-selection' | 'personal-info' | 'confirmation'
+  currentStep:
+    | 'compliance'
+    | 're-enroll'
+    | 'level-selection'
+    | 'grade-selection'
+    | 'course-selection'
+    | 'year-selection'
+    | 'semester-selection'
+    | 'personal-info'
+    | 'confirmation'
   animatingStep: boolean
   selectingGrade: string | null
   enrolling: boolean
@@ -92,8 +101,12 @@ export interface EnrollmentState {
 
   // Utility functions
   isEnrollmentAvailable: (level: 'high-school' | 'college') => boolean
-  getEnrollmentPeriodMessage: (level: 'high-school' | 'college') => string | null
-  getEnrollmentDaysRemaining: (level: 'high-school' | 'college') => number | null
+  getEnrollmentPeriodMessage: (
+    level: 'high-school' | 'college'
+  ) => string | null
+  getEnrollmentDaysRemaining: (
+    level: 'high-school' | 'college'
+  ) => number | null
   getEnrollmentProgress: (level: 'high-school' | 'college') => number
   loadGrades: () => Promise<void>
   loadCourses: () => Promise<void>
@@ -163,17 +176,26 @@ export interface EnrollmentActions {
   setPersonalInfo: (info: EnrollmentState['personalInfo']) => void
 }
 
-export function useEnrollmentState(userId: string, userProfile: any, onProgressUpdate?: () => void): EnrollmentState & EnrollmentActions {
+export function useEnrollmentState(
+  userId: string,
+  userProfile: any,
+  onProgressUpdate?: () => void
+): EnrollmentState & EnrollmentActions {
   // Basic state
   const [grades, setGrades] = useState<GradeData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedGrade, setSelectedGrade] = useState<GradeData | null>(null)
   const [selectedCourse, setSelectedCourse] = useState<any | null>(null)
-  const [selectedLevel, setSelectedLevel] = useState<'high-school' | 'college' | null>(null)
+  const [selectedLevel, setSelectedLevel] = useState<
+    'high-school' | 'college' | null
+  >(null)
   const [selectedYear, setSelectedYear] = useState<number | null>(null)
-  const [selectedSemester, setSelectedSemester] = useState<'first-sem' | 'second-sem' | null>(null)
+  const [selectedSemester, setSelectedSemester] = useState<
+    'first-sem' | 'second-sem' | null
+  >(null)
   const [complianceChecked, setComplianceChecked] = useState(false)
-  const [currentStep, setCurrentStep] = useState<EnrollmentState['currentStep']>('compliance')
+  const [currentStep, setCurrentStep] =
+    useState<EnrollmentState['currentStep']>('compliance')
   const [animatingStep, setAnimatingStep] = useState(false)
   const [selectingGrade, setSelectingGrade] = useState<string | null>(null)
   const [enrolling, setEnrolling] = useState(false)
@@ -189,13 +211,16 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
   const [deleteCountdown, setDeleteCountdown] = useState(0)
 
   // Student type and modals
-  const [studentType, setStudentType] = useState<'regular' | 'irregular' | null>(null)
+  const [studentType, setStudentType] = useState<
+    'regular' | 'irregular' | null
+  >(null)
   const [showIrregularModal, setShowIrregularModal] = useState(false)
   const [showCourseChangeModal, setShowCourseChangeModal] = useState(false)
   const [pendingCourse, setPendingCourse] = useState<any>(null)
 
   // Documents
-  const [documentsStatus, setDocumentsStatus] = useState<EnrollmentState['documentsStatus']>(null)
+  const [documentsStatus, setDocumentsStatus] =
+    useState<EnrollmentState['documentsStatus']>(null)
   const [checkingDocuments, setCheckingDocuments] = useState(true)
 
   // Courses and subjects
@@ -211,17 +236,30 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
 
   // Re-enrollment
   const [previousEnrollment, setPreviousEnrollment] = useState<any>(null)
-  const [checkingPreviousEnrollment, setCheckingPreviousEnrollment] = useState(false)
+  const [checkingPreviousEnrollment, setCheckingPreviousEnrollment] =
+    useState(false)
   const [isReEnrolling, setIsReEnrolling] = useState(false)
-  const [reEnrollSemester, setReEnrollSemester] = useState<'first-sem' | 'second-sem' | null>(null)
+  const [reEnrollSemester, setReEnrollSemester] = useState<
+    'first-sem' | 'second-sem' | null
+  >(null)
 
   // Enrollment durations
-  const [enrollmentStartPeriodHS, setEnrollmentStartPeriodHS] = useState<string | null>(null)
-  const [enrollmentEndPeriodHS, setEnrollmentEndPeriodHS] = useState<string | null>(null)
-  const [enrollmentStartPeriodCollege, setEnrollmentStartPeriodCollege] = useState<string | null>(null)
-  const [enrollmentEndPeriodCollege, setEnrollmentEndPeriodCollege] = useState<string | null>(null)
-  const [loadingEnrollmentDurations, setLoadingEnrollmentDurations] = useState(true)
-  const [currentSystemSemester, setCurrentSystemSemester] = useState<string | null>(null)
+  const [enrollmentStartPeriodHS, setEnrollmentStartPeriodHS] = useState<
+    string | null
+  >(null)
+  const [enrollmentEndPeriodHS, setEnrollmentEndPeriodHS] = useState<
+    string | null
+  >(null)
+  const [enrollmentStartPeriodCollege, setEnrollmentStartPeriodCollege] =
+    useState<string | null>(null)
+  const [enrollmentEndPeriodCollege, setEnrollmentEndPeriodCollege] = useState<
+    string | null
+  >(null)
+  const [loadingEnrollmentDurations, setLoadingEnrollmentDurations] =
+    useState(true)
+  const [currentSystemSemester, setCurrentSystemSemester] = useState<
+    string | null
+  >(null)
 
   // Personal info
   const [personalInfo, setPersonalInfo] = useState({
@@ -278,7 +316,9 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
           const data = await response.json()
           setEnrollmentStartPeriodHS(data.enrollmentStartPeriodHS || null)
           setEnrollmentEndPeriodHS(data.enrollmentEndPeriodHS || null)
-          setEnrollmentStartPeriodCollege(data.enrollmentStartPeriodCollege || null)
+          setEnrollmentStartPeriodCollege(
+            data.enrollmentStartPeriodCollege || null
+          )
           setEnrollmentEndPeriodCollege(data.enrollmentEndPeriodCollege || null)
         }
       } catch (error) {
@@ -301,7 +341,10 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
     ) {
       subjectsLoadedRef.current = true
       // Load subjects for enrolled students (don't require section assignment)
-      console.log('Loading subjects for enrolled student:', enrollmentToCheck.userId)
+      console.log(
+        'Loading subjects for enrolled student:',
+        enrollmentToCheck.userId
+      )
       loadStudentSubjects()
     } else if (
       !enrollmentToCheck ||
@@ -491,7 +534,7 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
     try {
       setLoadingSubjects(true)
 
-      console.log('🔍 Loading subjects for enrolled user:', userId)
+      console.log('CONSOLE :: Loading subjects for enrolled user:', userId)
 
       const enrolledSubjectsResponse = await fetch(
         `/api/enrollment?userId=${userId}&getEnrolledSubjects=true`
@@ -560,7 +603,7 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
           ? 'second-sem'
           : undefined
 
-      console.log('🔍 Checking enrollment:', {
+      console.log('CONSOLE :: Checking enrollment:', {
         currentAY,
         currentSemester,
         semesterFormat,
@@ -611,7 +654,7 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
           const enrollmentSemester = enrollment.enrollmentInfo?.semester
           const enrollmentLevel = enrollment.enrollmentInfo?.level
 
-          console.log('🔍 Checking current semester enrollment:', {
+          console.log('CONSOLE :: Checking current semester enrollment:', {
             enrollmentAY,
             currentAY,
             enrollmentSemester,
@@ -634,7 +677,7 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
             )
             matchingCollegeEnrollment = enrollment
           } else {
-            console.log('❌ Enrollment found but does NOT match:', {
+            console.log('ERROR::  Enrollment found but does NOT match:', {
               AYMatch: enrollmentAY === currentAY,
               semesterMatch: enrollmentSemester === semesterFormat,
               levelMatch: enrollmentLevel === 'college',
@@ -651,8 +694,10 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
 
         // If no current-semester enrollment, but a previous semester exists in the same AY,
         // expose it as previousEnrollment so the UI can show "Continue Previous"
-        const otherSemData = semesterFormat === 'first-sem' ? secondSemData : firstSemData
-        const otherSemResponse = semesterFormat === 'first-sem' ? secondSemResponse : firstSemResponse
+        const otherSemData =
+          semesterFormat === 'first-sem' ? secondSemData : firstSemData
+        const otherSemResponse =
+          semesterFormat === 'first-sem' ? secondSemResponse : firstSemResponse
         if (otherSemResponse.ok && otherSemData.success && otherSemData.data) {
           const prev = otherSemData.data
           const prevAY = prev.enrollmentInfo?.schoolYear
@@ -689,7 +734,7 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
           setExistingEnrollment(enrollment)
         } else {
           console.log(
-            '❌ High school enrollment found but does NOT match - showing form',
+            'ERROR::  High school enrollment found but does NOT match - showing form',
             {
               matchesAY: enrollmentAY === currentAY,
               isHighSchool:
@@ -698,10 +743,48 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
             }
           )
           setExistingEnrollment(null)
+          // Try to find latest previous HS enrollment (prior AY) to enable Continue Level
+          try {
+            const prevHsRes = await fetch(
+              `/api/enrollment?userId=${userId}&latestHighSchool=true`
+            )
+            if (prevHsRes.ok) {
+              const prevHsData = await prevHsRes.json()
+              if (prevHsData.success && prevHsData.data) {
+                setPreviousEnrollment(prevHsData.data)
+              } else {
+                setPreviousEnrollment(null)
+              }
+            } else {
+              setPreviousEnrollment(null)
+            }
+          } catch (err) {
+            console.warn('Failed to fetch latest HS enrollment:', err)
+            setPreviousEnrollment(null)
+          }
         }
       } else {
-        console.log('❌ No enrollment found - showing form')
+        console.log('ERROR::  No enrollment found - showing form')
         setExistingEnrollment(null)
+        // No current AY HS enrollment doc; probe previous HS enrollment
+        try {
+          const prevHsRes = await fetch(
+            `/api/enrollment?userId=${userId}&latestHighSchool=true`
+          )
+          if (prevHsRes.ok) {
+            const prevHsData = await prevHsRes.json()
+            if (prevHsData.success && prevHsData.data) {
+              setPreviousEnrollment(prevHsData.data)
+            } else {
+              setPreviousEnrollment(null)
+            }
+          } else {
+            setPreviousEnrollment(null)
+          }
+        } catch (err) {
+          console.warn('Failed to fetch latest HS enrollment:', err)
+          setPreviousEnrollment(null)
+        }
       }
     } catch (error) {
       console.error('Error checking existing enrollment:', error)
@@ -783,7 +866,9 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
     }
   }
 
-  const getEnrollmentPeriodMessage = (level: 'high-school' | 'college'): string | null => {
+  const getEnrollmentPeriodMessage = (
+    level: 'high-school' | 'college'
+  ): string | null => {
     if (level === 'high-school') {
       if (!enrollmentStartPeriodHS || !enrollmentEndPeriodHS) {
         return null
@@ -817,7 +902,9 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
     }
   }
 
-  const getEnrollmentDaysRemaining = (level: 'high-school' | 'college'): number | null => {
+  const getEnrollmentDaysRemaining = (
+    level: 'high-school' | 'college'
+  ): number | null => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -868,7 +955,10 @@ export function useEnrollmentState(userId: string, userProfile: any, onProgressU
     const totalDuration = endDate.getTime() - startDate.getTime()
     const remaining = endDate.getTime() - today.getTime()
 
-    const progress = Math.min(100, Math.max(0, (remaining / totalDuration) * 100))
+    const progress = Math.min(
+      100,
+      Math.max(0, (remaining / totalDuration) * 100)
+    )
     return progress
   }
 

@@ -1,16 +1,20 @@
-'use client';
+'use client'
 
-import React, { useRef } from 'react';
-import { useReactToPrint } from 'react-to-print';
+import React, { useRef } from 'react'
+import { useReactToPrint } from 'react-to-print'
 
 interface PrintProps {
-  children: React.ReactNode;
-  onClose: () => void;
-  title?: string;
+  children: React.ReactNode
+  onClose: () => void
+  title?: string
 }
 
-const Print: React.FC<PrintProps> = ({ children, onClose, title = "Print Document" }) => {
-  const componentRef = useRef<HTMLDivElement>(null);
+const Print: React.FC<PrintProps> = ({
+  children,
+  onClose,
+  title = 'Print Document',
+}) => {
+  const componentRef = useRef<HTMLDivElement>(null)
 
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
@@ -165,8 +169,8 @@ const Print: React.FC<PrintProps> = ({ children, onClose, title = "Print Documen
          /* Color classes for print - matching actual subject colors */
          .red-700 { background-color: #b91c1c !important; }
          .red-800 { background-color: #991b1b !important; }
-         .blue-700 { background-color: #1d4ed8 !important; }
-         .blue-800 { background-color: #1e40af !important; }
+         .blue-900 { background-color: #1d4ed8 !important; }
+         .blue-900 { background-color: #1e40af !important; }
          .emerald-700 { background-color: #047857 !important; }
          .emerald-800 { background-color: #065f46 !important; }
          .yellow-700 { background-color: #a16207 !important; }
@@ -184,24 +188,37 @@ const Print: React.FC<PrintProps> = ({ children, onClose, title = "Print Documen
          }
       }
     `,
-  });
+  })
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+          <h2
+            className="text-lg font-semibold text-gray-900"
+            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+          >
             {title}
           </h2>
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="px-4 py-2 bg-blue-800 text-white text-sm font-medium hover:bg-blue-900 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-blue-900 text-white text-sm font-medium hover:bg-blue-900 transition-colors flex items-center gap-2"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                />
               </svg>
               Print
             </button>
@@ -223,7 +240,7 @@ const Print: React.FC<PrintProps> = ({ children, onClose, title = "Print Documen
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Print;
+export default Print

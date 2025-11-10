@@ -14,7 +14,6 @@ import SemesterSelectionStep from '@/components/enrollment-form/semester-selecti
 import PersonalInfoStep from '@/components/enrollment-form/personal-info'
 import ConfirmationStep from '@/components/enrollment-form/confirmation'
 import ProgressIndicator from '@/components/enrollment-form/progress-indicator'
-import DeleteConfirmationModal from '@/components/enrollment-form/delete-confirmation-modal'
 import IrregularStudentModal from '@/components/enrollment-form/irregular-student-modal'
 import CourseChangeModal from '@/components/enrollment-form/course-change-modal'
 import SubmitConfirmationModal from '@/components/enrollment-form/submit-confirmation-modal'
@@ -149,9 +148,6 @@ export default function EnrollmentForm({
     handleOpenSubmitModal,
     handleCloseSubmitModal,
     handleFinalSubmit,
-    handleDeleteEnrollment,
-    confirmDeleteEnrollment,
-    cancelDeleteEnrollment,
   } = handlers
 
   // Utility functions that are still referenced
@@ -220,6 +216,7 @@ export default function EnrollmentForm({
       | 'confirmation'
   ) => {
     // Dynamic step order based on selected level
+    const isSHS = state.selectedGrade?.department === 'SHS'
     let stepOrder: string[]
     if (state.selectedLevel === 'college') {
       stepOrder = [
@@ -232,13 +229,26 @@ export default function EnrollmentForm({
         'confirmation',
       ]
     } else if (state.selectedLevel === 'high-school') {
-      stepOrder = [
-        'compliance',
-        'level-selection',
-        'grade-selection',
-        'personal-info',
-        'confirmation',
-      ]
+      if (isSHS) {
+        // SHS has semester selection
+        stepOrder = [
+          'compliance',
+          'level-selection',
+          'grade-selection',
+          'semester-selection',
+          'personal-info',
+          'confirmation',
+        ]
+      } else {
+        // JHS - no semester
+        stepOrder = [
+          'compliance',
+          'level-selection',
+          'grade-selection',
+          'personal-info',
+          'confirmation',
+        ]
+      }
     } else {
       stepOrder = ['compliance', 'level-selection']
     }
@@ -319,7 +329,7 @@ export default function EnrollmentForm({
 
   // Debug logging
   if (enrollmentToShow) {
-    console.log('🔍 Enrollment check for form visibility:', {
+    console.log('CONSOLE :: Enrollment check for form visibility:', {
       hasEnrollment: !!enrollmentToShow,
       status: enrollmentToShow.enrollmentInfo?.status,
       sectionId: enrollmentToShow.enrollmentInfo?.sectionId,
@@ -336,7 +346,6 @@ export default function EnrollmentForm({
         loadingSubjects={state.loadingSubjects}
         subjectsCarouselIndex={state.subjectsCarouselIndex}
         onSetSubjectsCarouselIndex={state.setSubjectsCarouselIndex}
-        onShowDeleteModal={() => state.setShowDeleteModal(true)}
       />
     )
   }
@@ -344,20 +353,20 @@ export default function EnrollmentForm({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white p-6 border border-gray-200">
+      <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
               <GraduationCap size={24} className="text-white" weight="fill" />
             </div>
             <div>
               <h1
-                className="text-2xl font-medium text-gray-900"
+                className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
                 Student Enrollment
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                 Select your grade level and complete your enrollment process
               </p>
             </div>
@@ -379,10 +388,10 @@ export default function EnrollmentForm({
 
       {/* Loading State */}
       {!userProfile && (
-        <Card className="p-8 border-none bg-gray-50 border-1 shadow-sm border-blue-900">
+        <Card className="p-8 border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
           <div className="text-center space-y-4">
-            <div className="animate-spin rounded-none h-8 w-8 border-2 border-blue-900/30 border-t-blue-900 mx-auto"></div>
-            <p className="text-gray-600">Loading your profile information...</p>
+            <div className="animate-spin rounded-xl h-8 w-8 border-2 border-blue-900/30 border-t-blue-900 mx-auto"></div>
+            <p className="text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Loading your profile information...</p>
           </div>
         </Card>
       )}
@@ -416,6 +425,7 @@ export default function EnrollmentForm({
           checkingPreviousEnrollment={state.checkingPreviousEnrollment}
           previousEnrollment={state.previousEnrollment}
           existingEnrollment={state.existingEnrollment}
+          grades={state.grades}
           enrollmentStartPeriodHS={state.enrollmentStartPeriodHS}
           enrollmentEndPeriodHS={state.enrollmentEndPeriodHS}
           enrollmentStartPeriodCollege={state.enrollmentStartPeriodCollege}
@@ -469,14 +479,20 @@ export default function EnrollmentForm({
 
       {userProfile &&
         state.currentStep === 'semester-selection' &&
-        state.selectedLevel === 'college' &&
-        state.selectedCourse &&
-        state.selectedYear && (
+        ((state.selectedLevel === 'college' &&
+          state.selectedCourse &&
+          state.selectedYear) ||
+          (state.selectedLevel === 'high-school' &&
+            state.selectedGrade?.department === 'SHS')) && (
           <SemesterSelectionStep
             animatingStep={state.animatingStep}
             currentSystemSemester={state.currentSystemSemester}
             selectedSemester={state.selectedSemester}
-            onBack={() => changeStep('year-selection')}
+            onBack={() =>
+              state.selectedLevel === 'college'
+                ? changeStep('year-selection')
+                : changeStep('grade-selection')
+            }
             onSelectSemester={handleSemesterSelect}
           />
         )}
@@ -486,7 +502,11 @@ export default function EnrollmentForm({
         (state.selectedGrade ||
           (state.selectedCourse &&
             state.selectedYear &&
-            state.selectedSemester)) && (
+            state.selectedSemester)) &&
+        // For SHS, require semester; for JHS, no semester needed
+        (!state.selectedGrade ||
+          state.selectedGrade.department !== 'SHS' ||
+          state.selectedSemester) && (
           <PersonalInfoStep
             animatingStep={state.animatingStep}
             selectedLevel={state.selectedLevel}

@@ -240,7 +240,7 @@ export default function RegistrarOverview({
   // Helper function to get grade color
   const getGradeColor = (color: string): string => {
     const colorMap: { [key: string]: string } = {
-      'blue-800': '#1e40af',
+      'blue-900': '#1e40af',
       'red-800': '#991b1b',
       'emerald-800': '#064e3b',
       'yellow-800': '#92400e',
@@ -272,7 +272,7 @@ export default function RegistrarOverview({
   // Color mapping for background colors
   const getBgColor = (color: string): string => {
     const colorMap: { [key: string]: string } = {
-      'blue-800': '#1e40af',
+      'blue-900': '#1e40af',
       'red-800': '#991b1b',
       'emerald-800': '#064e3b',
       'yellow-800': '#92400e',
@@ -280,7 +280,7 @@ export default function RegistrarOverview({
       'violet-800': '#5b21b6',
       'purple-800': '#581c87',
     }
-    return colorMap[color] || '#1e40af' // default to blue-800
+    return colorMap[color] || '#1e40af' // default to blue-900
   }
 
   // Helper function to format relative time
@@ -620,17 +620,14 @@ export default function RegistrarOverview({
   // Skeleton component for recent enrollments only
   const RecentEnrollmentsSkeleton = () => (
     <div className="space-y-4">
-      <h3
-        className="text-lg font-medium text-gray-900 mb-4"
-        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-      >
+      <h3 className="text-lg font-medium text-white mb-4">
         Recent Enrollments
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[...Array(3)].map((_, i) => (
           <div
             key={i}
-            className="bg-white border border-gray-200 p-4 animate-pulse"
+            className="bg-white border border-gray-200 p-4 rounded-xl animate-pulse"
           >
             <div className="flex items-center space-x-3 mb-3">
               <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
@@ -652,17 +649,12 @@ export default function RegistrarOverview({
   // Skeleton component for recent teachers only
   const RecentTeachersSkeleton = () => (
     <div className="space-y-4">
-      <h3
-        className="text-lg font-medium text-gray-900 mb-4"
-        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-      >
-        Recent Teachers
-      </h3>
+      <h3 className="text-lg font-medium text-white mb-4">Recent Teachers</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[...Array(3)].map((_, i) => (
           <div
             key={i}
-            className="bg-white border border-gray-200 p-4 animate-pulse"
+            className="bg-white border border-gray-200 p-4 rounded-xl animate-pulse"
           >
             <div className="flex items-center space-x-3 mb-3">
               <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
@@ -684,53 +676,58 @@ export default function RegistrarOverview({
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-900 flex items-center justify-center">
-            <ChartBarIcon size={24} className="text-white" weight="fill" />
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-8 h-8 aspect-square bg-white rounded-xl flex items-center justify-center">
+              <ChartBarIcon size={20} weight="fill" className="text-blue-900" />
+            </div>
+            <div>
+              <h1
+                className="text-2xl font-light text-white flex items-center gap-2"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Registrar Overview
+              </h1>
+              <p
+                className="text-xs text-blue-100 mt-1"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Overview of your registrar dashboard
+              </p>
+            </div>
           </div>
-          <div>
-            <h1
-              className="text-2xl font-light text-gray-900"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              Registrar Overview
-            </h1>
-            <p
-              className="text-sm text-gray-600"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              Overview of your registrar dashboard
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-900 flex items-center justify-center">
-            <CalendarIcon size={16} className="text-white" weight="fill" />
-          </div>
-          <div className="px-3 py-1 bg-gray-100 border border-gray-200">
-            <span
-              className="text-sm text-gray-700 font-mono"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </span>
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-white rounded-lg flex items-center justify-center">
+              <CalendarIcon size={14} weight="bold" className="text-blue-900" />
+            </div>
+            <div className="px-3 py-1 bg-white border border-blue-200 rounded-lg">
+              <span
+                className="text-sm text-gray-700 font-mono"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                {new Date().toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* What would you like to do? - Navigation Carousel */}
-      <div className="bg-white p-6 border border-gray-200 shadow-lg">
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 p-6 shadow-lg rounded-xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <GearIcon size={20} className="text-white" weight="fill" />
+          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+            <GearIcon size={20} className="text-blue-900" weight="fill" />
           </div>
-          <h2 className="text-xl font-medium text-gray-900">
+          <h2
+            className="text-xl font-medium text-white"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
             What would you like to do?
           </h2>
         </div>
@@ -741,7 +738,7 @@ export default function RegistrarOverview({
               {[...Array(3)].map((_, i) => (
                 <div
                   key={i}
-                  className="p-4 border-none bg-gray-50 border-1 shadow-sm border-blue-900 animate-pulse"
+                  className="p-4 border-none bg-white border-1 shadow-sm border-blue-900 rounded-xl animate-pulse"
                 >
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gray-200"></div>
@@ -773,7 +770,7 @@ export default function RegistrarOverview({
                       .map((item, itemIndex) => (
                         <div
                           key={item.id}
-                          className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-sm transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                          className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-sm transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-white border border-gray-200 rounded-xl"
                           style={{
                             animationDelay: `${
                               groupIndex * 150 + itemIndex * 75 + 200
@@ -783,7 +780,7 @@ export default function RegistrarOverview({
                         >
                           <div className="flex items-center space-x-4">
                             {/* Icon */}
-                            <div className="w-12 h-12 bg-blue-900 flex items-center justify-center border-2 border-gray-300">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg flex items-center justify-center border-2 border-blue-200">
                               <item.icon
                                 size={20}
                                 className="text-white"
@@ -851,12 +848,15 @@ export default function RegistrarOverview({
       </div>
 
       {/* Recent Enrolled Students - Carousel */}
-      <div className="bg-white p-6 border border-gray-200 shadow-lg">
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 p-6 border border-gray-200 shadow-lg rounded-xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <ClockIcon size={20} className="text-white" weight="fill" />
+          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+            <ClockIcon size={20} className="text-blue-900" weight="fill" />
           </div>
-          <h2 className="text-xl font-medium text-gray-900">
+          <h2
+            className="text-xl font-medium text-white"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
             Your Pending Enrollments
           </h2>
         </div>
@@ -886,7 +886,7 @@ export default function RegistrarOverview({
                         return (
                           <div
                             key={enrollment.id || studentIndex}
-                            className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-sm transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                            className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-sm transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-white border border-gray-200 rounded-xl"
                             style={{
                               animationDelay: `${
                                 groupIndex * 150 + studentIndex * 75 + 200
@@ -897,7 +897,7 @@ export default function RegistrarOverview({
                             {/* Student Profile Layout */}
                             <div className="flex items-center space-x-4">
                               {/* Circular Profile Picture */}
-                              <div className="w-12 h-12 bg-blue-900 flex items-center justify-center border-2 border-gray-300 rounded-full ">
+                              <div className="w-12 h-12 bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center border-2 border-blue-200 rounded-full">
                                 {enrollment.profile?.photoURL ||
                                 enrollment.personalInfo?.photoURL ? (
                                   <img
@@ -1049,11 +1049,11 @@ export default function RegistrarOverview({
         {/* Empty state - only show after loading is complete */}
         {!loading && stats.recentEnrollments.length === 0 && (
           <div className="text-center py-8">
-            <div className="w-16 h-16 bg-gray-200 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-white border border-gray-200 rounded-xl flex items-center justify-center mx-auto mb-4">
               <FileTextIcon size={32} className="text-gray-400" />
             </div>
             <p
-              className="text-sm text-gray-500"
+              className="text-sm text-white"
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
             >
               No recent enrollments
@@ -1063,12 +1063,21 @@ export default function RegistrarOverview({
       </div>
 
       {/* Recent Teachers - Carousel */}
-      <div className="bg-white p-6 border border-gray-200 shadow-lg ">
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 p-6 border border-gray-200 shadow-lg rounded-xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <GraduationCapIcon size={20} className="text-white" weight="fill" />
+          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+            <GraduationCapIcon
+              size={20}
+              className="text-blue-900"
+              weight="fill"
+            />
           </div>
-          <h2 className="text-xl font-medium text-gray-900">Recent Teachers</h2>
+          <h2
+            className="text-xl font-medium text-white"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
+            Recent Teachers
+          </h2>
         </div>
 
         <div className="relative overflow-hidden">
@@ -1096,7 +1105,7 @@ export default function RegistrarOverview({
                         return (
                           <div
                             key={teacher.id || teacherIndex}
-                            className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-sm transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                            className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-sm transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-white border border-gray-200 rounded-xl"
                             style={{
                               animationDelay: `${
                                 groupIndex * 150 + teacherIndex * 75 + 200
@@ -1107,7 +1116,7 @@ export default function RegistrarOverview({
                             {/* Teacher Profile Layout */}
                             <div className="flex items-center space-x-4">
                               {/* Circular Profile Picture */}
-                              <div className="w-12 h-12 bg-blue-900 flex items-center justify-center border-2 border-gray-300 rounded-full">
+                              <div className="w-12 h-12 bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center border-2 border-blue-200 rounded-full">
                                 <span
                                   className="text-white text-sm font-medium"
                                   style={{
@@ -1198,7 +1207,7 @@ export default function RegistrarOverview({
         {/* Empty state - only show after loading is complete */}
         {!loading && stats.recentTeachers.length === 0 && (
           <div className="text-center py-8">
-            <div className="w-16 h-16 bg-gray-200 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-white border border-gray-200 rounded-xl flex items-center justify-center mx-auto mb-4">
               <GraduationCapIcon size={32} className="text-gray-400" />
             </div>
             <p
@@ -1212,12 +1221,19 @@ export default function RegistrarOverview({
       </div>
 
       {/* Recent Grades - Carousel */}
-      <div className="bg-white p-6 border border-gray-200 shadow-lg ">
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 p-6 border border-gray-200 shadow-lg rounded-xl">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <GraduationCapIcon size={20} className="text-white" weight="fill" />
+          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+            <GraduationCapIcon
+              size={20}
+              className="text-blue-900"
+              weight="fill"
+            />
           </div>
-          <h2 className="text-xl font-medium text-gray-900">
+          <h2
+            className="text-xl font-medium text-white"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
             Grade Levels & Courses
           </h2>
         </div>
@@ -1228,7 +1244,7 @@ export default function RegistrarOverview({
               {[...Array(3)].map((_, i) => (
                 <div
                   key={i}
-                  className="p-4 border-none bg-gray-50 border-1 shadow-sm border-blue-900 animate-pulse"
+                  className="p-4 border-none bg-white border-1 shadow-sm border-blue-900 rounded-xl animate-pulse"
                 >
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
@@ -1274,13 +1290,13 @@ export default function RegistrarOverview({
                           .slice(groupIndex * 3, (groupIndex + 1) * 3)
                           .map((item, itemIndex) => {
                             const itemColor =
-                              item.color || item.courseColor || 'blue-800'
+                              item.color || item.courseColor || 'blue-900'
                             const bgColor = getBgColor(itemColor)
 
                             return (
                               <div
                                 key={item.id || itemIndex}
-                                className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-sm transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gray-50 border-blue-900"
+                                className="group p-4 border-none hover:shadow-lg hover:-translate-y-2 transition-all duration-300 ease-in-out border-1 shadow-sm transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-white border border-gray-200 rounded-xl"
                                 style={{
                                   animationDelay: `${
                                     groupIndex * 150 + itemIndex * 75 + 200
@@ -1291,7 +1307,7 @@ export default function RegistrarOverview({
                                 {/* Item Profile Layout */}
                                 <div className="flex items-center space-x-4">
                                   {/* Circular Icon */}
-                                  <div className="w-12 h-12 bg-blue-900 flex items-center justify-center border-2 border-gray-300 rounded-full">
+                                  <div className="w-12 h-12 bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center border-2 border-blue-200 rounded-full">
                                     <GraduationCapIcon
                                       size={20}
                                       className="text-white"
@@ -1394,7 +1410,7 @@ export default function RegistrarOverview({
           stats.recentGrades.length === 0 &&
           stats.recentCourses.length === 0 && (
             <div className="text-center py-8">
-              <div className="w-16 h-16 bg-gray-200 flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-white border border-gray-200 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <GraduationCapIcon size={32} className="text-gray-400" />
               </div>
               <p

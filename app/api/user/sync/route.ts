@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if student already exists
-    let userData = await StudentDatabase.getStudent(firebaseUser.uid);
+    const userData = await StudentDatabase.getStudent(firebaseUser.uid);
     
     if (!userData) {
       // If student doesn't exist, return null (they need to complete setup)

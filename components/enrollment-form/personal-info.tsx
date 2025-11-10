@@ -63,14 +63,14 @@ export default function PersonalInfoStep({
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
               <User size={20} className="text-white" weight="bold" />
             </div>
             <div>
-              <h2 className="text-xl font-medium text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+              <h2 className="text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                 Personal Information
               </h2>
-              <p className="text-sm text-gray-600">Review and update your personal details for enrollment</p>
+              <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Review and update your personal details for enrollment</p>
             </div>
           </div>
         </div>
@@ -83,12 +83,14 @@ export default function PersonalInfoStep({
               onBackGrade()
             }
           }}
+          className="rounded-xl"
+          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
         >
           Back
         </Button>
       </div>
 
-      <Card className="p-8 border-none bg-gray-50 border-1 shadow-sm border-blue-900">
+      <Card className="p-8 rounded-xl border border-blue-100 bg-white/80 backdrop-blur-sm shadow-lg">
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
@@ -103,7 +105,7 @@ export default function PersonalInfoStep({
                   type="text"
                   value={personalInfo.firstName}
                   onChange={(e) => onChange('firstName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                   placeholder="Enter first name"
                 />
               </div>
@@ -115,7 +117,7 @@ export default function PersonalInfoStep({
                   type="text"
                   value={personalInfo.middleName}
                   onChange={(e) => onChange('middleName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                   placeholder="Enter middle name"
                 />
               </div>
@@ -127,7 +129,7 @@ export default function PersonalInfoStep({
                   type="text"
                   value={personalInfo.lastName}
                   onChange={(e) => onChange('lastName', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                   placeholder="Enter last name"
                 />
               </div>
@@ -139,7 +141,7 @@ export default function PersonalInfoStep({
                   type="text"
                   value={personalInfo.nameExtension}
                   onChange={(e) => onChange('nameExtension', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                   placeholder="Jr., Sr., III, etc."
                 />
               </div>
@@ -151,33 +153,31 @@ export default function PersonalInfoStep({
               Contact Information
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="relative">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                   Email Address <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <Envelope size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <div>
                   <input
                     type="email"
                     value={personalInfo.email}
                     onChange={(e) => onChange('email', e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                     placeholder="Enter email address"
                   />
                 </div>
               </div>
-              <div className="relative">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                   Phone Number <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <Phone size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <div>
                   <input
                     type="tel"
                     value={personalInfo.phone}
                     onChange={(e) => onPhoneChange(e.target.value)}
                     onKeyDown={onPhoneKeyDown}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                     placeholder="+63 962 781 1434"
                   />
                 </div>
@@ -199,7 +199,7 @@ export default function PersonalInfoStep({
                     <select
                       value={personalInfo.birthMonth || ''}
                       onChange={(e) => onChange('birthMonth', e.target.value)}
-                      className="w-full px-3 py-2 h-10 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
+                      className="w-full px-3 py-2 h-10 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                     >
                       <option value="">Month</option>
                       <option value="01">January</option>
@@ -263,7 +263,7 @@ export default function PersonalInfoStep({
                   type="text"
                   value={personalInfo.placeOfBirth}
                   onChange={(e) => onChange('placeOfBirth', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                   placeholder="Enter place of birth"
                 />
               </div>
@@ -274,7 +274,7 @@ export default function PersonalInfoStep({
                 <select
                   value={personalInfo.gender}
                   onChange={(e) => onChange('gender', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                 >
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
@@ -289,7 +289,7 @@ export default function PersonalInfoStep({
                 <select
                   value={personalInfo.civilStatus}
                   onChange={(e) => onChange('civilStatus', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                 >
                   <option value="">Select Civil Status</option>
                   <option value="Single">Single</option>
@@ -298,32 +298,30 @@ export default function PersonalInfoStep({
                   <option value="Divorced">Divorced</option>
                 </select>
               </div>
-              <div className="relative">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                   Citizenship <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <IdentificationCard size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <div>
                   <input
                     type="text"
                     value={personalInfo.citizenship}
                     onChange={(e) => onChange('citizenship', e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                     placeholder="Enter citizenship"
                   />
                 </div>
               </div>
-              <div className="relative">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                   Religion <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <Heart size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <div>
                   <input
                     type="text"
                     value={personalInfo.religion}
                     onChange={(e) => onChange('religion', e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg"
                     placeholder="Enter religion"
                   />
                 </div>
@@ -331,8 +329,8 @@ export default function PersonalInfoStep({
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-gray-200">
-            <Button onClick={onProceedToConfirmation} className="bg-blue-900 hover:bg-blue-900 transition-all duration-300  hover:shadow-lg">
+          <div className="flex justify-end pt-4 border-t border-blue-100">
+            <Button onClick={onProceedToConfirmation} className="bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 transition-all duration-300 hover:shadow-lg rounded-xl" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
               Proceed to Confirmation
             </Button>
           </div>

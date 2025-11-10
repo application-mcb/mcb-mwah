@@ -75,7 +75,7 @@ export default function CourseChangeModal({
           >
             What happens when you change courses:
           </h4>
-          <ul className="text-xs text-blue-800 space-y-1">
+          <ul className="text-xs text-blue-900 space-y-1">
             <li>• Your year level selection will be cleared</li>
             <li>• Your semester selection will be cleared</li>
             <li>• You will need to reselect year and semester</li>

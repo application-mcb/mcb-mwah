@@ -374,7 +374,7 @@ export default function EnrollmentForm({
           ? 'second-sem'
           : undefined
 
-      console.log('🔍 Checking enrollment:', {
+      console.log('CONSOLE :: Checking enrollment:', {
         currentAY,
         currentSemester,
         semesterFormat,
@@ -425,7 +425,7 @@ export default function EnrollmentForm({
           const enrollmentSemester = enrollment.enrollmentInfo?.semester
           const enrollmentLevel = enrollment.enrollmentInfo?.level
 
-          console.log('🔍 Checking current semester enrollment:', {
+          console.log('CONSOLE :: Checking current semester enrollment:', {
             enrollmentAY,
             currentAY,
             enrollmentSemester,
@@ -448,7 +448,7 @@ export default function EnrollmentForm({
             )
             matchingCollegeEnrollment = enrollment
           } else {
-            console.log('❌ Enrollment found but does NOT match:', {
+            console.log('ERROR::  Enrollment found but does NOT match:', {
               AYMatch: enrollmentAY === currentAY,
               semesterMatch: enrollmentSemester === semesterFormat,
               levelMatch: enrollmentLevel === 'college',
@@ -488,7 +488,7 @@ export default function EnrollmentForm({
           state.setExistingEnrollment(enrollment)
         } else {
           console.log(
-            '❌ High school enrollment found but does NOT match - showing form',
+            'ERROR::  High school enrollment found but does NOT match - showing form',
             {
               matchesAY: enrollmentAY === currentAY,
               isHighSchool:
@@ -499,7 +499,7 @@ export default function EnrollmentForm({
           state.setExistingEnrollment(null)
         }
       } else {
-        console.log('❌ No enrollment found - showing form')
+        console.log('ERROR::  No enrollment found - showing form')
         state.setExistingEnrollment(null)
       }
     } catch (error) {
@@ -1615,7 +1615,7 @@ export default function EnrollmentForm({
       setShowCourseChangeModal(false)
       setPendingCourse(null)
 
-      console.log('🔍 After setStudentType("irregular") - should be set now')
+      console.log('CONSOLE :: After setStudentType("irregular") - should be set now')
 
       if (selectedLevel === 'college') {
         changeStep('year-selection')
@@ -1623,7 +1623,7 @@ export default function EnrollmentForm({
 
       // Verification log after state update
       setTimeout(() => {
-        console.log('🔍 Verification: studentType should be irregular now')
+        console.log('CONSOLE :: Verification: studentType should be irregular now')
       }, 100)
     }
   }
@@ -2080,7 +2080,7 @@ export default function EnrollmentForm({
 
   // Debug logging
   if (enrollmentToShow) {
-    console.log('🔍 Enrollment check for form visibility:', {
+    console.log('CONSOLE :: Enrollment check for form visibility:', {
       hasEnrollment: !!enrollmentToShow,
       status: enrollmentToShow.enrollmentInfo?.status,
       sectionId: enrollmentToShow.enrollmentInfo?.sectionId,

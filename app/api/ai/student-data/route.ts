@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
 
     const snapshot = await getDocs(q);
 
-    let enrolledStudents: any[] = [];
+    const enrolledStudents: any[] = [];
     const userIds: string[] = [];
 
     for (const doc of snapshot.docs) {

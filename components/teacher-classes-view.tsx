@@ -1,200 +1,221 @@
-'use client';
+'use client'
 
-import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { GraduationCap, BookOpen, Users, MagnifyingGlass, Funnel } from '@phosphor-icons/react';
-import { toast } from 'react-toastify';
+import React, { useState, useEffect } from 'react'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  GraduationCap,
+  BookOpen,
+  Users,
+  MagnifyingGlass,
+  Funnel,
+} from '@phosphor-icons/react'
+import { toast } from 'react-toastify'
 
 interface TeacherClassesViewProps {
-  teacherId: string;
+  teacherId: string
 }
 
 interface Subject {
-  id: string;
-  code: string;
-  name: string;
-  description: string;
-  color: string;
-  lectureUnits: number;
-  labUnits: number;
-  totalUnits: number;
-  gradeLevel: number;
-  teacherAssignments?: Record<string, string[]>;
+  id: string
+  code: string
+  name: string
+  description: string
+  color: string
+  lectureUnits: number
+  labUnits: number
+  totalUnits: number
+  gradeLevel: number
+  teacherAssignments?: Record<string, string[]>
 }
 
 interface Section {
-  id: string;
-  sectionName: string;
-  gradeId: string;
-  rank: string;
-  grade: string;
-  department: string;
+  id: string
+  sectionName: string
+  gradeId: string
+  rank: string
+  grade: string
+  department: string
 }
 
 interface Grade {
-  id: string;
-  gradeLevel: number;
-  color: string;
-  description: string;
-  strand?: string;
-  department: string;
+  id: string
+  gradeLevel: number
+  color: string
+  description: string
+  strand?: string
+  department: string
 }
 
 interface TeacherAssignment {
-  subjectId: string;
-  sectionId: string;
-  teacherId: string;
+  subjectId: string
+  sectionId: string
+  teacherId: string
 }
 
-export default function TeacherClassesView({ teacherId }: TeacherClassesViewProps) {
-  const [assignments, setAssignments] = useState<TeacherAssignment[]>([]);
-  const [subjects, setSubjects] = useState<Record<string, Subject>>({});
-  const [sections, setSections] = useState<Record<string, Section>>({});
-  const [grades, setGrades] = useState<Record<string, Grade>>({});
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGradeFilter, setSelectedGradeFilter] = useState<string[]>([]);
+export default function TeacherClassesView({
+  teacherId,
+}: TeacherClassesViewProps) {
+  const [assignments, setAssignments] = useState<TeacherAssignment[]>([])
+  const [subjects, setSubjects] = useState<Record<string, Subject>>({})
+  const [sections, setSections] = useState<Record<string, Section>>({})
+  const [grades, setGrades] = useState<Record<string, Grade>>({})
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedGradeFilter, setSelectedGradeFilter] = useState<string[]>([])
 
   useEffect(() => {
-    loadTeacherAssignments();
-  }, [teacherId]);
+    loadTeacherAssignments()
+  }, [teacherId])
 
   const loadTeacherAssignments = async () => {
     try {
-      setLoading(true);
+      setLoading(true)
 
       // Load teacher assignments
-      const assignmentsResponse = await fetch(`/api/teacher-assignments?teacherId=${teacherId}`);
-      const assignmentsData = await assignmentsResponse.json();
+      const assignmentsResponse = await fetch(
+        `/api/teacher-assignments?teacherId=${teacherId}`
+      )
+      const assignmentsData = await assignmentsResponse.json()
 
       if (assignmentsResponse.ok && assignmentsData.assignments) {
         // Transform the API response from {subjectId: [sectionIds]} to [{subjectId, sectionId}]
-        const transformedAssignments: TeacherAssignment[] = [];
-        Object.entries(assignmentsData.assignments).forEach(([subjectId, sectionIds]) => {
-          if (Array.isArray(sectionIds)) {
-            sectionIds.forEach(sectionId => {
-              transformedAssignments.push({
-                subjectId,
-                sectionId: sectionId as string,
-                teacherId
-              });
-            });
+        const transformedAssignments: TeacherAssignment[] = []
+        Object.entries(assignmentsData.assignments).forEach(
+          ([subjectId, sectionIds]) => {
+            if (Array.isArray(sectionIds)) {
+              sectionIds.forEach((sectionId) => {
+                transformedAssignments.push({
+                  subjectId,
+                  sectionId: sectionId as string,
+                  teacherId,
+                })
+              })
+            }
           }
-        });
-        setAssignments(transformedAssignments);
+        )
+        setAssignments(transformedAssignments)
       }
 
       // Load all subjects
-      const subjectsResponse = await fetch('/api/subjects');
-      const subjectsData = await subjectsResponse.json();
+      const subjectsResponse = await fetch('/api/subjects')
+      const subjectsData = await subjectsResponse.json()
 
       if (subjectsResponse.ok && subjectsData.subjects) {
-        const subjectsMap: Record<string, Subject> = {};
+        const subjectsMap: Record<string, Subject> = {}
         subjectsData.subjects.forEach((subject: Subject) => {
-          subjectsMap[subject.id] = subject;
-        });
-        setSubjects(subjectsMap);
+          subjectsMap[subject.id] = subject
+        })
+        setSubjects(subjectsMap)
       }
 
       // Load all sections
-      const sectionsResponse = await fetch('/api/sections');
-      const sectionsData = await sectionsResponse.json();
+      const sectionsResponse = await fetch('/api/sections')
+      const sectionsData = await sectionsResponse.json()
 
       if (sectionsResponse.ok && sectionsData.sections) {
-        const sectionsMap: Record<string, Section> = {};
+        const sectionsMap: Record<string, Section> = {}
         sectionsData.sections.forEach((section: Section) => {
-          sectionsMap[section.id] = section;
-        });
-        setSections(sectionsMap);
+          sectionsMap[section.id] = section
+        })
+        setSections(sectionsMap)
       }
 
       // Load all grades
-      const gradesResponse = await fetch('/api/grades');
-      const gradesData = await gradesResponse.json();
+      const gradesResponse = await fetch('/api/grades')
+      const gradesData = await gradesResponse.json()
 
       if (gradesResponse.ok && gradesData.grades) {
-        const gradesMap: Record<string, Grade> = {};
+        const gradesMap: Record<string, Grade> = {}
         gradesData.grades.forEach((grade: Grade) => {
-          gradesMap[grade.id] = grade;
-        });
-        setGrades(gradesMap);
+          gradesMap[grade.id] = grade
+        })
+        setGrades(gradesMap)
       }
-
     } catch (error) {
-      console.error('Error loading teacher assignments:', error);
-      toast.error('Failed to load your class assignments');
+      console.error('Error loading teacher assignments:', error)
+      toast.error('Failed to load your class assignments')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const getSubjectColor = (color: string): string => {
     const colorMap: { [key: string]: string } = {
-      'blue-800': '#1e40af',
+      'blue-900': '#1e40af',
       'red-800': '#991b1b',
       'emerald-800': '#064e3b',
       'yellow-800': '#92400e',
       'orange-800': '#9a3412',
       'violet-800': '#5b21b6',
-      'purple-800': '#581c87'
-    };
-    return colorMap[color] || '#1e40af';
-  };
+      'purple-800': '#581c87',
+    }
+    return colorMap[color] || '#1e40af'
+  }
 
   const getGradeColor = (color: string): string => {
-    return getSubjectColor(color);
-  };
+    return getSubjectColor(color)
+  }
 
   // Group assignments by subject
   const groupedAssignments = assignments.reduce((acc, assignment) => {
-    const subject = subjects[assignment.subjectId];
-    if (!subject) return acc;
+    const subject = subjects[assignment.subjectId]
+    if (!subject) return acc
 
     if (!acc[assignment.subjectId]) {
       acc[assignment.subjectId] = {
         subject,
-        sections: []
-      };
+        sections: [],
+      }
     }
 
-    const section = sections[assignment.sectionId];
+    const section = sections[assignment.sectionId]
     if (section) {
-      acc[assignment.subjectId].sections.push(section);
+      acc[assignment.subjectId].sections.push(section)
     }
 
-    return acc;
-  }, {} as Record<string, { subject: Subject; sections: Section[] }>);
+    return acc
+  }, {} as Record<string, { subject: Subject; sections: Section[] }>)
 
   // Get unique grade levels for filtering
-  const availableGrades = Array.from(new Set(
-    Object.values(groupedAssignments)
-      .map(({ subject }) => subject.gradeLevel)
-      .filter(gradeLevel => gradeLevel != null)
-  )).sort((a, b) => a - b);
+  const availableGrades = Array.from(
+    new Set(
+      Object.values(groupedAssignments)
+        .map(({ subject }) => subject.gradeLevel)
+        .filter((gradeLevel) => gradeLevel != null)
+    )
+  ).sort((a, b) => a - b)
 
   // Filter assignments based on search and grade filter
-  const filteredAssignments = Object.entries(groupedAssignments).filter(([subjectId, { subject, sections }]) => {
-    // Grade filter - only show subjects with ANY of the selected grade levels
-    if (selectedGradeFilter.length > 0 && subject.gradeLevel != null && !selectedGradeFilter.includes(subject.gradeLevel.toString())) {
-      return false;
-    }
+  const filteredAssignments = Object.entries(groupedAssignments).filter(
+    ([subjectId, { subject, sections }]) => {
+      // Grade filter - only show subjects with ANY of the selected grade levels
+      if (
+        selectedGradeFilter.length > 0 &&
+        subject.gradeLevel != null &&
+        !selectedGradeFilter.includes(subject.gradeLevel.toString())
+      ) {
+        return false
+      }
 
-    // Search filter
-    const query = searchQuery.toLowerCase();
-    if (query) {
-      const subjectMatches = subject.name.toLowerCase().includes(query) ||
-                            subject.code.toLowerCase().includes(query);
-      const sectionMatches = sections.some(section =>
-        section.sectionName.toLowerCase().includes(query) ||
-        section.rank.toLowerCase().includes(query) ||
-        section.department.toLowerCase().includes(query)
-      );
-      return subjectMatches || sectionMatches;
-    }
+      // Search filter
+      const query = searchQuery.toLowerCase()
+      if (query) {
+        const subjectMatches =
+          subject.name.toLowerCase().includes(query) ||
+          subject.code.toLowerCase().includes(query)
+        const sectionMatches = sections.some(
+          (section) =>
+            section.sectionName.toLowerCase().includes(query) ||
+            section.rank.toLowerCase().includes(query) ||
+            section.department.toLowerCase().includes(query)
+        )
+        return subjectMatches || sectionMatches
+      }
 
-    return true;
-  });
+      return true
+    }
+  )
 
   if (loading) {
     return (
@@ -263,7 +284,7 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
           </div>
         </Card>
       </div>
-    );
+    )
   }
 
   if (filteredAssignments.length === 0) {
@@ -293,7 +314,10 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4 flex-1">
             <div className="relative flex-1 max-w-md">
-              <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <MagnifyingGlass
+                size={20}
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              />
               <input
                 type="text"
                 placeholder="Search subjects or sections..."
@@ -308,12 +332,20 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
           <div className="flex flex-col gap-3">
             {/* Grade Filter Pills */}
             <div className="flex items-center gap-1 flex-wrap">
-              <span className="text-xs text-gray-600 mr-2 min-w-fit"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+              <span
+                className="text-xs text-gray-600 mr-2 min-w-fit"
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
                 Grade:
               </span>
               <button
-                onClick={() => setSelectedGradeFilter(selectedGradeFilter.length === availableGrades.length ? [] : availableGrades.map(g => g.toString()))}
+                onClick={() =>
+                  setSelectedGradeFilter(
+                    selectedGradeFilter.length === availableGrades.length
+                      ? []
+                      : availableGrades.map((g) => g.toString())
+                  )
+                }
                 className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
                   selectedGradeFilter.length === availableGrades.length
                     ? 'bg-blue-900 text-white'
@@ -321,22 +353,29 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
                 }`}
                 style={{
                   fontFamily: 'Poppins',
-                  fontWeight: selectedGradeFilter.length === availableGrades.length ? 400 : 300,
-                  borderRadius: '9999px'
+                  fontWeight:
+                    selectedGradeFilter.length === availableGrades.length
+                      ? 400
+                      : 300,
+                  borderRadius: '9999px',
                 }}
               >
-                {selectedGradeFilter.length === availableGrades.length ? 'None' : 'All'}
+                {selectedGradeFilter.length === availableGrades.length
+                  ? 'None'
+                  : 'All'}
               </button>
-              {availableGrades.map(gradeLevel => (
+              {availableGrades.map((gradeLevel) => (
                 <button
                   key={gradeLevel}
                   onClick={() => {
-                    const gradeStr = gradeLevel.toString();
-                    const isSelected = selectedGradeFilter.includes(gradeStr);
+                    const gradeStr = gradeLevel.toString()
+                    const isSelected = selectedGradeFilter.includes(gradeStr)
                     if (isSelected) {
-                      setSelectedGradeFilter(prev => prev.filter(id => id !== gradeStr));
+                      setSelectedGradeFilter((prev) =>
+                        prev.filter((id) => id !== gradeStr)
+                      )
                     } else {
-                      setSelectedGradeFilter(prev => [...prev, gradeStr]);
+                      setSelectedGradeFilter((prev) => [...prev, gradeStr])
                     }
                   }}
                   className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
@@ -346,8 +385,12 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
                   }`}
                   style={{
                     fontFamily: 'Poppins',
-                    fontWeight: selectedGradeFilter.includes(gradeLevel.toString()) ? 400 : 300,
-                    borderRadius: '9999px'
+                    fontWeight: selectedGradeFilter.includes(
+                      gradeLevel.toString()
+                    )
+                      ? 400
+                      : 300,
+                    borderRadius: '9999px',
                   }}
                 >
                   Grade {gradeLevel}
@@ -358,41 +401,47 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
         </div>
 
         <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-sm border-blue-900">
-          <BookOpen size={48} className="mx-auto text-gray-400 mb-4" weight="duotone" />
+          <BookOpen
+            size={48}
+            className="mx-auto text-gray-400 mb-4"
+            weight="duotone"
+          />
           <h3
             className="text-lg font-medium text-gray-900 mb-2"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
           >
-            {assignments.length === 0 ? 'No Class Assignments' : 'No Classes Match Your Search'}
+            {assignments.length === 0
+              ? 'No Class Assignments'
+              : 'No Classes Match Your Search'}
           </h3>
           <p
             className="text-gray-600 mb-4"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             {assignments.length === 0
-              ? 'You haven\'t been assigned to any classes yet. Please contact your registrar.'
-              : 'Try adjusting your search or filter criteria.'
-            }
+              ? "You haven't been assigned to any classes yet. Please contact your registrar."
+              : 'Try adjusting your search or filter criteria.'}
           </p>
-          {assignments.length > 0 && (searchQuery || selectedGradeFilter.length > 0) && (
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedGradeFilter([]);
-              }}
-              className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-              style={{
-                fontFamily: 'Poppins',
-                fontWeight: 300,
-                borderRadius: '9999px'
-              }}
-            >
-              Clear Filters
-            </button>
-          )}
+          {assignments.length > 0 &&
+            (searchQuery || selectedGradeFilter.length > 0) && (
+              <button
+                onClick={() => {
+                  setSearchQuery('')
+                  setSelectedGradeFilter([])
+                }}
+                className="px-4 py-2 bg-blue-900 hover:bg-blue-900 text-white text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                style={{
+                  fontFamily: 'Poppins',
+                  fontWeight: 300,
+                  borderRadius: '9999px',
+                }}
+              >
+                Clear Filters
+              </button>
+            )}
         </Card>
       </div>
-    );
+    )
   }
 
   return (
@@ -424,7 +473,10 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4 flex-1">
           <div className="relative flex-1 max-w-md">
-            <MagnifyingGlass size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <MagnifyingGlass
+              size={20}
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            />
             <input
               type="text"
               placeholder="Search subjects or sections..."
@@ -439,12 +491,20 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
         <div className="flex flex-col gap-3">
           {/* Grade Filter Pills */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="text-xs text-gray-600 mr-2 min-w-fit"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+            <span
+              className="text-xs text-gray-600 mr-2 min-w-fit"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
               Grade:
             </span>
             <button
-              onClick={() => setSelectedGradeFilter(selectedGradeFilter.length === availableGrades.length ? [] : availableGrades.map(g => g.toString()))}
+              onClick={() =>
+                setSelectedGradeFilter(
+                  selectedGradeFilter.length === availableGrades.length
+                    ? []
+                    : availableGrades.map((g) => g.toString())
+                )
+              }
               className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
                 selectedGradeFilter.length === availableGrades.length
                   ? 'bg-blue-900 text-white'
@@ -452,22 +512,29 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
               }`}
               style={{
                 fontFamily: 'Poppins',
-                fontWeight: selectedGradeFilter.length === availableGrades.length ? 400 : 300,
-                borderRadius: '9999px'
+                fontWeight:
+                  selectedGradeFilter.length === availableGrades.length
+                    ? 400
+                    : 300,
+                borderRadius: '9999px',
               }}
             >
-              {selectedGradeFilter.length === availableGrades.length ? 'None' : 'All'}
+              {selectedGradeFilter.length === availableGrades.length
+                ? 'None'
+                : 'All'}
             </button>
-            {availableGrades.map(gradeLevel => (
+            {availableGrades.map((gradeLevel) => (
               <button
                 key={gradeLevel}
                 onClick={() => {
-                  const gradeStr = gradeLevel.toString();
-                  const isSelected = selectedGradeFilter.includes(gradeStr);
+                  const gradeStr = gradeLevel.toString()
+                  const isSelected = selectedGradeFilter.includes(gradeStr)
                   if (isSelected) {
-                    setSelectedGradeFilter(prev => prev.filter(id => id !== gradeStr));
+                    setSelectedGradeFilter((prev) =>
+                      prev.filter((id) => id !== gradeStr)
+                    )
                   } else {
-                    setSelectedGradeFilter(prev => [...prev, gradeStr]);
+                    setSelectedGradeFilter((prev) => [...prev, gradeStr])
                   }
                 }}
                 className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
@@ -477,8 +544,12 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
                 }`}
                 style={{
                   fontFamily: 'Poppins',
-                  fontWeight: selectedGradeFilter.includes(gradeLevel.toString()) ? 400 : 300,
-                  borderRadius: '9999px'
+                  fontWeight: selectedGradeFilter.includes(
+                    gradeLevel.toString()
+                  )
+                    ? 400
+                    : 300,
+                  borderRadius: '9999px',
                 }}
               >
                 Grade {gradeLevel}
@@ -490,17 +561,25 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
 
       {/* Results Count */}
       {(searchQuery || selectedGradeFilter.length > 0) && (
-        <div className="text-xs text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-          Showing {filteredAssignments.length} of {Object.keys(groupedAssignments).length} subject{Object.keys(groupedAssignments).length !== 1 ? 's' : ''}
+        <div
+          className="text-xs text-gray-500"
+          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+        >
+          Showing {filteredAssignments.length} of{' '}
+          {Object.keys(groupedAssignments).length} subject
+          {Object.keys(groupedAssignments).length !== 1 ? 's' : ''}
           {(searchQuery || selectedGradeFilter.length > 0) && (
             <span className="ml-2">
               {searchQuery && `• Search: "${searchQuery}"`}
-              {selectedGradeFilter.length > 0 && (() => {
-                const selectedGradesText = selectedGradeFilter
-                  .map(grade => `Grade ${grade}`)
-                  .join(', ');
-                return selectedGradesText ? `• Grades: ${selectedGradesText}` : '';
-              })()}
+              {selectedGradeFilter.length > 0 &&
+                (() => {
+                  const selectedGradesText = selectedGradeFilter
+                    .map((grade) => `Grade ${grade}`)
+                    .join(', ')
+                  return selectedGradesText
+                    ? `• Grades: ${selectedGradesText}`
+                    : ''
+                })()}
             </span>
           )}
         </div>
@@ -512,17 +591,25 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
           <table className="w-full">
             <thead className="bg-gray-100 border-b-2 border-gray-300">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-                      <BookOpen size={12} weight="bold" className="text-white" />
+                      <BookOpen
+                        size={12}
+                        weight="bold"
+                        className="text-white"
+                      />
                     </div>
                     Subject
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
                       <Users size={12} weight="bold" className="text-white" />
@@ -540,21 +627,34 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
                     <div className="flex items-center">
                       <div
                         className="w-10 h-10 flex items-center justify-center shadow-lg mr-4"
-                        style={{ backgroundColor: getSubjectColor(subject.color) }}
+                        style={{
+                          backgroundColor: getSubjectColor(subject.color),
+                        }}
                       >
-                        <BookOpen size={16} className="text-white" weight="fill" />
+                        <BookOpen
+                          size={16}
+                          className="text-white"
+                          weight="fill"
+                        />
                       </div>
                       <div>
-                        <div className="text-xs font-medium text-gray-900"
-                             style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                        <div
+                          className="text-xs font-medium text-gray-900"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
                           {subject.code} {subject.name}
                         </div>
-                        <div className="text-xs text-gray-500 font-mono"
-                             style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-                          {subject.code} • {subject.lectureUnits + subject.labUnits} units
+                        <div
+                          className="text-xs text-gray-500 font-mono"
+                          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                        >
+                          {subject.code} •{' '}
+                          {subject.lectureUnits + subject.labUnits} units
                         </div>
-                        <div className="text-xs text-gray-500"
-                             style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                        <div
+                          className="text-xs text-gray-500"
+                          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                        >
                           Grade {subject.gradeLevel}
                         </div>
                       </div>
@@ -572,7 +672,11 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
                         >
                           <div
                             className="w-2 h-2 mr-2 flex-shrink-0"
-                            style={{ backgroundColor: getGradeColor(grades[section.gradeId]?.color || 'blue-800') }}
+                            style={{
+                              backgroundColor: getGradeColor(
+                                grades[section.gradeId]?.color || 'blue-900'
+                              ),
+                            }}
                           ></div>
                           {section.sectionName} • {section.rank}
                         </div>
@@ -586,5 +690,5 @@ export default function TeacherClassesView({ teacherId }: TeacherClassesViewProp
         </div>
       </Card>
     </div>
-  );
+  )
 }

@@ -1,18 +1,36 @@
+system dev logs and tasks.
+
 3. ai sidebar
 4. contact sidebar
 5. parent binding
 6. change signout button text
 7. overview
 8. export csv
-10. admin account
-11. enroll expiration
-12. enrollment duration 
+9. admin account
+10. enroll expiration
+11. enrollment duration
 
 10/30/2025
+
 - prerequisite, postrequisite application to quick enrollment.. showing the student's transcript from previous year.
 
 11/03/2025
-- student subjects fix
-- student id must be retained and not asked again and must be fixed.
-- subject assignments in the @student-management.tsx
+
+- student subjects fix (checked)
+- student id must be retained and not asked again and must be fixed. (checked)
+- subject assignments in the @student-management.tsx (checked)
 - student dashboard fix (not getting enrolled status)
+
+11/07/2025
+
+- ui overhaul across all part of the system.
+- testing re enrollment and archiving.
+- query improvement for optimization.
+- prerequisite enrollment restrictions.
+
+11/09/2025
+
+- fix enrollment form for senior high school
+- AI analysis on documents.
+- redesign student and teacher dashboard.
+- AI improvements on student analysis

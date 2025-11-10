@@ -85,7 +85,7 @@ const EnrollmentPrintModal: React.FC<EnrollmentPrintModalProps> = ({
   subjectSets,
   registrarName,
 }) => {
-  console.log('🖨️ EnrollmentPrintModal opened with:', {
+  console.log('EVIL JORDAN::  EnrollmentPrintModal opened with:', {
     enrollmentId: enrollment?.id,
     selectedSubjectsCount: selectedSubjects?.length,
     subjectsCount: Object.keys(subjects || {}).length,
@@ -274,8 +274,8 @@ const EnrollmentPrintModal: React.FC<EnrollmentPrintModalProps> = ({
       // Blue variants
       'blue-500': '#3b82f6',
       'blue-600': '#2563eb',
-      'blue-700': '#1d4ed8',
-      'blue-800': '#1e40af',
+      'blue-900': '#1d4ed8',
+      'blue-900': '#1e40af',
       'blue-900': '#1e3a8a',
       // Green variants
       'green-500': '#22c55e',
