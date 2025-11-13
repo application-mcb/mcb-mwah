@@ -124,6 +124,7 @@ export default function LevelSelectionStep({
               if (!previousEnrollment || checkingPreviousEnrollment) return null
               const prevLevel = previousEnrollment.enrollmentInfo?.level
               const prevSemester = previousEnrollment.enrollmentInfo?.semester
+              const prevDepartment = previousEnrollment.enrollmentInfo?.department
               const prevGradeRaw = previousEnrollment.enrollmentInfo?.gradeLevel
               const prevGradeNumStr = prevGradeRaw
                 ? String(prevGradeRaw).match(/\d+/)?.[0]
@@ -134,17 +135,51 @@ export default function LevelSelectionStep({
               // Treat legacy HS (no level and no semester) as high-school
               const isHS =
                 prevLevel === 'high-school' || (!prevLevel && !prevSemester)
-              const nextGrade = isHS && prevGrade ? prevGrade + 1 : undefined
+              const isSHS = isHS && prevDepartment === 'SHS' && prevSemester
+              
+              // Calculate next grade/semester based on type
+              let nextGrade: number | undefined
+              let nextSemester: string | undefined
+              let header: string
+              let sub: string
+              
+              if (isSHS) {
+                // SHS: Handle semester progression
+                if (prevSemester === 'first-sem') {
+                  // Continue to second semester of same grade
+                  nextGrade = prevGrade
+                  nextSemester = 'Second Semester'
+                  header = `Continue to Grade ${nextGrade} Second Semester`
+                  sub = `Next: Grade ${nextGrade} Second Semester (Previous: Grade ${prevGrade} First Semester)`
+                } else if (prevSemester === 'second-sem') {
+                  // Continue to first semester of next grade
+                  nextGrade = prevGrade ? prevGrade + 1 : undefined
+                  nextSemester = 'First Semester'
+                  if (nextGrade && nextGrade <= 12) {
+                    header = `Continue to Grade ${nextGrade} First Semester`
+                    sub = `Next: Grade ${nextGrade} First Semester (Previous: Grade ${prevGrade} Second Semester)`
+                  } else {
+                    // Already at Grade 12 Second Semester, no next grade
+                    return null
+                  }
+                } else {
+                  return null
+                }
+              } else if (isHS) {
+                // JHS: Simple grade progression (no semester)
+                nextGrade = prevGrade ? prevGrade + 1 : undefined
+                header = `Continue to Grade ${nextGrade}`
+                sub = `Next: Grade ${nextGrade} (Previous: Grade ${prevGrade})`
+              } else {
+                // College
+                header = 'Continue Previous'
+                sub = previousEnrollment.enrollmentInfo?.courseCode ||
+                  `Grade ${previousEnrollment.enrollmentInfo?.gradeLevel}`
+              }
+              
               const showCard =
                 !isHS || (nextGrade !== undefined && nextGrade <= 12)
               if (!showCard) return null
-              const header = isHS
-                ? `Continue to Grade ${nextGrade}`
-                : 'Continue Previous'
-              const sub = isHS
-                ? `Next: Grade ${nextGrade} (Previous: Grade ${prevGrade})`
-                : previousEnrollment.enrollmentInfo?.courseCode ||
-                  `Grade ${previousEnrollment.enrollmentInfo?.gradeLevel}`
               // Resolve next grade's configured color if available
               let nextGradeObj: GradeData | undefined
               if (isHS && nextGrade && Array.isArray(grades)) {
@@ -215,6 +250,12 @@ export default function LevelSelectionStep({
                           {previousEnrollment.enrollmentInfo?.level ===
                           'college'
                             ? `${previousEnrollment.enrollmentInfo?.courseCode} - Year ${previousEnrollment.enrollmentInfo?.yearLevel}`
+                            : isSHS && prevSemester
+                            ? `Grade ${previousEnrollment.enrollmentInfo?.gradeLevel} - ${
+                                prevSemester === 'first-sem'
+                                  ? 'First'
+                                  : 'Second'
+                              } Semester`
                             : `Grade ${previousEnrollment.enrollmentInfo?.gradeLevel}`}
                         </span>
                       </div>
@@ -239,6 +280,8 @@ export default function LevelSelectionStep({
                                   ? 'First'
                                   : 'Second'
                               } Semester`
+                            : isSHS && nextSemester
+                            ? `Next: ${nextSemester}`
                             : `Next Level: Grade ${nextGrade}`}
                         </span>
                       </div>

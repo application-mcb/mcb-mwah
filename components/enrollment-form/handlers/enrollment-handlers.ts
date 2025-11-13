@@ -461,13 +461,67 @@ export const createEnrollmentHandlers = (
       }
 
       if (prevIsSHS) {
-        // For SHS re-enrollment, check for strand changes
-        // If strand changes, reset to Grade 11 First Semester (irregular)
-        // If same strand, continue to next semester/grade (regular)
+        // For SHS re-enrollment, handle semester progression correctly:
+        // - If previous was First Semester → continue to Second Semester (same grade)
+        // - If previous was Second Semester → continue to First Semester of next grade
+        const prevSemester = prevInfo.semester
+        
+        if (prevSemester === 'first-sem') {
+          // Continue to second semester of same grade level
+          state.setReEnrollSemester('second-sem')
+          state.setSelectedSemester('second-sem')
+        } else if (prevSemester === 'second-sem') {
+          // Continue to first semester of next grade level
+          state.setReEnrollSemester('first-sem')
+          state.setSelectedSemester('first-sem')
+        }
 
-        // For now, let user select grade - we'll check strand in handleGradeSelect
-        state.setSelectedGrade(null)
-        changeStep('grade-selection')
+        // Pre-select grade based on semester progression
+        if (prevGradeLevel) {
+          const numStr = String(prevGradeLevel).match(/\d+/)?.[0]
+          const prev = numStr ? parseInt(numStr, 10) : NaN
+          if (!Number.isNaN(prev)) {
+            let targetGradeLevel = prev
+            
+            // If previous was second semester, move to next grade level
+            if (prevSemester === 'second-sem') {
+              targetGradeLevel = prev + 1
+              // Cap at Grade 12
+              if (targetGradeLevel > 12) {
+                targetGradeLevel = 12
+              }
+            }
+            // If previous was first semester, stay at same grade level
+            
+            // Find grade matching target grade level and strand
+            const targetGrade = state.grades.find(
+              (g: GradeData) =>
+                g.gradeLevel === targetGradeLevel &&
+                g.department === 'SHS' &&
+                g.strand === prevStrand
+            )
+            
+            if (targetGrade) {
+              state.setSelectedGrade(targetGrade)
+              // Proceed to re-enroll step if semester is already set
+              if (state.reEnrollSemester) {
+                changeStep('re-enroll')
+              } else {
+                changeStep('semester-selection')
+              }
+            } else {
+              // Grade not found, let user select
+              state.setSelectedGrade(null)
+              changeStep('grade-selection')
+            }
+          } else {
+            state.setSelectedGrade(null)
+            changeStep('grade-selection')
+          }
+        } else {
+          state.setSelectedGrade(null)
+          changeStep('grade-selection')
+        }
       } else {
         // JHS: Determine next grade level (prev + 1), capped at 12
         let nextGradeLevel: number | null = null
@@ -888,10 +942,12 @@ export const createEnrollmentHandlers = (
           throw new Error(data.error || 'Failed to submit enrollment')
         }
 
+        // Close modal
+        state.setSubmitModalOpen(false)
+        state.setCountdown(5)
+
         toast.dismiss('enrollment-submit')
-        toast.success(
-          "Enrollment submitted successfully! You will be notified once it's processed."
-        )
+        toast.success('Enrollment submitted successfully!')
 
         // Dispatch custom event to notify enrollment-management of new enrollment
         if (typeof window !== 'undefined') {
@@ -910,6 +966,37 @@ export const createEnrollmentHandlers = (
             console.warn('Failed to dispatch enrollmentSubmitted event:', error)
           }
         }
+
+        // Refresh enrollment data by re-checking existing enrollment
+        // This ensures we get the actual data from the database
+        await state.checkExistingEnrollment()
+
+        // Clear submittedEnrollment so we use the fetched existingEnrollment
+        state.setSubmittedEnrollment(null)
+
+        // Reset form after successful submission
+        state.setSelectedGrade(null)
+        state.setSelectedCourse(null)
+        state.setSelectedLevel(null)
+        state.setSelectedYear(null)
+        state.setSelectedSemester(null)
+        state.setStudentType(null)
+        state.setPersonalInfo({
+          firstName: '',
+          middleName: '',
+          lastName: '',
+          nameExtension: '',
+          email: '',
+          phone: '',
+          birthMonth: '',
+          birthDay: '',
+          birthYear: '',
+          placeOfBirth: '',
+          gender: '',
+          citizenship: '',
+          religion: '',
+          civilStatus: '',
+        })
 
         // Trigger progress update callback
         if (state.onProgressUpdate) {

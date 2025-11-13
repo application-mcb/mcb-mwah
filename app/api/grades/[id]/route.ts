@@ -96,9 +96,9 @@ export async function PUT(
 
     // Validate and add description if provided
     if (description !== undefined) {
-      if (description.length > 150) {
+      if (description.length > 500) {
         return NextResponse.json(
-          { error: 'Description must not exceed 150 characters' },
+          { error: 'Description must not exceed 500 characters' },
           { status: 400 }
         );
       }

@@ -211,7 +211,10 @@ export default function ConfirmationStep({
               >
                 Confirm Your Enrollment
               </h2>
-              <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+              <p
+                className="text-sm text-gray-600"
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
                 Review all information and submit your enrollment
               </p>
             </div>
@@ -390,6 +393,13 @@ export default function ConfirmationStep({
                           >
                             Grade {selectedGrade.gradeLevel}{' '}
                             {selectedGrade.strand}
+                            {selectedGrade.department === 'SHS' &&
+                              selectedSemester &&
+                              ` - ${
+                                selectedSemester === 'first-sem'
+                                  ? 'First Semester'
+                                  : 'Second Semester'
+                              }`}
                           </h5>
                           <p className="text-xs text-white">
                             {selectedGrade.department} Department
@@ -449,6 +459,22 @@ export default function ConfirmationStep({
                     {new Date().getFullYear()} - {new Date().getFullYear() + 1}
                   </span>
                 </div>
+                {((selectedLevel === 'college' && selectedSemester) ||
+                  (selectedLevel === 'high-school' &&
+                    selectedGrade?.department === 'SHS' &&
+                    selectedSemester)) && (
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Semester:</span>
+                    <span
+                      className="text-sm text-gray-900"
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    >
+                      {selectedSemester === 'first-sem'
+                        ? 'First Semester'
+                        : 'Second Semester'}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -502,11 +528,7 @@ export default function ConfirmationStep({
               ) : (
                 <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg text-center">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md mx-auto mb-2">
-                    <BookOpen
-                      size={20}
-                      className="text-white"
-                      weight="fill"
-                    />
+                    <BookOpen size={20} className="text-white" weight="fill" />
                   </div>
                   <p
                     className="text-xs text-gray-500"
@@ -607,7 +629,10 @@ export default function ConfirmationStep({
                   </div>
                 </div>
 
-                <div className="text-xs text-gray-600 bg-blue-50 rounded-xl border border-blue-100 p-3" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+                <div
+                  className="text-xs text-gray-600 bg-blue-50 rounded-xl border border-blue-100 p-3"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
                   <strong>Note:</strong> Make sure you have uploaded all
                   required documents in the Documents section before submitting
                   your enrollment. Your documents will be automatically
@@ -622,7 +647,12 @@ export default function ConfirmationStep({
       <Card className="p-6 rounded-xl border border-blue-100 bg-white/80 backdrop-blur-sm shadow-lg">
         <div className="space-y-4">
           <div className="flex justify-end space-x-3 pt-4 border-t border-blue-100">
-            <Button variant="ghost" onClick={onBack} className="rounded-xl" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+            <Button
+              variant="ghost"
+              onClick={onBack}
+              className="rounded-xl"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
               Back
             </Button>
             <Button

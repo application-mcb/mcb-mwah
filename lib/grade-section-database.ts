@@ -87,8 +87,8 @@ export class GradeDatabase {
       }
 
       // Validate description length
-      if (gradeData.description.length > 150) {
-        throw new Error('Description must not exceed 150 characters');
+      if (gradeData.description.length > 500) {
+        throw new Error('Description must not exceed 500 characters');
       }
 
       const gradeId = this.generateGradeId(gradeData.gradeLevel, gradeData.department, gradeData.strand);
@@ -193,8 +193,8 @@ export class GradeDatabase {
       }
 
       // Validate description length if provided
-      if (updateData.description && updateData.description.length > 150) {
-        throw new Error('Description must not exceed 150 characters');
+      if (updateData.description && updateData.description.length > 500) {
+        throw new Error('Description must not exceed 500 characters');
       }
 
       const gradeRef = doc(db, this.collectionName, id);

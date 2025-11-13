@@ -45,7 +45,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { code, name, description, gradeLevels, courseCodes, courseSelections, color, lectureUnits, labUnits, prerequisites, postrequisites, registrarUid } = body;
+    const { code, name, description, gradeLevels, gradeIds, courseCodes, courseSelections, color, lectureUnits, labUnits, prerequisites, postrequisites, registrarUid } = body;
 
     // Validate registrar role if registrarUid is provided
     if (registrarUid) {
@@ -64,6 +64,7 @@ export async function PUT(
     if (name !== undefined) updateData.name = name.trim();
     if (description !== undefined) updateData.description = description.trim();
     if (gradeLevels !== undefined) updateData.gradeLevels = Array.isArray(gradeLevels) ? gradeLevels.map((level: any) => parseInt(level)) : [];
+    if (gradeIds !== undefined) updateData.gradeIds = Array.isArray(gradeIds) ? gradeIds.map((id: any) => String(id)) : [];
     if (courseCodes !== undefined) updateData.courseCodes = Array.isArray(courseCodes) ? courseCodes : [];
     if (courseSelections !== undefined) updateData.courseSelections = Array.isArray(courseSelections) ? courseSelections : [];
     if (color !== undefined) updateData.color = color;

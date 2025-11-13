@@ -64,9 +64,9 @@ export default function SubjectManagement({
   const [showViewModal, setShowViewModal] = useState(false)
   const [viewingSubject, setViewingSubject] = useState<SubjectData | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedGradeLevel, setSelectedGradeLevel] = useState<
-    number | undefined
-  >(undefined)
+  const [selectedGradeId, setSelectedGradeId] = useState<string | undefined>(
+    undefined
+  )
   const [selectedCourses, setSelectedCourses] = useState<string[]>([])
   const [grades, setGrades] = useState<GradeData[]>([])
   const [courses, setCourses] = useState<any[]>([])
@@ -182,8 +182,8 @@ export default function SubjectManagement({
   }, [showDeleteSubjectAssignmentModal, subjectAssignmentCountdown])
 
   // Handle grade level selection/deselection
-  const handleGradeLevelChange = (gradeLevel: number | undefined) => {
-    setSelectedGradeLevel(gradeLevel)
+  const handleGradeIdChange = (gradeId: string | undefined) => {
+    setSelectedGradeId(gradeId)
   }
 
   // Handle course toggle
@@ -288,6 +288,7 @@ export default function SubjectManagement({
     name: string
     description: string
     gradeLevels: number[]
+    gradeIds: string[]
     courseCodes: string[]
     courseSelections: {
       code: string
@@ -340,6 +341,7 @@ export default function SubjectManagement({
     name: string
     description: string
     gradeLevels: number[]
+    gradeIds: string[]
     courseCodes: string[]
     courseSelections: {
       code: string
@@ -445,6 +447,7 @@ export default function SubjectManagement({
     setEditingSubject({
       ...subject,
       gradeLevels: subject.gradeLevels || [subject.gradeLevel || 7], // Fallback for old data
+      gradeIds: subject.gradeIds || [], // Pass through existing gradeIds
       courseCodes: subject.courseCodes || [],
       lectureUnits: subject.lectureUnits.toString(),
       labUnits: subject.labUnits.toString(),
@@ -1085,8 +1088,17 @@ export default function SubjectManagement({
   const getAssignmentCardColor = (assignment: any): string => {
     if (assignment.level === 'college' && assignment.courseCode) {
       return getCourseColorValue(assignment.courseCode)
-    } else if (assignment.level === 'high-school' && assignment.gradeLevel) {
-      return getGradeColorValue(assignment.gradeLevel)
+    } else if (assignment.level === 'high-school') {
+      // Use gradeId if available, otherwise fallback to gradeLevel
+      if (assignment.gradeId) {
+        const grade = grades.find((g) => g.id === assignment.gradeId)
+        if (grade) {
+          return getColorValue(grade.color || 'blue-900')
+        }
+      }
+      if (assignment.gradeLevel) {
+        return getGradeColorValue(assignment.gradeLevel)
+      }
     }
     return '#1e3a8a' // Default to blue-900
   }
@@ -1097,9 +1109,24 @@ export default function SubjectManagement({
     if (assignment.level === 'college' && assignment.courseCode) {
       const course = courses.find((c) => c.code === assignment.courseCode)
       color = course?.color || 'blue-900'
-    } else if (assignment.level === 'high-school' && assignment.gradeLevel) {
-      const grade = grades.find((g) => g.gradeLevel === assignment.gradeLevel)
-      color = grade?.color || 'blue-900'
+    } else if (assignment.level === 'high-school') {
+      // Use gradeId if available to get the correct grade (with strand)
+      if (assignment.gradeId) {
+        const grade = grades.find((g) => g.id === assignment.gradeId)
+        if (grade) {
+          color = grade.color || 'blue-900'
+        }
+      } else if (assignment.gradeLevel) {
+        // Fallback: find by gradeLevel + strand if available
+        const grade = assignment.strand
+          ? grades.find(
+              (g) =>
+                g.gradeLevel === assignment.gradeLevel &&
+                g.strand === assignment.strand
+            )
+          : grades.find((g) => g.gradeLevel === assignment.gradeLevel)
+        color = grade?.color || 'blue-900'
+      }
     }
     return getGradientClasses(color)
   }
@@ -1378,8 +1405,8 @@ export default function SubjectManagement({
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               totalSubjectsCount={subjects.length}
-              selectedGradeLevel={selectedGradeLevel}
-              onGradeLevelChange={handleGradeLevelChange}
+              selectedGradeId={selectedGradeId}
+              onGradeIdChange={handleGradeIdChange}
               selectedCourses={selectedCourses}
               onCourseToggle={handleCourseToggle}
             />
@@ -1939,10 +1966,32 @@ export default function SubjectManagement({
                                         : 'Q2'
                                     }`
                                   : (() => {
-                                      const grade = grades.find(
-                                        (g) =>
-                                          g.gradeLevel === assignment.gradeLevel
-                                      )
+                                      // Use gradeId if available to get the correct grade (with strand)
+                                      let grade = null
+                                      if (assignment.gradeId) {
+                                        grade = grades.find(
+                                          (g) => g.id === assignment.gradeId
+                                        )
+                                      }
+
+                                      // Fallback: find by gradeLevel + strand if available
+                                      if (!grade && assignment.gradeLevel) {
+                                        if (assignment.strand) {
+                                          grade = grades.find(
+                                            (g) =>
+                                              g.gradeLevel ===
+                                                assignment.gradeLevel &&
+                                              g.strand === assignment.strand
+                                          )
+                                        } else {
+                                          grade = grades.find(
+                                            (g) =>
+                                              g.gradeLevel ===
+                                              assignment.gradeLevel
+                                          )
+                                        }
+                                      }
+
                                       if (grade) {
                                         if (
                                           grade.department === 'SHS' &&
@@ -2146,41 +2195,25 @@ export default function SubjectManagement({
         )}
 
         {/* Create Subject Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
-              onClick={() => !actionLoading && handleCancel()}
-            ></div>
-            <div className="relative animate-in fade-in duration-300">
-              <SubjectForm
-                onSubmit={handleCreateSubject}
-                onCancel={handleCancel}
-                initialData={undefined}
-                isEditing={false}
-                loading={actionLoading}
-              />
-            </div>
-          </div>
-        )}
+        <SubjectForm
+          isOpen={showCreateModal}
+          onClose={handleCancel}
+          onSubmit={handleCreateSubject}
+          initialData={undefined}
+          isEditing={false}
+          loading={actionLoading}
+        />
 
         {/* Edit Subject Modal */}
         {showEditModal && editingSubject && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
-              onClick={() => !actionLoading && handleCancel()}
-            ></div>
-            <div className="relative animate-in fade-in duration-300">
-              <SubjectForm
-                onSubmit={handleUpdateSubject}
-                onCancel={handleCancel}
-                initialData={editingSubject}
-                isEditing={true}
-                loading={actionLoading}
-              />
-            </div>
-          </div>
+          <SubjectForm
+            isOpen={showEditModal}
+            onClose={handleCancel}
+            onSubmit={handleUpdateSubject}
+            initialData={editingSubject}
+            isEditing={true}
+            loading={actionLoading}
+          />
         )}
 
         {/* Delete Subject Modal */}

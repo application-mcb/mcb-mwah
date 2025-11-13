@@ -31,7 +31,8 @@ import { toast } from 'react-toastify'
 interface SubjectSetFormData {
   name: string
   description: string
-  gradeLevels: number[] // Array of grade levels (7, 8, 9, 10, 11, 12)
+  gradeIds: string[] // Array of grade IDs (includes strand info for unique identification)
+  gradeLevels: number[] // Array of grade levels (7, 8, 9, 10, 11, 12) - derived from gradeIds for API
   courseCodes: string[] // College course codes
   color: SubjectColor
   subjects: string[] // Array of subject IDs
@@ -81,7 +82,7 @@ interface SubjectSelectionModalProps {
 const getCourseColorValue = (color: string): string => {
   const colorMap: Record<string, string> = {
     'blue-900': '#1d4ed8',
-    'blue-900': '#1e40af',
+    'blue-800': '#1e40af',
     'red-700': '#b91c1c',
     'red-800': '#991b1b',
     'emerald-700': '#047857',
@@ -152,13 +153,25 @@ function SubjectSelectionModal({
     )
   }
 
-  const handleGradeLevelToggle = (gradeLevel: number) => {
-    onFormDataChange(
-      'gradeLevels',
-      formData.gradeLevels.includes(gradeLevel)
-        ? formData.gradeLevels.filter((level) => level !== gradeLevel)
-        : [...formData.gradeLevels, gradeLevel]
-    )
+  const handleGradeToggle = (gradeId: string, gradeLevel: number) => {
+    const currentGradeIds = formData.gradeIds || []
+    const isSelected = currentGradeIds.includes(gradeId)
+
+    // Update gradeIds
+    const newGradeIds = isSelected
+      ? currentGradeIds.filter((id) => id !== gradeId)
+      : [...currentGradeIds, gradeId]
+
+    // Derive gradeLevels from gradeIds (deduplicated)
+    const selectedGrades = grades.filter((g) => newGradeIds.includes(g.id))
+    const newGradeLevels = Array.from(
+      new Set(selectedGrades.map((g) => g.gradeLevel))
+    ).sort((a, b) => a - b)
+
+    // Update both gradeIds and gradeLevels
+    onFormDataChange('gradeIds', newGradeIds)
+    onFormDataChange('gradeLevels', newGradeLevels)
+
     // Clear error when user makes a selection
     if (errors.gradeLevels) {
       // Note: Error clearing would need to be handled by parent component
@@ -288,27 +301,18 @@ function SubjectSelectionModal({
               >
                 Subject Set Name *
               </label>
-              <div className="relative">
-                <Input
-                  id="modal-subject-set-name"
-                  type="text"
-                  placeholder="e.g., Grade 10 Core Subjects"
-                  value={formData.name}
-                  onChange={(e) => onFormDataChange('name', e.target.value)}
-                  disabled={loading}
-                  className={`pl-10 border-1 shadow-sm border-blue-900 rounded-none ${
-                    errors.name
-                      ? 'border-red-500 focus-visible:ring-red-500'
-                      : ''
-                  }`}
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                />
-                <BookOpen
-                  size={18}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  weight="duotone"
-                />
-              </div>
+              <Input
+                id="modal-subject-set-name"
+                type="text"
+                placeholder="e.g., Grade 10 Core Subjects"
+                value={formData.name}
+                onChange={(e) => onFormDataChange('name', e.target.value)}
+                disabled={loading}
+                className={`border-1 shadow-sm border-blue-900 rounded-lg ${
+                  errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''
+                }`}
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              />
               {errors.name && (
                 <p
                   className="text-sm text-red-600"
@@ -337,18 +341,20 @@ function SubjectSelectionModal({
                   </div>
                 ) : grades.length > 0 ? (
                   grades.map((grade) => {
-                    const isSelected = formData.gradeLevels.includes(
-                      grade.gradeLevel
+                    const isSelected = (formData.gradeIds || []).includes(
+                      grade.id
                     )
                     return (
                       <button
                         key={grade.id}
                         type="button"
-                        onClick={() => handleGradeLevelToggle(grade.gradeLevel)}
+                        onClick={() =>
+                          handleGradeToggle(grade.id, grade.gradeLevel)
+                        }
                         disabled={loading}
-                        className={`px-3 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+                        className={`px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                           isSelected
-                            ? 'bg-blue-900 text-white border-blue-900 shadow-md'
+                            ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-900 shadow-md'
                             : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -366,19 +372,16 @@ function SubjectSelectionModal({
                   </div>
                 )}
               </div>
-              {formData.gradeLevels.length > 0 && (
+              {(formData.gradeIds || []).length > 0 && (
                 <p
                   className="text-xs text-gray-600"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
                   Selected:{' '}
-                  {formData.gradeLevels
-                    .sort()
-                    .map((level) => {
-                      const grade = grades.find((g) => g.gradeLevel === level)
-                      return grade
-                        ? getGradeDisplayName(grade)
-                        : `Grade ${level}`
+                  {(formData.gradeIds || [])
+                    .map((gradeId) => {
+                      const grade = grades.find((g) => g.id === gradeId)
+                      return grade ? getGradeDisplayName(grade) : gradeId
                     })
                     .join(', ')}
                 </p>
@@ -422,7 +425,7 @@ function SubjectSelectionModal({
                         type="button"
                         onClick={() => handleCourseToggle(course.code)}
                         disabled={loading}
-                        className={`px-3 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+                        className={`px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                           isSelected
                             ? 'text-white shadow-md'
                             : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
@@ -497,7 +500,7 @@ function SubjectSelectionModal({
                   type="button"
                   onClick={handleGenerateDescription}
                   disabled={loading || generatingDescription}
-                  className="flex bg-blue-900 items-center gap-2 px-4 rounded-lg py-2 text-xs font-medium text-white"
+                  className="flex bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 items-center gap-2 px-4 rounded-lg py-2 text-xs font-medium text-white border transition-all duration-200"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
                   {generatingDescription ? (
@@ -513,34 +516,25 @@ function SubjectSelectionModal({
                   )}
                 </button>
               </div>
-              <div className="relative">
-                <textarea
-                  id="modal-subject-set-description"
-                  placeholder="Describe this subject set..."
-                  value={
-                    generatingDescription
-                      ? typewritingText
-                      : formData.description
-                  }
-                  onChange={(e) =>
-                    onFormDataChange('description', e.target.value)
-                  }
-                  disabled={loading || generatingDescription}
-                  className={`border-1 shadow-sm border-blue-900 rounded-none flex min-h-[80px] w-full rounded-md bg-white pl-10 pr-3 py-2 text-base shadow-lg placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${
-                    errors.description
-                      ? 'border-red-500 focus-visible:ring-red-500'
-                      : ''
-                  }`}
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  maxLength={300}
-                  rows={3}
-                />
-                <FileText
-                  size={18}
-                  className="absolute left-3 top-4 text-gray-400"
-                  weight="duotone"
-                />
-              </div>
+              <textarea
+                id="modal-subject-set-description"
+                placeholder="Describe this subject set..."
+                value={
+                  generatingDescription ? typewritingText : formData.description
+                }
+                onChange={(e) =>
+                  onFormDataChange('description', e.target.value)
+                }
+                disabled={loading || generatingDescription}
+                className={`border-1 shadow-sm border-blue-900 rounded-lg flex min-h-[80px] w-full bg-white pr-3 py-2 text-base placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-none ${
+                  errors.description
+                    ? 'border-red-500 focus-visible:ring-red-500'
+                    : ''
+                }`}
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                maxLength={300}
+                rows={3}
+              />
               <div className="flex justify-between items-center">
                 {errors.description && (
                   <p
@@ -589,7 +583,7 @@ function SubjectSelectionModal({
               >
                 Selected ({getSelectedSubjects().length})
               </label>
-              <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2 bg-white">
+              <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-xl p-2 bg-white">
                 {getSelectedSubjects().length === 0 ? (
                   <p
                     className="text-sm text-gray-500"
@@ -664,21 +658,14 @@ function SubjectSelectionModal({
 
           {/* Search Bar */}
           <div className="mb-6">
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder="Search subjects by code, name, or description..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 border-1 shadow-sm border-gray-300 rounded-none focus-visible:ring-blue-900"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-              />
-              <MagnifyingGlass
-                size={18}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                weight="duotone"
-              />
-            </div>
+            <Input
+              type="text"
+              placeholder="Search subjects by code, name, or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-4 border-1 shadow-sm border-blue-900 rounded-lg focus-visible:ring-blue-900"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            />
             {searchQuery && (
               <p
                 className="text-xs text-gray-500 mt-2"
@@ -704,7 +691,7 @@ function SubjectSelectionModal({
             </div>
           ) : availableSubjects.length === 0 ? (
             <div className="flex items-center justify-center h-64">
-              <div className="text-center p-6 bg-yellow-50 border border-yellow-200 rounded-md">
+              <div className="text-center p-6 bg-yellow-50 border border-yellow-200 rounded-xl">
                 <BookOpen
                   size={48}
                   className="text-yellow-600 mx-auto mb-4"
@@ -726,7 +713,7 @@ function SubjectSelectionModal({
             </div>
           ) : filteredSubjects.length === 0 ? (
             <div className="flex items-center justify-center h-64">
-              <div className="text-center p-6 bg-gray-50 border border-gray-200 rounded-md">
+              <div className="text-center p-6 bg-gray-50 border border-gray-200 rounded-xl">
                 <MagnifyingGlass
                   size={48}
                   className="text-gray-400 mx-auto mb-4"
@@ -753,7 +740,7 @@ function SubjectSelectionModal({
                 return (
                   <div
                     key={subject.id}
-                    className={`border p-4 cursor-pointer transition-all duration-200 ${
+                    className={`border p-4 cursor-pointer transition-all duration-200 rounded-xl ${
                       isSelected
                         ? 'border-blue-500 bg-blue-50 shadow-md'
                         : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-lg'
@@ -783,7 +770,7 @@ function SubjectSelectionModal({
                             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                           >
                             <p
-                              className={`bg-${subject.color} px-2 font-xs text-white py-1 inline-block mb-2`}
+                              className={`bg-${subject.color} px-2 font-xs text-white py-1 inline-block mb-2 rounded-md`}
                             >
                               {subject.code}{' '}
                             </p>{' '}
@@ -791,14 +778,14 @@ function SubjectSelectionModal({
                           </span>
                         </div>
                         <div
-                          className={`text-xs text-white bg-${subject.color} px-2 py-1  inline-block mb-2`}
+                          className={`text-xs text-white bg-${subject.color} px-2 py-1  inline-block mb-2 rounded-md`}
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                         >
                           Lab: {subject.labUnits}
                         </div>
 
                         <div
-                          className={`text-xs text-white ml-1 bg-${subject.color} px-2 py-1  inline-block mb-2`}
+                          className={`text-xs text-white ml-1 bg-${subject.color} px-2 py-1  inline-block mb-2 rounded-md`}
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                         >
                           Lecture: {subject.lectureUnits}
@@ -818,7 +805,7 @@ function SubjectSelectionModal({
           )}
 
           {errors.subjects && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
               <p
                 className="text-sm text-red-600"
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -849,9 +836,10 @@ function SubjectSelectionModal({
             !formData.name ||
             !formData.description ||
             formData.subjects.length === 0 ||
-            (formData.gradeLevels.length === 0 &&
+            ((formData.gradeIds || []).length === 0 &&
               formData.courseCodes.length === 0)
           }
+          className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
         >
           {loading ? (
@@ -895,22 +883,77 @@ export default function SubjectSetForm({
     return []
   }
 
-  // Helper function to extract gradeLevels
-  const extractGradeLevels = (data: any): number[] => {
+  // Helper function to extract gradeIds
+  const extractGradeIds = (data: any, grades: GradeData[]): string[] => {
+    // Try to find grades by gradeIds first
+    if (Array.isArray(data?.gradeIds) && data.gradeIds.length > 0) {
+      return data.gradeIds.filter((id: string) =>
+        grades.some((g) => g.id === id)
+      )
+    }
+
+    // If gradeIds not available, try to match by gradeLevels + strand
+    if (Array.isArray(data?.gradeLevels) && data.gradeLevels.length > 0) {
+      const matchedGradeIds: string[] = []
+      data.gradeLevels.forEach((level: number) => {
+        // If strand is specified, find specific grade
+        if (data?.strand) {
+          const grade = grades.find(
+            (g) => g.gradeLevel === level && g.strand === data.strand
+          )
+          if (grade) matchedGradeIds.push(grade.id)
+        } else {
+          // No strand specified - find all grades with this level
+          const matchingGrades = grades.filter((g) => g.gradeLevel === level)
+          matchingGrades.forEach((g) => {
+            if (!matchedGradeIds.includes(g.id)) {
+              matchedGradeIds.push(g.id)
+            }
+          })
+        }
+      })
+      return matchedGradeIds
+    }
+
+    // Fallback to deprecated gradeLevel field
+    if (data?.gradeLevel !== undefined && data.gradeLevel !== null) {
+      const matchingGrades = grades.filter(
+        (g) => g.gradeLevel === data.gradeLevel
+      )
+      return matchingGrades.map((g) => g.id)
+    }
+
+    return []
+  }
+
+  // Helper function to extract gradeLevels from gradeIds
+  const extractGradeLevels = (data: any, grades: GradeData[]): number[] => {
+    const gradeIds = extractGradeIds(data, grades)
+    if (gradeIds.length > 0) {
+      const selectedGrades = grades.filter((g) => gradeIds.includes(g.id))
+      return Array.from(new Set(selectedGrades.map((g) => g.gradeLevel))).sort(
+        (a, b) => a - b
+      )
+    }
+
+    // Fallback to direct gradeLevels if available
     if (Array.isArray(data?.gradeLevels) && data.gradeLevels.length > 0) {
       return data.gradeLevels
     }
+
     // Fallback to deprecated gradeLevel field
     if (data?.gradeLevel !== undefined && data.gradeLevel !== null) {
       return [data.gradeLevel]
     }
+
     return []
   }
 
   const [formData, setFormData] = useState<SubjectSetFormData>({
     name: initialData?.name || '',
     description: initialData?.description || '',
-    gradeLevels: extractGradeLevels(initialData),
+    gradeIds: [], // Will be populated after grades are loaded
+    gradeLevels: [], // Will be populated after grades are loaded
     courseCodes: extractCourseCodes(initialData),
     color: initialData?.color || SUBJECT_COLORS[0],
     subjects: initialData?.subjects || [],
@@ -932,16 +975,31 @@ export default function SubjectSetForm({
     loadSubjects()
   }, [])
 
+  // Initialize gradeIds when grades are loaded and initialData exists
+  useEffect(() => {
+    if (grades.length > 0 && initialData && !isEditing) {
+      const gradeIds = extractGradeIds(initialData, grades)
+      const gradeLevels = extractGradeLevels(initialData, grades)
+      if (gradeIds.length > 0 || gradeLevels.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          gradeIds,
+          gradeLevels,
+        }))
+      }
+    }
+  }, [grades, initialData, isEditing])
+
   // Reload subjects when grade levels or course codes change
   useEffect(() => {
     if (
       !initialLoadRef.current &&
-      (formData.gradeLevels.length > 0 || formData.courseCodes.length > 0)
+      ((formData.gradeIds || []).length > 0 || formData.courseCodes.length > 0)
     ) {
       loadSubjects()
     }
     initialLoadRef.current = false
-  }, [formData.gradeLevels, formData.courseCodes])
+  }, [formData.gradeIds, formData.courseCodes])
 
   // Reload subjects when modal opens to get latest subjects
   useEffect(() => {
@@ -950,19 +1008,22 @@ export default function SubjectSetForm({
     }
   }, [isModalOpen])
 
-  // Sync form data when initialData changes (for editing)
+  // Sync form data when initialData changes (for editing) and grades are loaded
   useEffect(() => {
-    if (initialData && isEditing) {
+    if (initialData && isEditing && grades.length > 0) {
+      const gradeIds = extractGradeIds(initialData, grades)
+      const gradeLevels = extractGradeLevels(initialData, grades)
       setFormData({
         name: initialData.name || '',
         description: initialData.description || '',
-        gradeLevels: extractGradeLevels(initialData),
+        gradeIds,
+        gradeLevels,
         courseCodes: extractCourseCodes(initialData),
         color: initialData.color || SUBJECT_COLORS[0],
         subjects: initialData.subjects || [],
       })
     }
-  }, [initialData, isEditing])
+  }, [initialData, isEditing, grades])
 
   const loadGrades = async () => {
     try {
@@ -1022,21 +1083,39 @@ export default function SubjectSetForm({
               let matchesGradeLevel = false
               let matchesCourseCode = false
 
-              // Check if subject applies to any selected grade level
-              if (formData.gradeLevels.length > 0) {
+              // Check if subject applies to any selected grade (by gradeIds)
+              if ((formData.gradeIds || []).length > 0) {
+                // Get selected grade levels from gradeIds
+                const selectedGradeLevels = Array.from(
+                  new Set(
+                    grades
+                      .filter((g) => (formData.gradeIds || []).includes(g.id))
+                      .map((g) => g.gradeLevel)
+                  )
+                )
+
                 if (
+                  subject.gradeIds &&
+                  Array.isArray(subject.gradeIds) &&
+                  subject.gradeIds.length > 0
+                ) {
+                  // Check if subject's gradeIds overlap with selected gradeIds
+                  matchesGradeLevel = subject.gradeIds.some((gradeId: string) =>
+                    (formData.gradeIds || []).includes(gradeId)
+                  )
+                } else if (
                   subject.gradeLevels &&
                   Array.isArray(subject.gradeLevels) &&
                   subject.gradeLevels.length > 0
                 ) {
-                  // New structure: check if gradeLevels includes any selected grade
+                  // Fallback: check if gradeLevels includes any selected grade level
                   matchesGradeLevel = subject.gradeLevels.some(
                     (gradeLevel: number) =>
-                      formData.gradeLevels.includes(gradeLevel)
+                      selectedGradeLevels.includes(gradeLevel)
                   )
                 } else if (subject.gradeLevel) {
                   // Old structure: check if gradeLevel matches any selected grade
-                  matchesGradeLevel = formData.gradeLevels.includes(
+                  matchesGradeLevel = selectedGradeLevels.includes(
                     subject.gradeLevel
                   )
                 }
@@ -1077,12 +1156,12 @@ export default function SubjectSetForm({
               // If course codes are selected, show subjects that match course codes OR have grade levels (high school subjects)
               // If both are selected, show subjects that match either
               if (
-                formData.gradeLevels.length > 0 &&
+                (formData.gradeIds || []).length > 0 &&
                 formData.courseCodes.length > 0
               ) {
                 // Both filters active: show if matches either
                 return matchesGradeLevel || matchesCourseCode
-              } else if (formData.gradeLevels.length > 0) {
+              } else if ((formData.gradeIds || []).length > 0) {
                 // Only grade levels selected: show if matches grade levels OR is a college subject (has courseCodes)
                 return (
                   matchesGradeLevel ||
@@ -1142,18 +1221,18 @@ export default function SubjectSetForm({
 
     // Validate that at least one grade level or course code is made
     if (
-      formData.gradeLevels.length === 0 &&
+      (formData.gradeIds || []).length === 0 &&
       formData.courseCodes.length === 0
     ) {
       newErrors.gradeLevels =
         'At least one grade level or college course must be selected'
-    } else if (formData.gradeLevels.length > 0) {
-      // Validate that all grade levels exist in the database
-      const invalidGrades = formData.gradeLevels.filter((level) => {
-        const gradeExists = grades.some((g) => g.gradeLevel === level)
+    } else if ((formData.gradeIds || []).length > 0) {
+      // Validate that all grade IDs exist in the database
+      const invalidGradeIds = (formData.gradeIds || []).filter((gradeId) => {
+        const gradeExists = grades.some((g) => g.id === gradeId)
         return !gradeExists
       })
-      if (invalidGrades.length > 0) {
+      if (invalidGradeIds.length > 0) {
         newErrors.gradeLevels =
           'Selected grade levels do not exist in the system'
       }
@@ -1199,8 +1278,17 @@ export default function SubjectSetForm({
     }
 
     try {
+      // Derive gradeLevels from gradeIds for API submission
+      const selectedGrades = grades.filter((g) =>
+        (formData.gradeIds || []).includes(g.id)
+      )
+      const derivedGradeLevels = Array.from(
+        new Set(selectedGrades.map((g) => g.gradeLevel))
+      ).sort((a, b) => a - b)
+
       await onSubmit({
         ...formData,
+        gradeLevels: derivedGradeLevels, // Use derived gradeLevels for API
         name: formData.name.trim(),
         description: formData.description.trim(),
       })
@@ -1234,11 +1322,11 @@ export default function SubjectSetForm({
 
   return (
     <>
-      <Card className="w-full max-w-2xl p-6 bg-gray-50 border-0 border-r-0 border-b-0 border-t-5 border-blue-900">
+      <Card className="w-full max-w-2xl p-6 bg-white border border-gray-200 rounded-xl">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <div
-              className={`w-10 h-10 bg-${formData.color} flex items-center justify-center`}
+              className={`w-10 h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center`}
             >
               {isEditing ? (
                 <Pencil size={20} className="text-white" />
@@ -1299,14 +1387,14 @@ export default function SubjectSetForm({
           <Button
             onClick={openModal}
             disabled={loading}
-            className="px-8 py-3"
+            className="px-8 py-3 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             {isEditing ? 'Edit Subject Set' : 'Create Subject Set'}
           </Button>
         </div>
 
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
           <p
             className="text-sm text-blue-900 text-center"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}

@@ -36,8 +36,8 @@ interface SubjectListProps {
   searchQuery?: string
   onSearchChange?: (query: string) => void
   totalSubjectsCount?: number
-  selectedGradeLevel?: number
-  onGradeLevelChange?: (gradeLevel: number | undefined) => void
+  selectedGradeId?: string
+  onGradeIdChange?: (gradeId: string | undefined) => void
   selectedCourses?: string[]
   onCourseToggle?: (courseCode: string) => void
 }
@@ -152,12 +152,50 @@ const getSortedGrades = (grades: GradeData[]) => {
 // Helper function to format grade level display
 const formatGradeLevel = (grade: GradeData): string => {
   if (grade.strand && (grade.gradeLevel === 11 || grade.gradeLevel === 12)) {
-    return `G${grade.gradeLevel}${grade.strand}`
+    return `G${grade.gradeLevel} ${grade.strand}`
   }
   if (grade.gradeLevel >= 7 && grade.gradeLevel <= 12) {
     return `G${grade.gradeLevel}`
   }
   return `Grade ${grade.gradeLevel}`
+}
+
+const formatGradeKeyDisplay = (
+  key: string,
+  grades: GradeData[]
+): { displayName: string; color: string; gradeInfo?: GradeData } => {
+  const identifier = key.replace('grade-', '')
+  const gradeInfoById = grades.find((grade) => grade.id === identifier)
+  if (gradeInfoById) {
+    return {
+      displayName: formatGradeLevel(gradeInfoById),
+      color: gradeInfoById.color || 'blue-900',
+      gradeInfo: gradeInfoById,
+    }
+  }
+
+  const numericLevel = Number(identifier)
+  if (!Number.isNaN(numericLevel)) {
+    const gradeInfoByLevel = grades.find(
+      (grade) => grade.gradeLevel === numericLevel
+    )
+    if (gradeInfoByLevel) {
+      return {
+        displayName: formatGradeLevel(gradeInfoByLevel),
+        color: gradeInfoByLevel.color || 'blue-900',
+        gradeInfo: gradeInfoByLevel,
+      }
+    }
+    return {
+      displayName: `Grade ${numericLevel}`,
+      color: 'blue-900',
+    }
+  }
+
+  return {
+    displayName: identifier,
+    color: 'blue-900',
+  }
 }
 
 // Function to get appropriate icon based on subject content
@@ -279,8 +317,8 @@ export default function SubjectList({
   searchQuery = '',
   onSearchChange = () => {},
   totalSubjectsCount,
-  selectedGradeLevel,
-  onGradeLevelChange = () => {},
+  selectedGradeId,
+  onGradeIdChange = () => {},
   selectedCourses = [],
   onCourseToggle = () => {},
 }: SubjectListProps) {
@@ -298,15 +336,17 @@ export default function SubjectList({
       )
     }
 
-    // Apply grade level filter (supports both old and new data structure)
-    if (selectedGradeLevel) {
+    // Apply grade filter by grade ID (supports both old and new data structure)
+    if (selectedGradeId) {
       filtered = filtered.filter((subject) => {
-        // Support both old structure (gradeLevel) and new structure (gradeLevels)
-        if (subject.gradeLevels && Array.isArray(subject.gradeLevels)) {
-          return subject.gradeLevels.includes(selectedGradeLevel)
-        } else if (subject.gradeLevel) {
-          return subject.gradeLevel === selectedGradeLevel
+        // Only show subjects that have the selected gradeId in their gradeIds array
+        // Subjects with only gradeLevels (no gradeIds) should NOT appear when a specific strand is selected
+        if (subject.gradeIds && Array.isArray(subject.gradeIds) && subject.gradeIds.includes(selectedGradeId)) {
+          return true
         }
+
+        // If subject has no gradeIds, don't show it when a specific gradeId is selected
+        // This prevents subjects from appearing in strand groups they weren't assigned to
         return false
       })
     }
@@ -324,7 +364,7 @@ export default function SubjectList({
     }
 
     return filtered
-  }, [subjects, searchQuery, selectedGradeLevel, selectedCourses])
+  }, [subjects, searchQuery, selectedGradeId, selectedCourses, grades])
 
   // Group subjects by grade and course (supports both old and new data structure)
   const groupSubjectsByGrade = () => {
@@ -349,28 +389,45 @@ export default function SubjectList({
           })
         }
       } else {
-        // No course filter - group by grade levels and all course codes
-        // Support both old structure (gradeLevel) and new structure (gradeLevels)
-        if (
+        // No course filter - group by grade IDs when available
+        // Only group by gradeIds - subjects without gradeIds should not appear in specific strand groups
+        if (subject.gradeIds && Array.isArray(subject.gradeIds) && subject.gradeIds.length > 0) {
+          const uniqueGradeIds = Array.from(new Set(subject.gradeIds))
+          uniqueGradeIds.forEach((gradeId: string) => {
+            const key = `grade-${gradeId}`
+            if (!grouped[key]) {
+              grouped[key] = []
+            }
+            if (!grouped[key].some((s) => s.id === subject.id)) {
+              grouped[key].push(subject)
+            }
+          })
+        } else if (
           subject.gradeLevels &&
           Array.isArray(subject.gradeLevels) &&
           subject.gradeLevels.length > 0
         ) {
-          // New structure: subject has multiple grade levels
-          subject.gradeLevels.forEach((gradeLevel: number) => {
-            const key = `grade-${gradeLevel}`
+          // Subject has gradeLevels but no gradeIds - group under "Grade N (All Tracks)"
+          // This prevents subjects from appearing in specific strand groups when they weren't assigned to those strands
+          const uniqueGradeLevels = Array.from(new Set(subject.gradeLevels))
+          uniqueGradeLevels.forEach((gradeLevel: number) => {
+            const key = `grade-level-${gradeLevel}` // Use different key format to distinguish from gradeIds
             if (!grouped[key]) {
               grouped[key] = []
             }
-            grouped[key].push(subject)
+            if (!grouped[key].some((s) => s.id === subject.id)) {
+              grouped[key].push(subject)
+            }
           })
-        } else if (subject.gradeLevel) {
-          // Old structure: subject has single grade level
-          const key = `grade-${subject.gradeLevel}`
+        } else if ((subject as any).gradeLevel) {
+          // Legacy support for old gradeLevel field
+          const key = `grade-level-${(subject as any).gradeLevel}`
           if (!grouped[key]) {
             grouped[key] = []
           }
-          grouped[key].push(subject)
+          if (!grouped[key].some((s) => s.id === subject.id)) {
+            grouped[key].push(subject)
+          }
         }
 
         // Handle course codes (only when no course filter is active)
@@ -379,12 +436,17 @@ export default function SubjectList({
           Array.isArray(subject.courseCodes) &&
           subject.courseCodes.length > 0
         ) {
-          subject.courseCodes.forEach((courseCode: string) => {
+          // Deduplicate course codes to prevent adding subject multiple times to same group
+          const uniqueCourseCodes = Array.from(new Set(subject.courseCodes))
+          uniqueCourseCodes.forEach((courseCode: string) => {
             const key = `course-${courseCode}`
             if (!grouped[key]) {
               grouped[key] = []
             }
-            grouped[key].push(subject)
+            // Prevent duplicates - check if subject already exists in this group
+            if (!grouped[key].some((s) => s.id === subject.id)) {
+              grouped[key].push(subject)
+            }
           })
         }
       }
@@ -414,13 +476,54 @@ export default function SubjectList({
       return courseKeys
     }
 
-    // Separate grade levels and course codes
+    // Handle both grade- (gradeIds) and grade-level- (gradeLevels without gradeIds) keys
     const gradeKeys = keys
       .filter((key) => key.startsWith('grade-'))
-      .map((key) => key.replace('grade-', ''))
-      .map(Number)
-      .sort((a, b) => a - b)
-      .map((num) => `grade-${num}`)
+      .map((key) => {
+        // Check if it's a grade-level- key (for subjects without gradeIds)
+        if (key.startsWith('grade-level-')) {
+          const numericLevel = Number(key.replace('grade-level-', ''))
+          return {
+            key,
+            gradeLevel: Number.isNaN(numericLevel) ? 0 : numericLevel,
+            strand: '',
+            isGradeLevelOnly: true, // Flag to indicate this is a grade-level-only group
+          }
+        }
+
+        // It's a grade- key (for subjects with gradeIds)
+        const identifier = key.replace('grade-', '')
+        const gradeInfo = grades.find((grade) => grade.id === identifier)
+        if (gradeInfo) {
+          return {
+            key,
+            gradeLevel: gradeInfo.gradeLevel,
+            strand: gradeInfo.strand || '',
+            isGradeLevelOnly: false,
+          }
+        }
+
+        // Fallback for numeric identifiers (legacy support)
+        const numericLevel = Number(identifier)
+        return {
+          key,
+          gradeLevel: Number.isNaN(numericLevel) ? 0 : numericLevel,
+          strand: '',
+          isGradeLevelOnly: false,
+        }
+      })
+      .sort((a, b) => {
+        if (a.gradeLevel !== b.gradeLevel) {
+          return a.gradeLevel - b.gradeLevel
+        }
+        // Grade-level-only groups come after specific strand groups
+        if (a.isGradeLevelOnly !== b.isGradeLevelOnly) {
+          return a.isGradeLevelOnly ? 1 : -1
+        }
+        return a.strand.localeCompare(b.strand)
+      })
+      .map((item) => item.key)
+
     const courseKeys = keys.filter((key) => key.startsWith('course-')).sort()
 
     return [...gradeKeys, ...courseKeys]
@@ -428,7 +531,7 @@ export default function SubjectList({
 
   const clearFilters = () => {
     onSearchChange('')
-    onGradeLevelChange(undefined)
+    onGradeIdChange(undefined)
     // Clear course filters
     selectedCourses.forEach((courseCode) => onCourseToggle(courseCode))
   }
@@ -500,7 +603,7 @@ export default function SubjectList({
 
           <div className="flex items-center space-x-3">
             {(searchQuery ||
-              selectedGradeLevel ||
+              selectedGradeId ||
               selectedCourses.length > 0) && (
               <Button
                 variant="ghost"
@@ -532,9 +635,9 @@ export default function SubjectList({
           </label>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => onGradeLevelChange(undefined)}
+              onClick={() => onGradeIdChange(undefined)}
               className={`px-3 py-1 text-xs font-medium rounded-lg border transition-all duration-200 transform hover:scale-105 ${
-                !selectedGradeLevel
+                !selectedGradeId
                   ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-900 shadow-lg'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
@@ -543,16 +646,23 @@ export default function SubjectList({
               All Grades
             </button>
             {getSortedGrades(grades).map((grade) => {
-              const isSelected = selectedGradeLevel === grade.gradeLevel
+              const isSelected = selectedGradeId === grade.id
+              // Format display text with strand: "G11 ABM" or "G11 STEM"
+              let displayText = ''
+              if (grade.strand && (grade.gradeLevel === 11 || grade.gradeLevel === 12)) {
+                displayText = `G${grade.gradeLevel} ${grade.strand}`
+              } else if (grade.gradeLevel >= 7 && grade.gradeLevel <= 12) {
+                displayText = `G${grade.gradeLevel}`
+              } else {
+                displayText = `Grade ${grade.gradeLevel}`
+              }
               return (
                 <button
                   key={grade.id}
                   onClick={() =>
-                    onGradeLevelChange(
-                      isSelected ? undefined : grade.gradeLevel
-                    )
+                    onGradeIdChange(isSelected ? undefined : grade.id)
                   }
-                  className={`px-3 py-1 aspect-square w-10 h-10 text-xs font-medium rounded-lg border transition-all duration-200 transform hover:scale-105 ${
+                  className={`px-3 py-1 text-xs font-medium rounded-lg border transition-all duration-200 transform hover:scale-105 ${
                     isSelected
                       ? 'text-white shadow-lg opacity-100'
                       : 'text-white hover:shadow-md opacity-40 hover:opacity-70'
@@ -562,12 +672,10 @@ export default function SubjectList({
                     fontWeight: 300,
                     backgroundColor: getBgColor(grade.color),
                     borderColor: getBgColor(grade.color),
-                    ...(isSelected && {
-                      borderBottomColor: getBgColor(grade.color),
-                    }),
                   }}
+                  title={displayText}
                 >
-                  G{grade.gradeLevel}
+                  {displayText}
                 </button>
               )
             })}
@@ -638,7 +746,7 @@ export default function SubjectList({
             className="text-blue-900 text-sm text-justify w-full border-1 shadow-sm border-blue-900 p-3 bg-white rounded-xl mb-4"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
           >
-            {searchQuery || selectedGradeLevel
+            {searchQuery || selectedGradeId
               ? "Try adjusting your search or grade filter to find what you're looking for."
               : 'Get started by creating your first subject! Set up engaging learning materials, define clear objectives, and start building a comprehensive curriculum that students will love.'}
           </p>
@@ -661,18 +769,29 @@ export default function SubjectList({
 
             // Determine if this is a grade level or course code
             const isGradeLevel = key.startsWith('grade-')
+            const isGradeLevelOnly = key.startsWith('grade-level-') // Subjects with only gradeLevels (no gradeIds)
             const isCourseCode = key.startsWith('course-')
 
             let displayName = ''
             let gradeColor = 'blue-900'
+            let gradeInfoForDescription: GradeData | undefined
 
-            if (isGradeLevel) {
-              const gradeLevel = parseInt(key.replace('grade-', ''))
-              const gradeInfo = getGradeInfo(gradeLevel)
-              displayName = gradeInfo
-                ? formatGradeLevel(gradeInfo)
-                : `Grade ${gradeLevel}`
-              gradeColor = gradeInfo?.color || 'blue-900'
+            if (isGradeLevelOnly) {
+              // Subject has gradeLevels but no gradeIds - show as "Grade N (All Tracks)"
+              const gradeLevel = Number(key.replace('grade-level-', ''))
+              if (!Number.isNaN(gradeLevel)) {
+                displayName = `Grade ${gradeLevel} (All Tracks)`
+                // Try to find a grade with this level to get color, otherwise use default
+                const gradeWithLevel = grades.find((g) => g.gradeLevel === gradeLevel)
+                gradeColor = gradeWithLevel?.color || 'blue-900'
+              } else {
+                displayName = key.replace('grade-level-', '')
+              }
+            } else if (isGradeLevel) {
+              const gradeMeta = formatGradeKeyDisplay(key, grades)
+              displayName = gradeMeta.displayName
+              gradeColor = gradeMeta.color
+              gradeInfoForDescription = gradeMeta.gradeInfo
             } else if (isCourseCode) {
               const courseCode = key.replace('course-', '')
               const courseInfo = getCourseInfo(courseCode)
@@ -713,19 +832,24 @@ export default function SubjectList({
                       {displayName}
                     </h2>
                   </div>
+                  {isGradeLevelOnly && (
+                    <p
+                      className="text-sm text-gray-600 ml-7 leading-relaxed text-justify"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      Subjects applicable to all tracks at this grade level
+                    </p>
+                  )}
                   {isGradeLevel &&
-                    (() => {
-                      const gradeLevel = parseInt(key.replace('grade-', ''))
-                      const gradeInfo = getGradeInfo(gradeLevel)
-                      return gradeInfo ? (
-                        <p
-                          className="text-sm text-gray-600 ml-7 leading-relaxed text-justify"
-                          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                        >
-                          {gradeInfo.description}
-                        </p>
-                      ) : null
-                    })()}
+                    !isGradeLevelOnly &&
+                    gradeInfoForDescription?.description && (
+                      <p
+                        className="text-sm text-gray-600 ml-7 leading-relaxed text-justify"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        {gradeInfoForDescription.description}
+                      </p>
+                    )}
                   {isCourseCode && (
                     <p
                       className="text-sm text-gray-600 ml-7 leading-relaxed text-justify"

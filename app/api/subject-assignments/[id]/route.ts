@@ -37,6 +37,7 @@ export async function PUT(
     const { id } = params
     const {
       level,
+      gradeId, // Grade ID (includes strand info)
       gradeLevel,
       courseCode,
       courseName,
@@ -82,6 +83,7 @@ export async function PUT(
 
     const updateData = {
       level,
+      gradeId: gradeId || undefined, // Store gradeId for unique strand identification
       gradeLevel: gradeLevel ? parseInt(gradeLevel) : undefined,
       courseCode: courseCode || undefined,
       courseName: courseName || undefined,

@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     const requestBody = await request.json();
     console.log('Subject creation request body:', requestBody);
     
-    const { code, name, description, gradeLevels, courseCodes, courseSelections, color, lectureUnits, labUnits, prerequisites, postrequisites, registrarUid } = requestBody;
+    const { code, name, description, gradeLevels, gradeIds, courseCodes, courseSelections, color, lectureUnits, labUnits, prerequisites, postrequisites, registrarUid } = requestBody;
 
     // Validate required fields
     if (!code || !name || !description || !color || lectureUnits === undefined || labUnits === undefined || !registrarUid) {
@@ -71,9 +71,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate that at least one grade level or course selection is provided
-    if ((!gradeLevels || gradeLevels.length === 0) && (!courseCodes || courseCodes.length === 0) && (!courseSelections || courseSelections.length === 0)) {
+    if ((!gradeLevels || gradeLevels.length === 0) && (!gradeIds || gradeIds.length === 0) && (!courseCodes || courseCodes.length === 0) && (!courseSelections || courseSelections.length === 0)) {
       return NextResponse.json(
-        { error: 'At least one grade level or college course must be selected' },
+        { error: 'At least one grade level, grade ID, or college course must be selected' },
         { status: 400 }
       );
     }
@@ -91,7 +91,8 @@ export async function POST(request: NextRequest) {
       code: code.toUpperCase().trim(),
       name: name.trim(),
       description: description.trim(),
-      gradeLevels: gradeLevels ? gradeLevels.map((level: any) => parseInt(level)) : [],
+      gradeLevels: gradeLevels ? Array.from(new Set(gradeLevels.map((level: any) => parseInt(level)))) : [],
+      gradeIds: gradeIds ? Array.from(new Set(gradeIds.map((id: any) => String(id)))) : [],
       courseCodes: courseCodes || [],
       courseSelections: courseSelections || [],
       color: color as SubjectColor,

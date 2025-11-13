@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
+import { Modal } from '@/components/ui/modal'
 import SubjectColorPicker from '@/components/subject-color-picker'
 import {
   SubjectColor,
@@ -27,7 +28,7 @@ interface SubjectFormData {
   code: string
   name: string
   description: string
-  gradeLevels: number[]
+  selectedGradeIds: string[]
   courseCodes: string[]
   courseSelections: {
     code: string
@@ -45,7 +46,7 @@ interface SubjectFormErrors {
   code?: string
   name?: string
   description?: string
-  gradeLevels?: string
+  selectedGradeIds?: string
   courseCodes?: string
   courseSelections?: string
   color?: string
@@ -56,11 +57,14 @@ interface SubjectFormErrors {
 }
 
 interface SubjectFormProps {
+  isOpen: boolean
+  onClose: () => void
   onSubmit: (subjectData: {
     code: string
     name: string
     description: string
     gradeLevels: number[]
+    gradeIds: string[]
     courseCodes: string[]
     courseSelections: {
       code: string
@@ -73,15 +77,15 @@ interface SubjectFormProps {
     prerequisites: string[]
     postrequisites: string[]
   }) => Promise<void>
-  onCancel: () => void
   initialData?: Partial<SubjectFormData>
   isEditing?: boolean
   loading?: boolean
 }
 
 export default function SubjectForm({
+  isOpen,
+  onClose,
   onSubmit,
-  onCancel,
   initialData,
   isEditing = false,
   loading = false,
@@ -90,11 +94,7 @@ export default function SubjectForm({
     code: initialData?.code || '',
     name: initialData?.name || '',
     description: initialData?.description || '',
-    gradeLevels: Array.isArray(initialData?.gradeLevels)
-      ? initialData.gradeLevels
-      : initialData?.gradeLevels
-      ? [initialData.gradeLevels as number]
-      : [],
+    selectedGradeIds: [], // Will be populated after grades are loaded
     courseCodes: Array.isArray(initialData?.courseCodes)
       ? initialData.courseCodes
       : [],
@@ -126,6 +126,63 @@ export default function SubjectForm({
     loadCourses()
     loadSubjects()
   }, [])
+
+  // Reset form data when modal opens or initialData changes
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        code: initialData?.code || '',
+        name: initialData?.name || '',
+        description: initialData?.description || '',
+        selectedGradeIds: Array.isArray((initialData as any)?.gradeIds)
+          ? [...(initialData as any).gradeIds]
+          : [],
+        courseCodes: Array.isArray(initialData?.courseCodes)
+          ? initialData.courseCodes
+          : [],
+        courseSelections: [], // Not used anymore, kept for backward compatibility
+        color: initialData?.color || SUBJECT_COLORS[0],
+        lectureUnits: (initialData?.lectureUnits || 1).toString(),
+        labUnits: (initialData?.labUnits || 0).toString(),
+        prerequisites: Array.isArray(initialData?.prerequisites)
+          ? initialData.prerequisites
+          : [],
+        postrequisites: Array.isArray(initialData?.postrequisites)
+          ? initialData.postrequisites
+          : [],
+      })
+      setErrors({})
+      setGeneratingDescription(false)
+      setTypewritingText('')
+    }
+  }, [isOpen, (initialData as any)?.id, initialData?.code])
+
+  // Populate selectedGradeIds based on initialData when editing
+  // Only use gradeIds if they exist - do NOT infer from gradeLevels to avoid auto-selecting all strands
+  useEffect(() => {
+    if (!isOpen || grades.length === 0) {
+      return
+    }
+
+    // Only use gradeIds if they exist in the initialData
+    if (Array.isArray((initialData as any)?.gradeIds) && (initialData as any).gradeIds.length > 0) {
+      const validGradeIds = (initialData as any).gradeIds.filter((id: string) =>
+        grades.some((grade) => grade.id === id)
+      )
+      setFormData((prev) => ({
+        ...prev,
+        selectedGradeIds: validGradeIds,
+      }))
+      return
+    }
+
+    // If no gradeIds exist, leave selectedGradeIds empty
+    // This prevents auto-selecting all strands when a subject only has gradeLevels
+    setFormData((prev) => ({
+      ...prev,
+      selectedGradeIds: [],
+    }))
+  }, [grades, (initialData as any)?.gradeIds, isOpen])
 
   // Reload subjects when editing subject changes (to exclude current subject)
   useEffect(() => {
@@ -234,19 +291,19 @@ export default function SubjectForm({
 
     // Validate grade levels or course codes (at least one must be selected)
     if (
-      (!formData.gradeLevels || formData.gradeLevels.length === 0) &&
+      (!formData.selectedGradeIds || formData.selectedGradeIds.length === 0) &&
       (!formData.courseCodes || formData.courseCodes.length === 0)
     ) {
-      newErrors.gradeLevels =
+      newErrors.selectedGradeIds =
         'At least one grade level or college course must be selected'
-    } else if (formData.gradeLevels && formData.gradeLevels.length > 0) {
-      // Validate that all grade levels exist in the database
-      const invalidGrades = formData.gradeLevels.filter((level) => {
-        const gradeExists = grades.some((g) => g.gradeLevel === level)
+    } else if (formData.selectedGradeIds && formData.selectedGradeIds.length > 0) {
+      // Validate that all selected grade IDs exist in the database
+      const invalidGradeIds = formData.selectedGradeIds.filter((gradeId) => {
+        const gradeExists = grades.some((g) => g.id === gradeId)
         return !gradeExists
       })
-      if (invalidGrades.length > 0) {
-        newErrors.gradeLevels =
+      if (invalidGradeIds.length > 0) {
+        newErrors.selectedGradeIds =
           'Selected grade levels do not exist in the system'
       }
     }
@@ -275,6 +332,20 @@ export default function SubjectForm({
     return Object.keys(newErrors).length === 0
   }
 
+  // Helper function to convert selectedGradeIds to gradeLevels
+  // Deduplicates grade levels to prevent creating multiple documents for the same subject
+  const getGradeLevelsFromIds = (selectedIds: string[]): number[] => {
+    const gradeLevels = selectedIds
+      .map(id => {
+        const grade = grades.find(g => g.id === id)
+        return grade ? grade.gradeLevel : 0
+      })
+      .filter(level => level > 0)
+    
+    // Deduplicate using Set and sort ascending
+    return Array.from(new Set(gradeLevels)).sort((a, b) => a - b)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -287,7 +358,8 @@ export default function SubjectForm({
         code: formData.code.trim().toUpperCase(),
         name: formData.name.trim(),
         description: formData.description.trim(),
-        gradeLevels: formData.gradeLevels,
+        gradeLevels: getGradeLevelsFromIds(formData.selectedGradeIds),
+        gradeIds: [...formData.selectedGradeIds],
         courseCodes: formData.courseCodes,
         courseSelections: [], // Keep empty for backward compatibility
         color: formData.color,
@@ -314,16 +386,16 @@ export default function SubjectForm({
     }
   }
 
-  const handleGradeLevelToggle = (gradeLevel: number) => {
+  const handleGradeLevelToggle = (gradeId: string) => {
     setFormData((prev) => ({
       ...prev,
-      gradeLevels: prev.gradeLevels.includes(gradeLevel)
-        ? prev.gradeLevels.filter((level) => level !== gradeLevel)
-        : [...prev.gradeLevels, gradeLevel],
+      selectedGradeIds: prev.selectedGradeIds.includes(gradeId)
+        ? prev.selectedGradeIds.filter((id) => id !== gradeId)
+        : [...prev.selectedGradeIds, gradeId],
     }))
     // Clear error when user makes selection
-    if (errors.gradeLevels) {
-      setErrors((prev) => ({ ...prev, gradeLevels: undefined }))
+    if (errors.selectedGradeIds) {
+      setErrors((prev) => ({ ...prev, selectedGradeIds: undefined }))
     }
   }
 
@@ -463,45 +535,13 @@ export default function SubjectForm({
   }
 
   return (
-    <Card className="w-full max-w-2xl p-6 bg-white border border-gray-200 rounded-xl shadow-lg">
-      <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-8 h-8 aspect-square bg-white rounded-xl flex items-center justify-center">
-              {isEditing ? (
-                <Pencil size={18} weight="fill" className="text-blue-900" />
-              ) : (
-                <Plus size={18} weight="fill" className="text-blue-900" />
-              )}
-            </div>
-            <div>
-              <h2
-                className="text-xl font-light text-white flex items-center gap-2"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                {isEditing ? 'Edit Subject' : 'Create New Subject'}
-              </h2>
-              <p
-                className="text-xs text-blue-100 mt-1"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                {isEditing
-                  ? 'Update subject information'
-                  : 'Add a new subject to the system'}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onCancel}
-            disabled={loading}
-            className="text-white hover:bg-white/20 rounded-lg"
-          >
-            <X size={20} />
-          </Button>
-        </div>
-      </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'Edit Subject' : 'Create New Subject'}
+      size="lg"
+    >
+      <Card className="w-full p-6 bg-white border border-gray-200 rounded-xl shadow-lg">
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Subject Code and Name Row */}
@@ -602,14 +642,14 @@ export default function SubjectForm({
                 </div>
               ) : grades.length > 0 ? (
                 grades.map((grade) => {
-                  const isSelected = formData.gradeLevels.includes(
-                    grade.gradeLevel
+                  const isSelected = formData.selectedGradeIds.includes(
+                    grade.id
                   )
                   return (
                     <button
                       key={grade.id}
                       type="button"
-                      onClick={() => handleGradeLevelToggle(grade.gradeLevel)}
+                      onClick={() => handleGradeLevelToggle(grade.id)}
                       disabled={loading}
                       className={`px-3 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 ${
                         isSelected
@@ -631,27 +671,26 @@ export default function SubjectForm({
                 </div>
               )}
             </div>
-            {formData.gradeLevels.length > 0 && (
+            {formData.selectedGradeIds.length > 0 && (
               <p
                 className="text-xs text-gray-600"
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
               >
                 Selected:{' '}
-                {formData.gradeLevels
-                  .sort()
-                  .map((level) => {
-                    const grade = grades.find((g) => g.gradeLevel === level)
-                    return grade ? getGradeDisplayName(grade) : `Grade ${level}`
+                {formData.selectedGradeIds
+                  .map((gradeId) => {
+                    const grade = grades.find((g) => g.id === gradeId)
+                    return grade ? getGradeDisplayName(grade) : gradeId
                   })
                   .join(', ')}
               </p>
             )}
-            {errors.gradeLevels && (
+            {errors.selectedGradeIds && (
               <p
                 className="text-sm text-red-600"
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
               >
-                {errors.gradeLevels}
+                {errors.selectedGradeIds}
               </p>
             )}
           </div>
@@ -1106,7 +1145,7 @@ export default function SubjectForm({
           <Button
             type="button"
             variant="outline"
-            onClick={onCancel}
+            onClick={onClose}
             disabled={loading}
             className="rounded-lg"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
@@ -1120,7 +1159,7 @@ export default function SubjectForm({
               !formData.code ||
               !formData.name ||
               !formData.description ||
-              (formData.gradeLevels.length === 0 &&
+              (formData.selectedGradeIds.length === 0 &&
                 formData.courseCodes.length === 0) ||
               (parseInt(formData.lectureUnits) || 0) < 1
             }
@@ -1139,5 +1178,6 @@ export default function SubjectForm({
         </div>
       </form>
     </Card>
+    </Modal>
   )
 }

@@ -233,9 +233,11 @@ export default function ReEnrollStep({
           )
         })()}
 
-        {/* Semester Info (for College students) */}
-        {previousEnrollment?.enrollmentInfo?.level === 'college' &&
-          reEnrollSemester && (
+        {/* Semester Info (for College and SHS students) */}
+        {reEnrollSemester &&
+          ((previousEnrollment?.enrollmentInfo?.level === 'college') ||
+            (previousEnrollment?.enrollmentInfo?.level === 'high-school' &&
+              previousEnrollment?.enrollmentInfo?.department === 'SHS')) && (
             <div className="bg-blue-50 border border-blue-200 p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">

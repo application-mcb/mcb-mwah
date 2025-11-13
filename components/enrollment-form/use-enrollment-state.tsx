@@ -634,9 +634,9 @@ export function useEnrollmentState(
         highSchoolResponse.json(),
       ])
 
-      // Check for college enrollment matching current semester
+      // Check for college and SHS enrollment matching current semester
       if (semesterFormat) {
-        let matchingCollegeEnrollment = null
+        let matchingEnrollment = null
 
         // Check the CURRENT semester enrollment directly (this is what we need)
         const currentSemResponse =
@@ -653,6 +653,7 @@ export function useEnrollmentState(
           const enrollmentAY = enrollment.enrollmentInfo?.schoolYear
           const enrollmentSemester = enrollment.enrollmentInfo?.semester
           const enrollmentLevel = enrollment.enrollmentInfo?.level
+          const enrollmentDepartment = enrollment.enrollmentInfo?.department
 
           console.log('CONSOLE :: Checking current semester enrollment:', {
             enrollmentAY,
@@ -660,40 +661,53 @@ export function useEnrollmentState(
             enrollmentSemester,
             semesterFormat,
             enrollmentLevel,
+            enrollmentDepartment,
             matchesAY: enrollmentAY === currentAY,
             matchesSemester: enrollmentSemester === semesterFormat,
-            matchesLevel: enrollmentLevel === 'college',
+            isCollege: enrollmentLevel === 'college',
+            isSHS: enrollmentLevel === 'high-school' && enrollmentDepartment === 'SHS',
           })
 
-          // Must match: AY + Semester + Level (college)
-          if (
+          // Must match: AY + Semester + Level
+          // For college: level must be 'college'
+          // For SHS: level must be 'high-school' AND department must be 'SHS'
+          const isCollegeMatch =
             enrollmentAY === currentAY &&
             enrollmentSemester === semesterFormat &&
             enrollmentLevel === 'college'
-          ) {
+
+          const isSHSMatch =
+            enrollmentAY === currentAY &&
+            enrollmentSemester === semesterFormat &&
+            enrollmentLevel === 'high-school' &&
+            enrollmentDepartment === 'SHS'
+
+          if (isCollegeMatch || isSHSMatch) {
             // Matches current semester → hide form
             console.log(
-              '  Found matching college enrollment for current semester - hiding form'
+              `  Found matching ${isCollegeMatch ? 'college' : 'SHS'} enrollment for current semester - hiding form`
             )
-            matchingCollegeEnrollment = enrollment
+            matchingEnrollment = enrollment
           } else {
             console.log('ERROR::  Enrollment found but does NOT match:', {
               AYMatch: enrollmentAY === currentAY,
               semesterMatch: enrollmentSemester === semesterFormat,
-              levelMatch: enrollmentLevel === 'college',
+              isCollege: enrollmentLevel === 'college',
+              isSHS: enrollmentLevel === 'high-school' && enrollmentDepartment === 'SHS',
             })
           }
         }
         // Don't log error for expected "not found" cases - this is normal
 
-        if (matchingCollegeEnrollment) {
-          setExistingEnrollment(matchingCollegeEnrollment)
+        if (matchingEnrollment) {
+          setExistingEnrollment(matchingEnrollment)
           setCheckingEnrollment(false)
           return
         }
 
         // If no current-semester enrollment, but a previous semester exists in the same AY,
         // expose it as previousEnrollment so the UI can show "Continue Previous"
+        // This applies to both college and SHS
         const otherSemData =
           semesterFormat === 'first-sem' ? secondSemData : firstSemData
         const otherSemResponse =
@@ -702,7 +716,11 @@ export function useEnrollmentState(
           const prev = otherSemData.data
           const prevAY = prev.enrollmentInfo?.schoolYear
           const prevLevel = prev.enrollmentInfo?.level
-          if (prevAY === currentAY && prevLevel === 'college') {
+          const prevDepartment = prev.enrollmentInfo?.department
+          const isCollege = prevLevel === 'college'
+          const isSHS = prevLevel === 'high-school' && prevDepartment === 'SHS'
+          
+          if (prevAY === currentAY && (isCollege || isSHS)) {
             setPreviousEnrollment(prev)
             // Set default re-enroll semester to the current system semester
             setReEnrollSemester(semesterFormat)
@@ -710,7 +728,7 @@ export function useEnrollmentState(
         }
       }
 
-      // Check for high school enrollment (no semester)
+      // Check for JHS enrollment (no semester) - only matches current AY
       if (
         highSchoolResponse.ok &&
         highSchoolData.success &&
@@ -720,53 +738,71 @@ export function useEnrollmentState(
         const enrollmentAY = enrollment.enrollmentInfo?.schoolYear
         const enrollmentLevel = enrollment.enrollmentInfo?.level
         const enrollmentSemester = enrollment.enrollmentInfo?.semester
+        const enrollmentDepartment = enrollment.enrollmentInfo?.department
 
-        // Only match high school enrollment if:
+        // Check if this is JHS (high-school level, NOT SHS, no semester)
+        const isJHS =
+          enrollmentLevel === 'high-school' &&
+          enrollmentDepartment !== 'SHS' &&
+          !enrollmentSemester
+
+        // Also handle legacy enrollments (no level/semester/department fields)
+        const isLegacyHS =
+          !enrollmentLevel && !enrollmentSemester && !enrollmentDepartment
+
+        // Only match JHS enrollment if:
         // 1. AY matches current AY
-        // 2. Level is high-school or undefined (legacy enrollments)
-        // 3. No semester field (high school doesn't have semesters)
-        if (
-          enrollmentAY === currentAY &&
-          (enrollmentLevel === 'high-school' ||
-            (!enrollmentLevel && !enrollmentSemester))
-        ) {
-          console.log('  Found matching high school enrollment - hiding form')
+        // 2. It's JHS (not SHS) or legacy high school enrollment
+        if (enrollmentAY === currentAY && (isJHS || isLegacyHS)) {
+          console.log('  Found matching JHS enrollment - hiding form')
           setExistingEnrollment(enrollment)
         } else {
           console.log(
             'ERROR::  High school enrollment found but does NOT match - showing form',
             {
               matchesAY: enrollmentAY === currentAY,
-              isHighSchool:
-                enrollmentLevel === 'high-school' ||
-                (!enrollmentLevel && !enrollmentSemester),
+              isJHS,
+              isLegacyHS,
+              enrollmentDepartment,
+              enrollmentSemester,
             }
           )
           setExistingEnrollment(null)
-          // Try to find latest previous HS enrollment (prior AY) to enable Continue Level
-          try {
-            const prevHsRes = await fetch(
-              `/api/enrollment?userId=${userId}&latestHighSchool=true`
-            )
-            if (prevHsRes.ok) {
-              const prevHsData = await prevHsRes.json()
-              if (prevHsData.success && prevHsData.data) {
-                setPreviousEnrollment(prevHsData.data)
+          // Try to find latest previous JHS enrollment (prior AY) to enable Continue Level
+          // Only fetch if this is NOT SHS (SHS is handled above in semester check)
+          if (!(enrollmentLevel === 'high-school' && enrollmentDepartment === 'SHS')) {
+            try {
+              const prevHsRes = await fetch(
+                `/api/enrollment?userId=${userId}&latestHighSchool=true`
+              )
+              if (prevHsRes.ok) {
+                const prevHsData = await prevHsRes.json()
+                if (prevHsData.success && prevHsData.data) {
+                  // Only set if it's JHS (not SHS)
+                  const prevData = prevHsData.data
+                  const prevDept = prevData.enrollmentInfo?.department
+                  const prevSem = prevData.enrollmentInfo?.semester
+                  if (prevDept !== 'SHS' && !prevSem) {
+                    setPreviousEnrollment(prevData)
+                  } else {
+                    setPreviousEnrollment(null)
+                  }
+                } else {
+                  setPreviousEnrollment(null)
+                }
               } else {
                 setPreviousEnrollment(null)
               }
-            } else {
+            } catch (err) {
+              console.warn('Failed to fetch latest HS enrollment:', err)
               setPreviousEnrollment(null)
             }
-          } catch (err) {
-            console.warn('Failed to fetch latest HS enrollment:', err)
-            setPreviousEnrollment(null)
           }
         }
       } else {
         console.log('ERROR::  No enrollment found - showing form')
         setExistingEnrollment(null)
-        // No current AY HS enrollment doc; probe previous HS enrollment
+        // No current AY HS enrollment doc; probe previous JHS enrollment (not SHS)
         try {
           const prevHsRes = await fetch(
             `/api/enrollment?userId=${userId}&latestHighSchool=true`
@@ -774,7 +810,15 @@ export function useEnrollmentState(
           if (prevHsRes.ok) {
             const prevHsData = await prevHsRes.json()
             if (prevHsData.success && prevHsData.data) {
-              setPreviousEnrollment(prevHsData.data)
+              // Only set if it's JHS (not SHS)
+              const prevData = prevHsData.data
+              const prevDept = prevData.enrollmentInfo?.department
+              const prevSem = prevData.enrollmentInfo?.semester
+              if (prevDept !== 'SHS' && !prevSem) {
+                setPreviousEnrollment(prevData)
+              } else {
+                setPreviousEnrollment(null)
+              }
             } else {
               setPreviousEnrollment(null)
             }

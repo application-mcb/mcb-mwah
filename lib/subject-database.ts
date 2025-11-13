@@ -21,7 +21,7 @@ import { db } from './firebase-server'
 // Available subject colors (16 colors from Tailwind 700-800)
 export const SUBJECT_COLORS = [
   'blue-900',
-  'blue-900',
+  'blue-800',
   'red-700',
   'red-800',
   'emerald-700',
@@ -72,6 +72,7 @@ export interface SubjectData {
   name: string // Subject name (e.g., "Mathematics", "English")
   description: string // Detailed description of the subject
   gradeLevels: number[] // Grade levels this subject belongs to (7, 8, 9, 10, 11, 12)
+  gradeIds: string[] // Specific grade IDs (supports strands like G11 ABM)
   courseCodes: string[] // College course codes this subject applies to (legacy)
   courseSelections: {
     code: string
@@ -125,6 +126,7 @@ export class SubjectDatabase {
       // Validate that at least one grade level or course code or course selection is provided
       if (
         (!subjectData.gradeLevels || subjectData.gradeLevels.length === 0) &&
+        (!subjectData.gradeIds || subjectData.gradeIds.length === 0) &&
         (!subjectData.courseCodes || subjectData.courseCodes.length === 0) &&
         (!subjectData.courseSelections ||
           subjectData.courseSelections.length === 0)
@@ -139,6 +141,15 @@ export class SubjectDatabase {
         for (const gradeLevel of subjectData.gradeLevels) {
           if (gradeLevel < 1 || gradeLevel > 12) {
             throw new Error('All grade levels must be between 1 and 12')
+          }
+        }
+      }
+
+      // Validate grade IDs if provided
+      if (subjectData.gradeIds && subjectData.gradeIds.length > 0) {
+        for (const gradeId of subjectData.gradeIds) {
+          if (typeof gradeId !== 'string' || gradeId.trim() === '') {
+            throw new Error('All grade IDs must be valid non-empty strings')
           }
         }
       }
@@ -178,9 +189,18 @@ export class SubjectDatabase {
         )
       }
 
+      const uniqueGradeLevels = Array.from(
+        new Set(subjectData.gradeLevels || [])
+      )
+      const uniqueGradeIds = Array.from(
+        new Set((subjectData.gradeIds || []).map((id: any) => String(id)))
+      )
+
       const subject: any = {
         id: subjectId,
         ...subjectData,
+        gradeLevels: uniqueGradeLevels,
+        gradeIds: uniqueGradeIds,
         courseCodes: finalCourseCodes, // Ensure courseCodes is always populated
         totalUnits: subjectData.lectureUnits + subjectData.labUnits,
         createdAt: serverTimestamp(),
@@ -206,7 +226,14 @@ export class SubjectDatabase {
 
       if (subjectSnap.exists()) {
         const data = subjectSnap.data()
-        return serializeFirestoreData(data) as SubjectData
+        const serialized = serializeFirestoreData(data) as any
+        if (!serialized.courseCodes) {
+          serialized.courseCodes = []
+        }
+        if (!serialized.gradeIds) {
+          serialized.gradeIds = []
+        }
+        return serialized as SubjectData
       }
       return null
     } catch (error) {
@@ -241,6 +268,10 @@ export class SubjectDatabase {
         // Ensure courseCodes exists
         if (!serializedData.courseCodes) {
           serializedData.courseCodes = []
+        }
+
+        if (!serializedData.gradeIds) {
+          serializedData.gradeIds = []
         }
         return serializedData as SubjectData
       })
@@ -345,6 +376,22 @@ export class SubjectDatabase {
             throw new Error('All grade levels must be between 1 and 12')
           }
         }
+        updateData.gradeLevels = Array.from(new Set(updateData.gradeLevels))
+      }
+
+      // Validate grade IDs if provided
+      if (updateData.gradeIds !== undefined) {
+        if (!Array.isArray(updateData.gradeIds)) {
+          throw new Error('Grade IDs must be an array')
+        }
+        for (const gradeId of updateData.gradeIds) {
+          if (typeof gradeId !== 'string' || gradeId.trim() === '') {
+            throw new Error('All grade IDs must be valid non-empty strings')
+          }
+        }
+        updateData.gradeIds = Array.from(
+          new Set(updateData.gradeIds.map((id: any) => String(id)))
+        )
       }
 
       // Validate course codes if provided
@@ -384,6 +431,8 @@ export class SubjectDatabase {
       const hasGradeLevels =
         updateData.gradeLevels !== undefined &&
         updateData.gradeLevels.length > 0
+      const hasGradeIds =
+        updateData.gradeIds !== undefined && updateData.gradeIds.length > 0
       const hasCourseCodes =
         updateData.courseCodes !== undefined &&
         updateData.courseCodes.length > 0
@@ -394,12 +443,13 @@ export class SubjectDatabase {
       // If any of these fields are being updated, at least one must have a value
       if (
         updateData.gradeLevels !== undefined ||
+        updateData.gradeIds !== undefined ||
         updateData.courseCodes !== undefined ||
         updateData.courseSelections !== undefined
       ) {
-        if (!hasGradeLevels && !hasCourseCodes && !hasCourseSelections) {
+        if (!hasGradeLevels && !hasGradeIds && !hasCourseCodes && !hasCourseSelections) {
           throw new Error(
-            'At least one grade level or college course must be specified'
+            'At least one grade level, grade ID, college course code, or course selection must be provided'
           )
         }
       }

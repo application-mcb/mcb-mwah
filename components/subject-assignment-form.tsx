@@ -66,7 +66,8 @@ export default function SubjectAssignmentForm({
 }: SubjectAssignmentFormProps) {
   const [formData, setFormData] = useState({
     level: 'high-school' as 'high-school' | 'college',
-    gradeLevel: 7,
+    gradeId: '', // Use gradeId instead of gradeLevel to uniquely identify strands
+    gradeLevel: 7, // Keep for backward compatibility and display
     courseCode: '',
     courseName: '',
     yearLevel: 1,
@@ -95,13 +96,33 @@ export default function SubjectAssignmentForm({
 
   // Populate form with initial data when editing
   useEffect(() => {
-    if (initialData && isEditing) {
-      const selectedGrade = grades.find(
-        (g) => g.gradeLevel === (initialData.gradeLevel || 7)
-      )
+    if (initialData && isEditing && grades.length > 0) {
+      // Try to find grade by gradeId first, then by gradeLevel + strand
+      let selectedGrade = null
+      if (initialData.gradeId) {
+        selectedGrade = grades.find((g) => g.id === initialData.gradeId)
+      }
+
+      // If not found by gradeId, try to match by gradeLevel + strand
+      if (!selectedGrade && initialData.gradeLevel && initialData.strand) {
+        selectedGrade = grades.find(
+          (g) =>
+            g.gradeLevel === initialData.gradeLevel &&
+            g.strand === initialData.strand
+        )
+      }
+
+      // Fallback to gradeLevel only (for backward compatibility)
+      if (!selectedGrade && initialData.gradeLevel) {
+        selectedGrade = grades.find(
+          (g) => g.gradeLevel === (initialData.gradeLevel || 7)
+        )
+      }
+
       setFormData({
         level: initialData.level || 'high-school',
-        gradeLevel: initialData.gradeLevel || 7,
+        gradeId: selectedGrade?.id || '',
+        gradeLevel: selectedGrade?.gradeLevel || initialData.gradeLevel || 7,
         courseCode: initialData.courseCode || '',
         courseName: initialData.courseName || '',
         yearLevel: initialData.yearLevel || 1,
@@ -111,7 +132,7 @@ export default function SubjectAssignmentForm({
         strand: selectedGrade?.strand || initialData.strand || '',
       })
     }
-  }, [initialData, isEditing])
+  }, [initialData, isEditing, grades])
 
   const loadSubjectSets = async () => {
     try {
@@ -167,7 +188,9 @@ export default function SubjectAssignmentForm({
       ...prev,
       level,
       // Reset related fields when switching levels
-      gradeLevel: level === 'high-school' ? 7 : prev.gradeLevel,
+      gradeId: level === 'high-school' ? prev.gradeId : '',
+      gradeLevel: level === 'high-school' ? prev.gradeLevel : 7,
+      strand: level === 'high-school' ? prev.strand : '',
       courseCode: level === 'college' ? prev.courseCode : '',
       courseName: level === 'college' ? prev.courseName : '',
       yearLevel: level === 'college' ? prev.yearLevel : 1,
@@ -178,14 +201,17 @@ export default function SubjectAssignmentForm({
     }
   }
 
-  const handleGradeLevelChange = (gradeLevel: number) => {
-    const selectedGrade = grades.find((g) => g.gradeLevel === gradeLevel)
-    const isSHS = selectedGrade?.department === 'SHS'
+  const handleGradeChange = (gradeId: string) => {
+    const selectedGrade = grades.find((g) => g.id === gradeId)
+    if (!selectedGrade) return
+
+    const isSHS = selectedGrade.department === 'SHS'
 
     setFormData((prev) => ({
       ...prev,
-      gradeLevel,
-      strand: selectedGrade?.strand || '',
+      gradeId,
+      gradeLevel: selectedGrade.gradeLevel,
+      strand: selectedGrade.strand || '',
       // Reset semester if switching from SHS to JHS or vice versa
       semester: isSHS ? prev.semester : 'first-sem',
     }))
@@ -227,8 +253,8 @@ export default function SubjectAssignmentForm({
     }
 
     if (formData.level === 'high-school') {
-      if (!formData.gradeLevel) {
-        newErrors.gradeLevel = 'Grade level selection is required'
+      if (!formData.gradeId) {
+        newErrors.gradeLevel = 'Grade selection is required'
       }
     } else if (formData.level === 'college') {
       if (!formData.courseCode) {
@@ -288,12 +314,19 @@ export default function SubjectAssignmentForm({
     )
 
     // Prepare submission data with strand for SHS
-    const selectedGrade = grades.find(
-      (g) => g.gradeLevel === formData.gradeLevel
-    )
+    const selectedGrade = formData.gradeId
+      ? grades.find((g) => g.id === formData.gradeId)
+      : null
     const isSHS = selectedGrade?.department === 'SHS'
     const submissionData = {
-      ...formData,
+      level: formData.level,
+      gradeLevel: selectedGrade?.gradeLevel || formData.gradeLevel,
+      gradeId: formData.gradeId || undefined,
+      courseCode: formData.courseCode || undefined,
+      courseName: formData.courseName || undefined,
+      yearLevel: formData.yearLevel || undefined,
+      semester: formData.semester || undefined,
+      subjectSetId: formData.subjectSetId,
       strand: isSHS
         ? formData.strand || selectedGrade?.strand || ''
         : undefined,
@@ -317,13 +350,20 @@ export default function SubjectAssignmentForm({
     setShowConfirmationModal(false)
     try {
       // Prepare submission data with strand for SHS
-      const selectedGrade = grades.find(
-        (g) => g.gradeLevel === formData.gradeLevel
-      )
+      const selectedGrade = formData.gradeId
+        ? grades.find((g) => g.id === formData.gradeId)
+        : null
       const isSHS = selectedGrade?.department === 'SHS'
 
       const submissionData = {
-        ...formData,
+        level: formData.level,
+        gradeLevel: selectedGrade?.gradeLevel || formData.gradeLevel,
+        gradeId: formData.gradeId || undefined,
+        courseCode: formData.courseCode || undefined,
+        courseName: formData.courseName || undefined,
+        yearLevel: formData.yearLevel || undefined,
+        semester: formData.semester || undefined,
+        subjectSetId: formData.subjectSetId,
         strand: isSHS
           ? formData.strand || selectedGrade?.strand || ''
           : undefined,
@@ -413,7 +453,7 @@ export default function SubjectAssignmentForm({
 
   if (loadingData) {
     return (
-      <div className="bg-white shadow-lg max-w-2xl w-full p-6">
+      <div className="bg-white border border-gray-200 rounded-xl max-w-2xl w-full p-6">
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-gray-200 w-1/3"></div>
           <div className="space-y-3">
@@ -427,10 +467,10 @@ export default function SubjectAssignmentForm({
   }
 
   return (
-    <div className="bg-white shadow-lg max-w-4xl w-full p-6">
+    <div className="bg-white border border-gray-200 rounded-xl max-w-4xl w-full p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center">
             <Calculator size={20} className="text-white" weight="fill" />
           </div>
           <div>
@@ -475,9 +515,9 @@ export default function SubjectAssignmentForm({
               type="button"
               onClick={() => handleLevelChange('high-school')}
               disabled={loading}
-              className={`px-4 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+              className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                 formData.level === 'high-school'
-                  ? 'bg-blue-900 text-white border-blue-900 shadow-md'
+                  ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-900 shadow-md'
                   : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -488,9 +528,9 @@ export default function SubjectAssignmentForm({
               type="button"
               onClick={() => handleLevelChange('college')}
               disabled={loading}
-              className={`px-4 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+              className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                 formData.level === 'college'
-                  ? 'bg-blue-900 text-white border-blue-900 shadow-md'
+                  ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-900 shadow-md'
                   : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -519,7 +559,7 @@ export default function SubjectAssignmentForm({
             </Label>
             <div className="flex flex-wrap gap-2">
               {grades.map((grade) => {
-                const isSelected = formData.gradeLevel === grade.gradeLevel
+                const isSelected = formData.gradeId === grade.id
                 const gradeColor = grade.color || 'blue-900'
                 const gradeColorValue = getGradeColorValue(gradeColor)
                 const getGradeDisplayName = (grade: Grade) => {
@@ -533,9 +573,9 @@ export default function SubjectAssignmentForm({
                   <button
                     key={grade.id}
                     type="button"
-                    onClick={() => handleGradeLevelChange(grade.gradeLevel)}
+                    onClick={() => handleGradeChange(grade.id)}
                     disabled={loading}
-                    className={`px-3 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+                    className={`px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                       isSelected
                         ? 'text-white shadow-md'
                         : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
@@ -566,7 +606,7 @@ export default function SubjectAssignmentForm({
                 )
               })}
             </div>
-            {formData.gradeLevel && (
+            {formData.gradeId && (
               <p
                 className="text-xs text-gray-600"
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -574,7 +614,7 @@ export default function SubjectAssignmentForm({
                 Selected:{' '}
                 {(() => {
                   const selectedGrade = grades.find(
-                    (g) => g.gradeLevel === formData.gradeLevel
+                    (g) => g.id === formData.gradeId
                   )
                   if (selectedGrade) {
                     if (
@@ -585,7 +625,7 @@ export default function SubjectAssignmentForm({
                     }
                     return `Grade ${selectedGrade.gradeLevel} (${selectedGrade.department})`
                   }
-                  return `Grade ${formData.gradeLevel}`
+                  return 'Unknown'
                 })()}
               </p>
             )}
@@ -603,9 +643,9 @@ export default function SubjectAssignmentForm({
         {/* SHS Semester Selection */}
         {formData.level === 'high-school' &&
           (() => {
-            const selectedGrade = grades.find(
-              (g) => g.gradeLevel === formData.gradeLevel
-            )
+            const selectedGrade = formData.gradeId
+              ? grades.find((g) => g.id === formData.gradeId)
+              : null
             const isSHS = selectedGrade?.department === 'SHS'
 
             if (!isSHS) return null
@@ -623,7 +663,7 @@ export default function SubjectAssignmentForm({
                     type="button"
                     onClick={() => handleInputChange('semester', 'first-sem')}
                     disabled={loading}
-                    className={`px-4 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                       formData.semester === 'first-sem'
                         ? 'text-white shadow-md'
                         : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
@@ -653,7 +693,7 @@ export default function SubjectAssignmentForm({
                     type="button"
                     onClick={() => handleInputChange('semester', 'second-sem')}
                     disabled={loading}
-                    className={`px-4 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+                    className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                       formData.semester === 'second-sem'
                         ? 'text-white shadow-md'
                         : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
@@ -714,7 +754,7 @@ export default function SubjectAssignmentForm({
                     type="button"
                     onClick={() => handleCourseChange(course.code)}
                     disabled={loading}
-                    className={`px-3 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+                    className={`px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                       isSelected
                         ? 'text-white shadow-md'
                         : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
@@ -783,9 +823,9 @@ export default function SubjectAssignmentForm({
                       type="button"
                       onClick={() => handleInputChange('yearLevel', year)}
                       disabled={loading}
-                      className={`px-4 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+                      className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                         isSelected
-                          ? 'bg-blue-900 text-white border-blue-900 shadow-md'
+                          ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-900 shadow-md'
                           : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
                       } disabled:opacity-50 disabled:cursor-not-allowed`}
                       style={{ fontFamily: 'Poppins', fontWeight: 300 }}
@@ -817,7 +857,7 @@ export default function SubjectAssignmentForm({
                   type="button"
                   onClick={() => handleInputChange('semester', 'first-sem')}
                   disabled={loading}
-                  className={`px-4 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                     formData.semester === 'first-sem'
                       ? 'text-white shadow-md'
                       : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
@@ -847,7 +887,7 @@ export default function SubjectAssignmentForm({
                   type="button"
                   onClick={() => handleInputChange('semester', 'second-sem')}
                   disabled={loading}
-                  className={`px-4 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                     formData.semester === 'second-sem'
                       ? 'text-white shadow-md'
                       : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
@@ -894,7 +934,7 @@ export default function SubjectAssignmentForm({
           >
             Subject Set * ({subjectSets.length} available)
           </Label>
-          <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto p-2 border border-gray-200 rounded-md bg-gray-50">
+          <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto p-2 border border-gray-200 rounded-xl bg-gray-50">
             {subjectSets.map((subjectSet) => {
               const isSelected = formData.subjectSetId === subjectSet.id
               const setColorValue = getSubjectSetColorValue(
@@ -906,7 +946,7 @@ export default function SubjectAssignmentForm({
                   type="button"
                   onClick={() => handleSubjectSetSelect(subjectSet.id)}
                   disabled={loading}
-                  className={`px-4 py-2 text-sm font-medium rounded-full border-2 transition-all duration-200 ${
+                  className={`px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
                     isSelected
                       ? 'text-white shadow-md'
                       : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
@@ -977,6 +1017,7 @@ export default function SubjectAssignmentForm({
           <Button
             type="submit"
             disabled={loading || !formData.subjectSetId}
+            className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             {loading ? (
@@ -997,11 +1038,11 @@ export default function SubjectAssignmentForm({
       {/* Confirmation Modal */}
       {showConfirmationModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-lg shadow-sm max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="bg-white rounded-xl shadow-sm max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center">
                   <Calculator size={20} className="text-white" weight="fill" />
                 </div>
                 <div>
@@ -1031,7 +1072,7 @@ export default function SubjectAssignmentForm({
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6">
               {/* Assignment Summary */}
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <p
@@ -1063,9 +1104,9 @@ export default function SubjectAssignmentForm({
                           style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                         >
                           {(() => {
-                            const selectedGrade = grades.find(
-                              (g) => g.gradeLevel === formData.gradeLevel
-                            )
+                            const selectedGrade = formData.gradeId
+                              ? grades.find((g) => g.id === formData.gradeId)
+                              : null
                             if (selectedGrade) {
                               if (
                                 selectedGrade.department === 'SHS' &&
@@ -1075,14 +1116,16 @@ export default function SubjectAssignmentForm({
                               }
                               return `Grade ${selectedGrade.gradeLevel} (${selectedGrade.department})`
                             }
-                            return `Grade ${formData.gradeLevel}`
+                            return formData.gradeLevel
+                              ? `Grade ${formData.gradeLevel}`
+                              : 'Not selected'
                           })()}
                         </p>
                       </div>
                       {(() => {
-                        const selectedGrade = grades.find(
-                          (g) => g.gradeLevel === formData.gradeLevel
-                        )
+                        const selectedGrade = formData.gradeId
+                          ? grades.find((g) => g.id === formData.gradeId)
+                          : null
                         const isSHS = selectedGrade?.department === 'SHS'
                         if (!isSHS) return null
 
@@ -1187,7 +1230,7 @@ export default function SubjectAssignmentForm({
                 </div>
               ) : selectedSubjectDetails.length === 0 ? (
                 <div className="flex items-center justify-center h-64">
-                  <div className="text-center p-6 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <div className="text-center p-6 bg-yellow-50 border border-yellow-200 rounded-xl">
                     <Books
                       size={48}
                       className="text-yellow-600 mx-auto mb-4"
@@ -1340,6 +1383,7 @@ export default function SubjectAssignmentForm({
                 type="button"
                 onClick={handleConfirmSubmit}
                 disabled={loading || selectedSubjectDetails.length === 0}
+                className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
               >
                 {loading ? (

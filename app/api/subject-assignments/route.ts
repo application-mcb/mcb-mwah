@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
   try {
     const {
       level,
+      gradeId, // Grade ID (includes strand info)
       gradeLevel,
       courseCode,
       courseName,
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
 
     const subjectAssignmentData = {
       level,
+      gradeId: gradeId || undefined, // Store gradeId for unique strand identification
       gradeLevel: gradeLevel ? parseInt(gradeLevel) : undefined,
       courseCode: courseCode || undefined,
       courseName: courseName || undefined,

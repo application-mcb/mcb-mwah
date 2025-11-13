@@ -922,7 +922,11 @@ const RegistrarGradesTab = ({
                 ? `Grade ${rawDoc.gradeLevel}`
                 : 'Unknown'
             const pillLabel = levelText
-            const pillSubLabel = `AY${period.ayCode}`
+            const pillSubLabel = `${
+              meta.studentSemester === 'first-sem'
+                ? 'First Semester'
+                : 'Second Semester'
+            } `
 
             return (
               <button

@@ -13,11 +13,11 @@ const colorMap = {
   'blue-900': {
     bg: 'bg-blue-900',
     border: 'border-blue-600',
-    name: 'Blue 700',
+    name: 'Blue 900',
   },
-  'blue-900': {
-    bg: 'bg-blue-900',
-    border: 'border-blue-900',
+  'blue-800': {
+    bg: 'bg-blue-800',
+    border: 'border-blue-800',
     name: 'Blue 800',
   },
   'red-700': { bg: 'bg-red-700', border: 'border-red-600', name: 'Red 700' },

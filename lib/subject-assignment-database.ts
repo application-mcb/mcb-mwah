@@ -15,6 +15,7 @@ import {
 export interface SubjectAssignmentData {
   id: string
   level: 'high-school' | 'college'
+  gradeId?: string // Grade ID (includes strand info for unique identification)
   gradeLevel?: number
   courseCode?: string
   courseName?: string
@@ -29,6 +30,7 @@ export interface SubjectAssignmentData {
 
 export interface CreateSubjectAssignmentData {
   level: 'high-school' | 'college'
+  gradeId?: string // Grade ID (includes strand info for unique identification)
   gradeLevel?: number
   courseCode?: string
   courseName?: string
@@ -41,6 +43,7 @@ export interface CreateSubjectAssignmentData {
 
 export interface UpdateSubjectAssignmentData {
   level?: 'high-school' | 'college'
+  gradeId?: string // Grade ID (includes strand info for unique identification)
   gradeLevel?: number
   courseCode?: string
   courseName?: string
