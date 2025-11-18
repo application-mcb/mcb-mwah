@@ -72,6 +72,13 @@ export const registrarIcons = {
   BooksIcon,
 } as const
 
-const RegistrarOverview = () => null
+type RegistrarOverviewProps = {
+  registrarUid: string
+}
+
+const RegistrarOverview = ({ registrarUid }: RegistrarOverviewProps) => {
+  if (!registrarUid) return null
+  return null
+}
 
 export default RegistrarOverview

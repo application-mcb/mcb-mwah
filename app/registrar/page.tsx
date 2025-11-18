@@ -17,6 +17,7 @@ import EventsManagement from '@/components/events-management'
 import ChatInterface from '@/components/chat/chat-interface'
 import TaskManager from '@/components/task-manager'
 import EventsSidebar from '@/components/events-sidebar'
+import RegistrarAnalytics from '@/components/registrar-analytics'
 import { ContactData } from '@/lib/chat-database'
 import {
   collection,
@@ -74,6 +75,7 @@ type ViewType =
   | 'subject-management'
   | 'teacher-management'
   | 'events-management'
+  | 'analytics'
 
 interface ChatMessage {
   id: string
@@ -547,6 +549,12 @@ export default function RegistrarPage() {
         description: 'Content management',
         icon: Bell,
       },
+      {
+        view: 'analytics' as ViewType,
+        label: 'Analytics & Reports',
+        description: 'Student insights',
+        icon: ChartBar,
+      },
     ],
     []
   )
@@ -895,14 +903,18 @@ export default function RegistrarPage() {
                     Reports
                   </span>
                 ) : (
-                  <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => handleNavigation('analytics')}
+                    className="w-full text-left space-y-1"
+                  >
                     <p className="text-sm font-medium text-gray-900">
                       Reports & Analytics
                     </p>
                     <p className="text-xs text-blue-900/70">
-                      Coming soon. Visualize registrar insights at a glance.
+                      View student insights and statistics.
                     </p>
-                  </div>
+                  </button>
                 )}
               </div>
             </div>
@@ -971,6 +983,13 @@ export default function RegistrarPage() {
 
         {currentView === 'events-management' && registrar && (
           <EventsManagement registrarUid={registrar.uid} />
+        )}
+
+        {currentView === 'analytics' && registrar && (
+          <RegistrarAnalytics
+            registrarUid={registrar.uid}
+            registrarName={`${registrar.firstName} ${registrar.lastName}`}
+          />
         )}
       </div>
 

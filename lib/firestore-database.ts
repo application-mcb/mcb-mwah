@@ -72,6 +72,13 @@ export interface StudentData {
   previousSchoolType: string
   previousSchoolProvince: string
   previousSchoolMunicipality: string
+  locationCodes?: {
+    province?: string
+    municipality?: string
+    barangay?: string
+    previousSchoolProvince?: string
+    previousSchoolMunicipality?: string
+  }
   photoURL?: string
   provider: 'email' | 'google' | 'magic-link'
   studentId?: string // Generated student ID

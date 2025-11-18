@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'react-toastify'
 import {
   Card,
@@ -88,6 +88,31 @@ export default function CustomizeAccount() {
   // Previous school location data state
   const [previousSchoolMunicipalities, setPreviousSchoolMunicipalities] =
     useState<Municipality[]>([])
+
+  const primaryLocationSynced = useRef(false)
+  const previousSchoolLocationSynced = useRef(false)
+
+  const matchCodeByValue = <T extends { code: string; name: string }>(
+    value: string,
+    list: T[]
+  ) => {
+    if (!value) return ''
+    const directMatch = list.find((item) => item.code === value)
+    if (directMatch) return directMatch.code
+    const normalized = value.toLowerCase()
+    const nameMatch = list.find(
+      (item) => item.name.toLowerCase() === normalized
+    )
+    return nameMatch?.code || ''
+  }
+
+  const matchNameByCode = <T extends { code: string; name: string }>(
+    code: string,
+    list: T[]
+  ) => {
+    if (!code) return ''
+    return list.find((item) => item.code === code)?.name || code
+  }
 
   useEffect(() => {
     // Load provinces data asynchronously
@@ -188,6 +213,133 @@ export default function CustomizeAccount() {
     getUser()
   }, [])
 
+  useEffect(() => {
+    if (
+      !userProfile ||
+      provinces.length === 0 ||
+      primaryLocationSynced.current
+    )
+      return
+
+    const syncPrimaryLocation = async () => {
+      try {
+        const provinceSource =
+          userProfile.locationCodes?.province || userProfile.province
+        const provinceCode = matchCodeByValue(provinceSource, provinces)
+        if (!provinceCode) {
+          primaryLocationSynced.current = true
+          return
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          province: provinceCode,
+        }))
+
+        const provinceMunicipalities = await getMunicipalitiesByProvince(
+          provinceCode
+        )
+        setMunicipalities(provinceMunicipalities)
+
+        const municipalitySource =
+          userProfile.locationCodes?.municipality || userProfile.municipality
+        const municipalityCode = matchCodeByValue(
+          municipalitySource,
+          provinceMunicipalities
+        )
+
+        if (!municipalityCode) {
+          primaryLocationSynced.current = true
+          return
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          municipality: municipalityCode,
+        }))
+
+        const municipalityBarangays = await getBarangaysByMunicipality(
+          municipalityCode
+        )
+        setBarangays(municipalityBarangays)
+
+        const barangaySource =
+          userProfile.locationCodes?.barangay || userProfile.barangay
+        const barangayCode = matchCodeByValue(
+          barangaySource,
+          municipalityBarangays
+        )
+
+        if (barangayCode) {
+          setFormData((prev) => ({
+            ...prev,
+            barangay: barangayCode,
+          }))
+        }
+      } catch (error) {
+        console.error('Error syncing saved location data:', error)
+      } finally {
+        primaryLocationSynced.current = true
+      }
+    }
+
+    syncPrimaryLocation()
+  }, [userProfile, provinces])
+
+  useEffect(() => {
+    if (
+      !userProfile ||
+      provinces.length === 0 ||
+      previousSchoolLocationSynced.current
+    )
+      return
+
+    const syncPreviousSchoolLocation = async () => {
+      try {
+        const provinceSource =
+          userProfile.locationCodes?.previousSchoolProvince ||
+          userProfile.previousSchoolProvince
+        const provinceCode = matchCodeByValue(provinceSource, provinces)
+
+        if (!provinceCode) {
+          previousSchoolLocationSynced.current = true
+          return
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          previousSchoolProvince: provinceCode,
+        }))
+
+        const provinceMunicipalities = await getMunicipalitiesByProvince(
+          provinceCode
+        )
+        setPreviousSchoolMunicipalities(provinceMunicipalities)
+
+        const municipalitySource =
+          userProfile.locationCodes?.previousSchoolMunicipality ||
+          userProfile.previousSchoolMunicipality
+        const municipalityCode = matchCodeByValue(
+          municipalitySource,
+          provinceMunicipalities
+        )
+
+        if (municipalityCode) {
+          setFormData((prev) => ({
+            ...prev,
+            previousSchoolMunicipality: municipalityCode,
+          }))
+        }
+      } catch (error) {
+        console.error('Error syncing previous school location:', error)
+      } finally {
+        previousSchoolLocationSynced.current = true
+      }
+    }
+
+    syncPreviousSchoolLocation()
+  }, [userProfile, provinces])
+
   const handleSave = async () => {
     if (!user) return
 
@@ -235,9 +387,41 @@ export default function CustomizeAccount() {
     setIsLoading(true)
 
     try {
+      const provinceName = matchNameByCode(formData.province, provinces)
+      const provinceMunicipalities = formData.province
+        ? await getMunicipalitiesByProvince(formData.province)
+        : []
+      const municipalityName = matchNameByCode(
+        formData.municipality,
+        provinceMunicipalities
+      )
+      const municipalityBarangays = formData.municipality
+        ? await getBarangaysByMunicipality(formData.municipality)
+        : []
+      const barangayName = matchNameByCode(
+        formData.barangay,
+        municipalityBarangays
+      )
+      const previousSchoolProvinceName = matchNameByCode(
+        formData.previousSchoolProvince,
+        provinces
+      )
+      const previousSchoolMunicipalities = formData.previousSchoolProvince
+        ? await getMunicipalitiesByProvince(formData.previousSchoolProvince)
+        : []
+      const previousSchoolMunicipalityName = matchNameByCode(
+        formData.previousSchoolMunicipality,
+        previousSchoolMunicipalities
+      )
+
       // Create student account with complete profile through server action
       const profileData = {
         ...formData,
+        province: provinceName,
+        municipality: municipalityName,
+        barangay: barangayName,
+        previousSchoolProvince: previousSchoolProvinceName,
+        previousSchoolMunicipality: previousSchoolMunicipalityName,
         email: user.email || '',
         photoURL: user.photoURL || '',
         provider:
@@ -245,6 +429,13 @@ export default function CustomizeAccount() {
             ? 'google'
             : 'email',
         academicDataUsageAgreement: agreedToAcademicUse,
+        locationCodes: {
+          province: formData.province,
+          municipality: formData.municipality,
+          barangay: formData.barangay,
+          previousSchoolProvince: formData.previousSchoolProvince,
+          previousSchoolMunicipality: formData.previousSchoolMunicipality,
+        },
       }
 
       const result = await createStudentAccountAction({

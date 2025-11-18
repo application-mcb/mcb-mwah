@@ -62,6 +62,8 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
   const [selectedProvince, setSelectedProvince] = useState<Province | null>(null);
   const [selectedMunicipality, setSelectedMunicipality] = useState<Municipality | null>(null);
   const [selectedBarangay, setSelectedBarangay] = useState<Barangay | null>(null);
+  const [selectedPreviousSchoolProvince, setSelectedPreviousSchoolProvince] = useState<Province | null>(null);
+  const [selectedPreviousSchoolMunicipality, setSelectedPreviousSchoolMunicipality] = useState<Municipality | null>(null);
 
   const [agreedToAcademicUse, setAgreedToAcademicUse] = useState(false);
   
@@ -152,8 +154,30 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
       if (userProfile.previousSchoolProvince) {
         const loadPreviousSchoolMunicipalities = async () => {
           try {
-            const municipalitiesData = await getMunicipalitiesByProvince(userProfile.previousSchoolProvince);
+            const previousProvince =
+              provinces.find((p) => p.name === userProfile.previousSchoolProvince) ||
+              provinces.find((p) => p.code === userProfile.previousSchoolProvince) ||
+              null;
+
+            const provinceCode = previousProvince?.code || userProfile.previousSchoolProvince;
+
+            if (previousProvince) {
+              setSelectedPreviousSchoolProvince(previousProvince);
+            }
+
+            const municipalitiesData = await getMunicipalitiesByProvince(provinceCode);
             setPreviousSchoolMunicipalities(municipalitiesData);
+
+            if (userProfile.previousSchoolMunicipality) {
+              const matchingMunicipality =
+                municipalitiesData.find((m) => m.name === userProfile.previousSchoolMunicipality) ||
+                municipalitiesData.find((m) => m.code === userProfile.previousSchoolMunicipality) ||
+                null;
+
+              if (matchingMunicipality) {
+                setSelectedPreviousSchoolMunicipality(matchingMunicipality);
+              }
+            }
           } catch (error) {
             console.error('Error loading previous school municipalities:', error);
           }
@@ -211,6 +235,13 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
         profileData: {
           ...formData,
           academicDataUsageAgreement: agreedToAcademicUse,
+          locationCodes: {
+            province: selectedProvince?.code || '',
+            municipality: selectedMunicipality?.code || '',
+            barangay: selectedBarangay?.code || '',
+            previousSchoolProvince: selectedPreviousSchoolProvince?.code || '',
+            previousSchoolMunicipality: selectedPreviousSchoolMunicipality?.code || '',
+          },
         },
       });
 
@@ -361,9 +392,15 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
 
   // Previous school location handlers
   const handlePreviousSchoolProvinceChange = async (provinceCode: string) => {
+    const province =
+      provinces.find((p) => p.code === provinceCode) || null;
+
+    setSelectedPreviousSchoolProvince(province);
+    setSelectedPreviousSchoolMunicipality(null);
+
     setFormData(prev => ({
       ...prev,
-      previousSchoolProvince: provinceCode,
+      previousSchoolProvince: province?.name || '',
       previousSchoolMunicipality: ''
     }));
     
@@ -379,6 +416,18 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
     } else {
       setPreviousSchoolMunicipalities([]);
     }
+  };
+
+  const handlePreviousSchoolMunicipalityChange = (municipalityCode: string) => {
+    const municipality =
+      previousSchoolMunicipalities.find((m) => m.code === municipalityCode) || null;
+
+    setSelectedPreviousSchoolMunicipality(municipality);
+
+    setFormData(prev => ({
+      ...prev,
+      previousSchoolMunicipality: municipality?.name || ''
+    }));
   };
 
   return (
@@ -898,7 +947,7 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                     <select
                       id="previousSchoolProvince"
                       className="w-full px-3 pr-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
-                      value={formData.previousSchoolProvince}
+                      value={selectedPreviousSchoolProvince?.code || ''}
                       onChange={(e) => handlePreviousSchoolProvinceChange(e.target.value)}
                     >
                       <option value="">Select Province</option>
@@ -917,9 +966,9 @@ export const ProfileForm = ({ user, userProfile, onSuccess, onCancel, isModal = 
                     <select
                       id="previousSchoolMunicipality"
                       className="w-full px-3 pr-4 py-2 h-10 rounded-xl border-2 border-gray-200 focus:border-blue-900 transition-colors duration-200 bg-white"
-                      value={formData.previousSchoolMunicipality}
-                      onChange={(e) => handleInputChange('previousSchoolMunicipality', e.target.value)}
-                      disabled={!formData.previousSchoolProvince}
+                      value={selectedPreviousSchoolMunicipality?.code || ''}
+                      onChange={(e) => handlePreviousSchoolMunicipalityChange(e.target.value)}
+                      disabled={!selectedPreviousSchoolProvince}
                     >
                       <option value="">Select Municipality</option>
                       {previousSchoolMunicipalities.map(municipality => (

@@ -66,6 +66,7 @@ export async function createStudentAccountAction({ uid, profileData }: {
       photoURL: profileData.photoURL || '',
       provider: profileData.provider || 'email',
       academicDataUsageAgreement: profileData.academicDataUsageAgreement,
+      locationCodes: profileData.locationCodes || null,
       createdAt: new Date(),
       updatedAt: new Date(),
       lastLoginAt: new Date(),
