@@ -132,6 +132,7 @@ export async function DELETE(request: NextRequest) {
     const subjectId = searchParams.get('subjectId');
     const sectionId = searchParams.get('sectionId');
     const registrarUid = searchParams.get('registrarUid');
+    const teacherId = searchParams.get('teacherId');
 
     if (!subjectId || !sectionId || !registrarUid) {
       return NextResponse.json(
@@ -149,8 +150,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Remove teacher assignment
-    await removeTeacherAssignment(subjectId, sectionId);
+    // Remove teacher assignment (pass teacherId if provided to remove only that teacher)
+    await removeTeacherAssignment(subjectId, sectionId, teacherId || undefined);
 
     return NextResponse.json({
       message: 'Teacher assignment removed successfully'

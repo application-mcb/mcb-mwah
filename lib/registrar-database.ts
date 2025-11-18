@@ -46,6 +46,9 @@ export interface RegistrarData {
   email: string;
   firstName: string;
   lastName: string;
+  middleName?: string;
+  nameExtension?: string;
+  birthday?: string;
   role: 'registrar';
   photoURL?: string;
   createdAt: string; // ISO string (serialized from Firestore timestamp)

@@ -9,11 +9,12 @@ import {
   BookOpen,
   Users,
   MagnifyingGlass,
-  Funnel,
+  FunnelSimple,
   Pencil,
   Check,
   X,
   Calculator,
+  Printer,
 } from '@phosphor-icons/react'
 import { toast } from 'react-toastify'
 import { GradeData } from '@/lib/types/grade-section'
@@ -57,6 +58,9 @@ interface EnrollmentData {
     studentId?: string
     sectionId?: string
     level?: 'college' | 'high-school'
+    courseCode?: string // For college
+    courseName?: string // For college
+    yearLevel?: number // For college
   }
   selectedSubjects?: string[]
 }
@@ -88,6 +92,7 @@ interface StudentProfile {
   userId: string
   photoURL?: string
   email?: string
+  studentId?: string
 }
 
 interface StudentWithGrades {
@@ -122,6 +127,7 @@ export default function TeacherGradesView({
   const [selectedSectionFilter, setSelectedSectionFilter] = useState<string[]>(
     []
   )
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   const [editingStudent, setEditingStudent] = useState<string | null>(null)
   const [editedGrades, setEditedGrades] = useState<StudentGrades>({})
   const [lastLoaded, setLastLoaded] = useState<number | null>(null)
@@ -190,6 +196,17 @@ export default function TeacherGradesView({
               (section: any) => sectionIds.includes(section.id)
             )
 
+            console.log('Sections loaded:', {
+              totalSections: sectionsData.sections.length,
+              relevantSections: relevantSections.length,
+              sectionIds: sectionIds,
+              relevantSectionDetails: relevantSections.map((s: any) => ({
+                id: s.id,
+                name: s.sectionName,
+                studentsCount: s.students?.length || 0,
+              })),
+            })
+
             // Build sectionsMap and collect student IDs
             relevantSections.forEach((section: any) => {
               sectionsMap[section.id] = section
@@ -206,19 +223,216 @@ export default function TeacherGradesView({
         // Remove duplicate student IDs
         const uniqueStudentIds = [...new Set(allStudentIds)]
 
-        // Load enrollment data and profiles for all students in these sections
+        // For college students: Load all college enrollments and match by subjects
+        // College students may not be in section.students arrays, so we need to load them directly
+        const collegeStudentIds: string[] = []
+        const collegeEnrollmentsMap: Record<string, EnrollmentData> = {}
+
+        try {
+          // Get system config for current semester
+          const configResponse = await fetch('/api/enrollment?getConfig=true')
+          if (configResponse.ok) {
+            const configData = await configResponse.json()
+            const currentSemester =
+              configData.semester === '1'
+                ? 'first-sem'
+                : configData.semester === '2'
+                ? 'second-sem'
+                : undefined
+
+            // Get all enrolled students
+            const allEnrollmentsResponse = await fetch(
+              '/api/enrollment?getEnrolledStudents=true'
+            )
+            if (allEnrollmentsResponse.ok) {
+              const allEnrollmentsData = await allEnrollmentsResponse.json()
+
+              console.log('All enrollments response:', {
+                success: allEnrollmentsData.success,
+                totalEnrollments: allEnrollmentsData.enrollments?.length || 0,
+                currentSemester: currentSemester,
+                configData: configData,
+              })
+
+              if (
+                allEnrollmentsData.success &&
+                allEnrollmentsData.enrollments
+              ) {
+                // Debug: Check college enrollments before filtering
+                const allCollegeEnrollments =
+                  allEnrollmentsData.enrollments.filter(
+                    (e: EnrollmentData) => e.enrollmentInfo?.level === 'college'
+                  )
+
+                console.log('All college enrollments (before filtering):', {
+                  count: allCollegeEnrollments.length,
+                  enrollments: allCollegeEnrollments.map(
+                    (e: EnrollmentData) => ({
+                      userId: e.userId,
+                      name: `${e.personalInfo.firstName} ${e.personalInfo.lastName}`,
+                      sectionId: e.enrollmentInfo?.sectionId,
+                      semester: e.enrollmentInfo?.semester,
+                      courseCode: e.enrollmentInfo?.courseCode,
+                      selectedSubjects: e.selectedSubjects,
+                    })
+                  ),
+                })
+
+                // Get teacher's assigned subject IDs
+                const teacherSubjectIds = new Set(
+                  transformedAssignments.map(
+                    (a: TeacherAssignment) => a.subjectId
+                  )
+                )
+
+                // Filter for college students in current semester who have teacher's subjects
+                // AND the teacher is assigned to their section for those subjects
+                const collegeEnrollments =
+                  allEnrollmentsData.enrollments.filter(
+                    (enrollment: EnrollmentData) => {
+                      const isCollege =
+                        enrollment.enrollmentInfo?.level === 'college'
+                      const matchesSemester =
+                        !currentSemester ||
+                        enrollment.enrollmentInfo?.semester === currentSemester
+
+                      if (!isCollege) {
+                        return false
+                      }
+
+                      // For college: allow both semesters OR match current semester
+                      // This is more flexible - teachers might want to see students from both semesters
+                      // But if semester is specified, prefer matching it
+                      const semesterMatches =
+                        !currentSemester ||
+                        !enrollment.enrollmentInfo?.semester ||
+                        enrollment.enrollmentInfo.semester === currentSemester
+
+                      if (!semesterMatches) {
+                        // Still allow if student is in a section assigned to teacher
+                        // (they might be viewing grades from previous semester)
+                        const studentSectionId =
+                          enrollment.enrollmentInfo?.sectionId
+                        if (
+                          studentSectionId &&
+                          transformedAssignments.some(
+                            (a) => a.sectionId === studentSectionId
+                          )
+                        ) {
+                          // Allow through - section match overrides semester mismatch
+                        } else {
+                          return false
+                        }
+                      }
+
+                      // Get student's section
+                      const studentSectionId =
+                        enrollment.enrollmentInfo?.sectionId
+
+                      // For college students: if they're in a section where the teacher is assigned,
+                      // show them regardless of selectedSubjects (subjects might come from subject-assignments)
+                      // OR if they have the teacher's subjects in their selectedSubjects
+                      const studentSubjects = enrollment.selectedSubjects || []
+
+                      // Check if teacher is assigned to student's section for ANY subject
+                      const hasMatchingSectionAssignment = studentSectionId
+                        ? transformedAssignments.some(
+                            (assignment: TeacherAssignment) =>
+                              assignment.sectionId === studentSectionId
+                          )
+                        : false
+
+                      // Also check if student has any of the teacher's subjects directly
+                      const hasMatchingSubject = studentSubjects.some(
+                        (subjectId: string) => teacherSubjectIds.has(subjectId)
+                      )
+
+                      // Match if: (student is in teacher's assigned section) OR (student has teacher's subjects)
+                      const matches =
+                        hasMatchingSectionAssignment || hasMatchingSubject
+
+                      if (matches && studentSectionId) {
+                        console.log('✅ College student MATCHED:', {
+                          userId: enrollment.userId,
+                          name: `${enrollment.personalInfo.firstName} ${enrollment.personalInfo.lastName}`,
+                          studentSectionId: studentSectionId,
+                          hasMatchingSectionAssignment,
+                          hasMatchingSubject,
+                          studentSubjects: studentSubjects,
+                          matchingAssignments: transformedAssignments.filter(
+                            (a) => a.sectionId === studentSectionId
+                          ),
+                        })
+                      }
+
+                      return matches
+                    }
+                  )
+
+                // Store college enrollments and collect student IDs
+                collegeEnrollments.forEach((enrollment: EnrollmentData) => {
+                  collegeEnrollmentsMap[enrollment.userId] = enrollment
+                  if (!uniqueStudentIds.includes(enrollment.userId)) {
+                    collegeStudentIds.push(enrollment.userId)
+                  }
+                })
+
+                console.log('✅ College students found and stored:', {
+                  totalCollegeEnrollments: collegeEnrollments.length,
+                  collegeStudentIds: collegeStudentIds.length,
+                  collegeStudentIdsList: collegeStudentIds,
+                  collegeEnrollmentsMapKeys: Object.keys(collegeEnrollmentsMap),
+                })
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Error loading college students:', error)
+        }
+
+        // Combine student IDs from sections and college enrollments
+        const allStudentIdsCombined = [
+          ...uniqueStudentIds,
+          ...collegeStudentIds,
+        ]
+
+        // Load enrollment data and profiles for all students
         const enrollmentsMap: Record<string, EnrollmentData> = {}
         const profilesMap: Record<string, StudentProfile> = {}
 
-        if (uniqueStudentIds.length > 0) {
+        // Add college enrollments directly to enrollmentsMap
+        Object.entries(collegeEnrollmentsMap).forEach(
+          ([userId, enrollment]) => {
+            enrollmentsMap[userId] = enrollment
+            console.log('✅ Added college enrollment to map:', {
+              userId,
+              name: `${enrollment.personalInfo.firstName} ${enrollment.personalInfo.lastName}`,
+              sectionId: enrollment.enrollmentInfo?.sectionId,
+            })
+          }
+        )
+
+        console.log(
+          '📊 Final enrollmentsMap size:',
+          Object.keys(enrollmentsMap).length
+        )
+
+        if (allStudentIdsCombined.length > 0) {
+          // Filter out college students that are already loaded
+          const studentIdsToLoad = allStudentIdsCombined.filter(
+            (id) => !collegeStudentIds.includes(id)
+          )
+
           // Make batch requests for enrollments and profiles for better performance
           const [enrollmentResponse, profileResponse] = await Promise.all([
+            studentIdsToLoad.length > 0
+              ? fetch(
+                  `/api/enrollment?userIds=${studentIdsToLoad.join(',')}`
+                ).catch(() => null)
+              : Promise.resolve(null),
             fetch(
-              `/api/enrollment?userIds=${uniqueStudentIds.join(',')}`
+              `/api/user/profile?uids=${allStudentIdsCombined.join(',')}`
             ).catch(() => null),
-            fetch(`/api/user/profile?uids=${uniqueStudentIds.join(',')}`).catch(
-              () => null
-            ),
           ])
 
           // Process batch enrollment data with fallback
@@ -238,11 +452,11 @@ export default function TeacherGradesView({
           }
 
           // Fallback to individual requests if batch failed
-          if (!enrollmentBatchSuccess) {
+          if (!enrollmentBatchSuccess && studentIdsToLoad.length > 0) {
             console.warn(
               'Batch enrollment request failed, falling back to individual requests'
             )
-            const enrollmentPromises = uniqueStudentIds.map((userId) =>
+            const enrollmentPromises = studentIdsToLoad.map((userId) =>
               fetch(`/api/enrollment?userId=${userId}`)
                 .then(async (res) => {
                   if (res.ok) {
@@ -274,6 +488,7 @@ export default function TeacherGradesView({
                       userId: user.uid,
                       photoURL: user.photoURL,
                       email: user.email,
+                      studentId: user.studentId,
                     }
                   }
                 })
@@ -289,7 +504,7 @@ export default function TeacherGradesView({
             console.warn(
               'Batch profile request failed, falling back to individual requests'
             )
-            const profilePromises = uniqueStudentIds.map((userId) =>
+            const profilePromises = allStudentIdsCombined.map((userId) =>
               fetch(`/api/user/profile?uid=${userId}`)
                 .then(async (res) => {
                   if (res.ok) {
@@ -299,6 +514,7 @@ export default function TeacherGradesView({
                         userId: data.user.uid,
                         photoURL: data.user.photoURL,
                         email: data.user.email,
+                        studentId: data.user.studentId,
                       }
                     }
                   }
@@ -618,7 +834,22 @@ export default function TeacherGradesView({
   }
 
   // Get students with their grades, filtered by teacher's subjects
-  const studentsWithGrades: StudentWithGrades[] = Object.values(enrollments)
+  const allEnrollmentsArray = Object.values(enrollments)
+  console.log('📋 All enrollments before filtering:', {
+    total: allEnrollmentsArray.length,
+    collegeCount: allEnrollmentsArray.filter(
+      (e) => e.enrollmentInfo?.level === 'college'
+    ).length,
+    collegeStudents: allEnrollmentsArray
+      .filter((e) => e.enrollmentInfo?.level === 'college')
+      .map((e) => ({
+        userId: e.userId,
+        name: `${e.personalInfo.firstName} ${e.personalInfo.lastName}`,
+        sectionId: e.enrollmentInfo?.sectionId,
+      })),
+  })
+
+  const studentsWithGrades: StudentWithGrades[] = allEnrollmentsArray
     .map((enrollment) => ({
       enrollment,
       grades: studentGrades[enrollment.userId] || {},
@@ -630,34 +861,94 @@ export default function TeacherGradesView({
     .filter(({ enrollment }) => {
       // Only show students who have subjects taught by this teacher
       const studentSection = enrollment.enrollmentInfo?.sectionId
-      if (!studentSection) return false
+      const isCollege = enrollment.enrollmentInfo?.level === 'college'
 
+      // For college students: check if teacher is assigned to their section
+      // OR if they have any of the teacher's subjects
+      if (isCollege) {
+        const studentSubjects = enrollment.selectedSubjects || []
+        const studentSectionId = enrollment.enrollmentInfo?.sectionId
+
+        // Check if teacher is assigned to student's section for ANY subject
+        const hasMatchingSection = studentSectionId
+          ? assignments.some((a) => a.sectionId === studentSectionId)
+          : false
+
+        // Also check if student has any of the teacher's subjects directly
+        const teacherSubjectIds = new Set(assignments.map((a) => a.subjectId))
+        const hasMatchingSubject = studentSubjects.some((subjectId: string) =>
+          teacherSubjectIds.has(subjectId)
+        )
+
+        // Match if: (student is in teacher's assigned section) OR (student has teacher's subjects)
+        const matches = hasMatchingSection || hasMatchingSubject
+        if (matches && isCollege) {
+          console.log('✅ Final filter: College student passed:', {
+            userId: enrollment.userId,
+            name: `${enrollment.personalInfo.firstName} ${enrollment.personalInfo.lastName}`,
+            hasMatchingSection,
+            hasMatchingSubject,
+          })
+        }
+        return matches
+      }
+
+      // For high school students: must have a section that matches teacher's assignments
+      if (!studentSection) return false
       return assignments.some((a) => a.sectionId === studentSection)
     })
+
+  console.log('🎓 Final studentsWithGrades count:', studentsWithGrades.length, {
+    collegeStudents: studentsWithGrades.filter(
+      (s) => s.enrollment.enrollmentInfo?.level === 'college'
+    ).length,
+  })
 
   // Filter students based on search and filters
   const filteredStudents = studentsWithGrades.filter(({ enrollment }) => {
     // Subject filter - only show students who have ANY of the selected subjects with the teacher
     if (selectedSubjectFilter.length > 0) {
+      const isCollege = enrollment.enrollmentInfo?.level === 'college'
       const studentSection = enrollment.enrollmentInfo?.sectionId
-      if (!studentSection) return false
 
-      const hasAnySelectedSubject = selectedSubjectFilter.some((subjectId) =>
-        assignments.some(
-          (a) => a.subjectId === subjectId && a.sectionId === studentSection
+      if (isCollege) {
+        // For college: check if student has the selected subjects
+        const studentSubjects = enrollment.selectedSubjects || []
+        const hasAnySelectedSubject = selectedSubjectFilter.some(
+          (subjectId) =>
+            studentSubjects.includes(subjectId) &&
+            assignments.some((a) => a.subjectId === subjectId)
         )
-      )
-      if (!hasAnySelectedSubject) return false
+        if (!hasAnySelectedSubject) return false
+      } else {
+        // For high school: must have section
+        if (!studentSection) return false
+        const hasAnySelectedSubject = selectedSubjectFilter.some((subjectId) =>
+          assignments.some(
+            (a) => a.subjectId === subjectId && a.sectionId === studentSection
+          )
+        )
+        if (!hasAnySelectedSubject) return false
+      }
     }
 
     // Section filter - only show students in ANY of the selected sections
-    if (
-      selectedSectionFilter.length > 0 &&
-      !selectedSectionFilter.includes(
-        enrollment.enrollmentInfo?.sectionId || ''
-      )
-    ) {
-      return false
+    // For college students, section filter is optional (they might not have sections)
+    if (selectedSectionFilter.length > 0) {
+      const isCollege = enrollment.enrollmentInfo?.level === 'college'
+      const studentSection = enrollment.enrollmentInfo?.sectionId || ''
+
+      if (isCollege) {
+        // For college: if they have a section, it must match; if no section, skip filter
+        if (studentSection && !selectedSectionFilter.includes(studentSection)) {
+          return false
+        }
+      } else {
+        // For high school: must have a matching section
+        if (!selectedSectionFilter.includes(studentSection)) {
+          return false
+        }
+      }
     }
 
     // Search filter
@@ -680,45 +971,99 @@ export default function TeacherGradesView({
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-lg">
-            <Calculator size={22} className="text-white" weight="fill" />
+        {/* Header */}
+        <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6">
+          <h1
+            className="text-2xl font-light text-white flex items-center gap-2"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
+            <div className="w-8 h-8 aspect-square bg-white rounded-xl flex items-center justify-center">
+              <Calculator size={20} weight="fill" className="text-blue-900" />
+            </div>
+            Student Grades
+          </h1>
+          <p
+            className="text-xs text-blue-100 mt-1"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
+            View and manage grades for your students
+          </p>
+        </div>
+
+        {/* Search and Filter Skeleton */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <div className="flex items-center gap-4 flex-1">
+            <div className="flex-1">
+              <div className="h-10 bg-gray-200 rounded-xl animate-pulse"></div>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-medium text-gray-900">
-              Student Grades
-            </h1>
-            <p
-              className="text-sm text-gray-600"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              View and manage grades for your students
-            </p>
+          <div className="flex items-center gap-2">
+            <div className="h-10 w-20 bg-gray-200 rounded-lg animate-pulse"></div>
           </div>
         </div>
 
-        <div className="bg-white/90 border border-blue-100 rounded-2xl shadow-sm p-6">
-          <div className="space-y-4 animate-pulse">
-            {[...Array(4)].map((_, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between gap-6"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-12 h-12 rounded-full bg-blue-100"></div>
-                  <div className="space-y-2">
-                    <div className="h-3 bg-blue-100 rounded w-36"></div>
-                    <div className="h-2 bg-blue-100 rounded w-28"></div>
-                    <div className="h-2 bg-blue-50 rounded w-20"></div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-16 h-3 bg-blue-50 rounded"></div>
-                  <div className="w-20 h-3 bg-blue-50 rounded"></div>
-                </div>
-                <div className="w-16 h-8 bg-blue-100 rounded"></div>
-              </div>
-            ))}
+        {/* Table Skeleton */}
+        <div className="bg-white/95 border border-blue-100 rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-6 py-4">
+            <div className="h-6 bg-white/20 rounded w-48 animate-pulse"></div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-blue-50/80 border-b border-blue-200">
+                  <th className="px-6 py-3 text-left">
+                    <div className="h-4 bg-blue-200 rounded w-24 animate-pulse"></div>
+                  </th>
+                  <th className="px-6 py-3 text-left">
+                    <div className="h-4 bg-blue-200 rounded w-20 animate-pulse"></div>
+                  </th>
+                  <th className="px-6 py-3 text-left">
+                    <div className="h-4 bg-blue-200 rounded w-32 animate-pulse"></div>
+                  </th>
+                  <th className="px-6 py-3 text-left">
+                    <div className="h-4 bg-blue-200 rounded w-20 animate-pulse"></div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-blue-50 bg-white">
+                {[...Array(5)].map((_, index) => (
+                  <tr key={index} className="animate-pulse">
+                    <td className="px-6 py-5 border-b border-blue-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gray-200"></div>
+                        <div className="space-y-2">
+                          <div className="h-4 bg-gray-200 rounded w-32"></div>
+                          <div className="h-3 bg-gray-100 rounded w-24"></div>
+                          <div className="h-3 bg-gray-100 rounded w-40"></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 border-b border-blue-50">
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-28"></div>
+                        <div className="h-3 bg-gray-100 rounded w-20"></div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 border-b border-blue-50">
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-24"></div>
+                        <div className="flex gap-2">
+                          <div className="h-6 bg-gray-100 rounded-full w-16"></div>
+                          <div className="h-6 bg-gray-100 rounded-full w-16"></div>
+                          <div className="h-6 bg-gray-100 rounded-full w-16"></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 border-b border-blue-50">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 bg-gray-200 rounded-lg w-20"></div>
+                        <div className="h-8 bg-gray-100 rounded-lg w-20"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -727,167 +1072,247 @@ export default function TeacherGradesView({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-lg">
-          <Calculator size={22} className="text-white" weight="fill" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-medium text-gray-900">Student Grades</h1>
-          <p
-            className="text-sm text-gray-600"
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-          >
-            View and manage grades for your students
-          </p>
-        </div>
+      {/* Header */}
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6">
+        <h1
+          className="text-2xl font-light text-white flex items-center gap-2"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          <div className="w-8 h-8 aspect-square bg-white rounded-xl flex items-center justify-center">
+            <Calculator size={20} weight="fill" className="text-blue-900" />
+          </div>
+          Student Grades
+        </h1>
+        <p
+          className="text-xs text-blue-100 mt-1"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          View and manage grades for your students
+        </p>
       </div>
 
       {/* Search and Filter Controls */}
-      <div className="flex flex-col gap-3">
-        <div className="bg-white/80 border border-blue-100 rounded-xl p-4 shadow-sm">
-          <div className="relative">
-            <MagnifyingGlass
-              size={20}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-900/60"
-            />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <div className="flex items-center gap-4 flex-1">
+          <div className="flex-1">
             <input
               type="text"
               placeholder="Search students..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-2.5 border border-blue-100 rounded-xl bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-900/30 text-sm"
+              className="w-full px-4 py-2.5 border border-blue-100 rounded-xl bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-900/30 text-sm"
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
             />
           </div>
         </div>
-
-        <div className="bg-white/80 border border-blue-100 rounded-xl p-4 shadow-sm space-y-4">
-          {/* Subject Filter Pills */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs uppercase tracking-wide text-blue-900/70">
-              Subjects:
-            </span>
+        <div className="flex items-center gap-2">
+          <div className="relative">
             <button
-              onClick={() =>
-                setSelectedSubjectFilter(
-                  selectedSubjectFilter.length === availableSubjects.length
-                    ? []
-                    : availableSubjects
-                )
-              }
-              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
-                selectedSubjectFilter.length === availableSubjects.length
-                  ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
-                  : 'bg-white text-blue-900 border-blue-100'
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 ${
+                selectedSubjectFilter.length > 0 ||
+                selectedSectionFilter.length > 0
+                  ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
               }`}
-              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
-              {selectedSubjectFilter.length === availableSubjects.length
-                ? 'Clear'
-                : 'All'}
+              <FunnelSimple size={16} weight="bold" />
+              Filter
+              {(selectedSubjectFilter.length > 0 ||
+                selectedSectionFilter.length > 0) && (
+                <span className="w-2 h-2 bg-white rounded-full"></span>
+              )}
             </button>
-            {availableSubjects.map((subjectId) => {
-              const subject = subjects[subjectId]
-              if (!subject) return null
-              const isSelected = selectedSubjectFilter.includes(subjectId)
-              return (
-                <button
-                  key={subjectId}
-                  onClick={() => {
-                    if (isSelected) {
-                      setSelectedSubjectFilter((prev) =>
-                        prev.filter((id) => id !== subjectId)
-                      )
-                    } else {
-                      setSelectedSubjectFilter((prev) => [...prev, subjectId])
-                    }
-                  }}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
-                      : 'bg-white text-blue-900 border-blue-100'
-                  }`}
-                  style={{
-                    fontFamily: 'Poppins',
-                    fontWeight: isSelected ? 400 : 300,
-                  }}
-                >
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{
-                        backgroundColor: getSubjectColor(subject.color),
-                      }}
-                    ></span>
-                    {subject.code}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
 
-          {/* Section Filter Pills */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs uppercase tracking-wide text-blue-900/70">
-              Sections:
-            </span>
-            <button
-              onClick={() =>
-                setSelectedSectionFilter(
-                  selectedSectionFilter.length === availableSections.length
-                    ? []
-                    : availableSections
-                )
-              }
-              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
-                selectedSectionFilter.length === availableSections.length
-                  ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
-                  : 'bg-white text-blue-900 border-blue-100'
-              }`}
-              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-            >
-              {selectedSectionFilter.length === availableSections.length
-                ? 'Clear'
-                : 'All'}
-            </button>
-            {availableSections.map((sectionId) => {
-              const section = sections[sectionId] || sectionsMap[sectionId]
-              if (!section) return null
-              const isSelected = selectedSectionFilter.includes(sectionId)
-              return (
-                <button
-                  key={sectionId}
-                  onClick={() => {
-                    if (isSelected) {
-                      setSelectedSectionFilter((prev) =>
-                        prev.filter((id) => id !== sectionId)
-                      )
-                    } else {
-                      setSelectedSectionFilter((prev) => [...prev, sectionId])
-                    }
-                  }}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
-                      : 'bg-white text-blue-900 border-blue-100'
-                  }`}
-                  style={{
-                    fontFamily: 'Poppins',
-                    fontWeight: isSelected ? 400 : 300,
-                  }}
-                >
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{
-                        backgroundColor: getGradeColor(section),
-                      }}
-                    ></span>
-                    {section.sectionName}
-                  </span>
-                </button>
-              )
-            })}
+            {/* Filter Dropdown */}
+            {showFilterDropdown && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowFilterDropdown(false)}
+                ></div>
+                <div className="absolute right-0 mt-2 w-96 bg-white border border-gray-200 shadow-lg rounded-xl z-20 p-6">
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium text-gray-900">
+                        Filter Options
+                      </h3>
+                      <button
+                        onClick={() => setShowFilterDropdown(false)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    {/* Subject Filter Pills */}
+                    <div>
+                      <label className="text-xs text-gray-700 mb-3 block">
+                        Subjects
+                      </label>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <button
+                          onClick={() =>
+                            setSelectedSubjectFilter(
+                              selectedSubjectFilter.length ===
+                                availableSubjects.length
+                                ? []
+                                : availableSubjects
+                            )
+                          }
+                          className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
+                            selectedSubjectFilter.length ===
+                            availableSubjects.length
+                              ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
+                              : 'bg-white text-blue-900 border-blue-100'
+                          }`}
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          {selectedSubjectFilter.length ===
+                          availableSubjects.length
+                            ? 'Clear'
+                            : 'All'}
+                        </button>
+                        {availableSubjects.map((subjectId) => {
+                          const subject = subjects[subjectId]
+                          if (!subject) return null
+                          const isSelected =
+                            selectedSubjectFilter.includes(subjectId)
+                          return (
+                            <button
+                              key={subjectId}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedSubjectFilter((prev) =>
+                                    prev.filter((id) => id !== subjectId)
+                                  )
+                                } else {
+                                  setSelectedSubjectFilter((prev) => [
+                                    ...prev,
+                                    subjectId,
+                                  ])
+                                }
+                              }}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
+                                isSelected
+                                  ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
+                                  : 'bg-white text-blue-900 border-blue-100'
+                              }`}
+                              style={{
+                                fontFamily: 'Poppins',
+                                fontWeight: isSelected ? 400 : 300,
+                              }}
+                            >
+                              <span className="flex items-center gap-2">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full"
+                                  style={{
+                                    backgroundColor: getSubjectColor(
+                                      subject.color
+                                    ),
+                                  }}
+                                ></span>
+                                {subject.code}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Section Filter Pills */}
+                    <div>
+                      <label className="text-xs text-gray-700 mb-3 block">
+                        Sections
+                      </label>
+                      <div className="flex items-center gap-2 flex-wrap mb-3">
+                        <button
+                          onClick={() =>
+                            setSelectedSectionFilter(
+                              selectedSectionFilter.length ===
+                                availableSections.length
+                                ? []
+                                : availableSections
+                            )
+                          }
+                          className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
+                            selectedSectionFilter.length ===
+                            availableSections.length
+                              ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
+                              : 'bg-white text-blue-900 border-blue-100'
+                          }`}
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          {selectedSectionFilter.length ===
+                          availableSections.length
+                            ? 'Clear'
+                            : 'All'}
+                        </button>
+                        {availableSections.map((sectionId) => {
+                          const section =
+                            sections[sectionId] || sectionsMap[sectionId]
+                          if (!section) return null
+                          const isSelected =
+                            selectedSectionFilter.includes(sectionId)
+                          return (
+                            <button
+                              key={sectionId}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedSectionFilter((prev) =>
+                                    prev.filter((id) => id !== sectionId)
+                                  )
+                                } else {
+                                  setSelectedSectionFilter((prev) => [
+                                    ...prev,
+                                    sectionId,
+                                  ])
+                                }
+                              }}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
+                                isSelected
+                                  ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
+                                  : 'bg-white text-blue-900 border-blue-100'
+                              }`}
+                              style={{
+                                fontFamily: 'Poppins',
+                                fontWeight: isSelected ? 400 : 300,
+                              }}
+                            >
+                              <span className="flex items-center gap-2">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full"
+                                  style={{
+                                    backgroundColor: getGradeColor(section),
+                                  }}
+                                ></span>
+                                {section.sectionName}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Clear Filters */}
+                    {(selectedSubjectFilter.length > 0 ||
+                      selectedSectionFilter.length > 0) && (
+                      <button
+                        onClick={() => {
+                          setSelectedSubjectFilter([])
+                          setSelectedSectionFilter([])
+                        }}
+                        className="w-full px-3 py-2 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      >
+                        Clear All Filters
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -1025,10 +1450,10 @@ export default function TeacherGradesView({
                 </span>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
+                <table className="w-full border border-blue-100">
+                  <thead className="border-b border-blue-100">
                     <tr className="bg-blue-50/80 text-blue-900 text-[11px] uppercase tracking-wide">
-                      <th className="px-6 py-3 text-left font-medium">
+                      <th className="px-6 py-3 text-left font-medium border-r border-blue-100 last:border-r-0">
                         <div className="flex items-center gap-2">
                           <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
                             <Users size={14} weight="bold" />
@@ -1036,7 +1461,7 @@ export default function TeacherGradesView({
                           Student
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left font-medium">
+                      <th className="px-6 py-3 text-left font-medium border-r border-blue-100 last:border-r-0">
                         <div className="flex items-center gap-2">
                           <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
                             <BookOpen size={14} weight="bold" />
@@ -1044,7 +1469,7 @@ export default function TeacherGradesView({
                           Section
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left font-medium">
+                      <th className="px-6 py-3 text-left font-medium border-r border-blue-100 last:border-r-0">
                         <div className="flex items-center gap-2">
                           <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
                             <Calculator size={14} weight="bold" />
@@ -1062,7 +1487,7 @@ export default function TeacherGradesView({
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-blue-50 bg-white">
+                  <tbody className="bg-white divide-y divide-blue-50">
                     {filteredStudents.map(
                       ({ enrollment, grades: studentGradesData, section }) => {
                         const studentId = enrollment.userId
@@ -1070,11 +1495,51 @@ export default function TeacherGradesView({
                           enrollment.enrollmentInfo?.sectionId
                         const profile = studentProfiles[enrollment.userId]
 
-                        // Get subjects taught by this teacher in this student's section
-                        const teacherSubjects = assignments
-                          .filter((a) => a.sectionId === studentSection)
-                          .map((a) => subjects[a.subjectId])
-                          .filter(Boolean)
+                        // Get subjects taught by this teacher
+                        const isCollege =
+                          enrollment.enrollmentInfo?.level === 'college'
+                        const studentSubjects =
+                          enrollment.selectedSubjects || []
+                        const currentStudentGrades =
+                          studentGrades[enrollment.userId] || {}
+                        const studentGradeSubjects = Object.keys(
+                          currentStudentGrades
+                        ).filter(
+                          (key) =>
+                            ![
+                              'studentName',
+                              'studentSection',
+                              'studentLevel',
+                              'studentSemester',
+                              'createdAt',
+                              'updatedAt',
+                            ].includes(key)
+                        )
+
+                        // For college students: show ALL subjects teacher is assigned to in their section
+                        // For high school: show subjects teacher is assigned to in their section
+                        const teacherSubjects = isCollege
+                          ? assignments
+                              .filter((a) => {
+                                // If student has section, show all subjects teacher teaches in that section
+                                if (
+                                  studentSection &&
+                                  a.sectionId === studentSection
+                                ) {
+                                  return true
+                                }
+                                // Fallback: check if student has this subject
+                                return (
+                                  studentSubjects.includes(a.subjectId) ||
+                                  studentGradeSubjects.includes(a.subjectId)
+                                )
+                              })
+                              .map((a) => subjects[a.subjectId])
+                              .filter(Boolean)
+                          : assignments
+                              .filter((a) => a.sectionId === studentSection)
+                              .map((a) => subjects[a.subjectId])
+                              .filter(Boolean)
 
                         return (
                           <tr
@@ -1082,9 +1547,9 @@ export default function TeacherGradesView({
                             className="hover:bg-blue-50/50 transition-colors"
                           >
                             {/* Student Column */}
-                            <td className="px-6 py-5 border-b border-blue-50">
+                            <td className="px-6 py-5 border-b border-blue-50 border-r border-blue-100 last:border-r-0">
                               <div className="flex items-center">
-                                <div className="flex-shrink-0 h-10 w-10 relative mr-3">
+                                <div className="flex-shrink-0 h-12 w-12 relative mr-3">
                                   {profile?.photoURL ? (
                                     <img
                                       src={profile.photoURL}
@@ -1092,102 +1557,166 @@ export default function TeacherGradesView({
                                         enrollment.personalInfo.firstName ||
                                         'Student'
                                       } profile`}
-                                      className="h-10 w-10 rounded-full object-cover border-2 border-black/80"
+                                      className="h-12 w-12 rounded-full object-cover border-2 border-blue-900/30 shadow-sm"
                                     />
                                   ) : (
-                                    <div className="h-10 w-10 rounded-full bg-blue-900 flex items-center justify-center border-2 border-black/80">
-                                      <span
-                                        className="text-white text-xs font-medium"
-                                        style={{
-                                          fontFamily: 'Poppins',
-                                          fontWeight: 400,
-                                        }}
-                                      >
-                                        {getInitials(
-                                          enrollment.personalInfo.firstName,
-                                          enrollment.personalInfo.lastName
-                                        )}
-                                      </span>
+                                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center text-white font-semibold border-2 border-white shadow-sm">
+                                      {getInitials(
+                                        enrollment.personalInfo.firstName,
+                                        enrollment.personalInfo.lastName
+                                      )}
                                     </div>
                                   )}
                                 </div>
-                                <div>
-                                  <div className="text-xs font-medium text-gray-900">
+                                <div className="space-y-1">
+                                  <p className="text-sm font-semibold text-gray-900">
                                     {formatFullName(enrollment)}
-                                  </div>
-                                  <div className="text-xs text-gray-500 font-mono">
+                                  </p>
+                                  <p className="text-xs text-gray-500 font-mono">
                                     ID:{' '}
-                                    {enrollment.enrollmentInfo?.studentId ||
+                                    {studentProfiles[enrollment.userId]
+                                      ?.studentId ||
+                                      enrollment.enrollmentInfo?.studentId ||
                                       'N/A'}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
+                                  </p>
+                                  <p className="text-xs text-gray-500">
                                     {enrollment.personalInfo.email}
-                                  </div>
+                                  </p>
                                 </div>
                               </div>
                             </td>
 
                             {/* Section Column */}
-                            <td className="px-6 py-5 border-b border-blue-50">
-                              <div>
-                                <div className="text-xs font-medium text-gray-900">
+                            <td className="px-6 py-5 border-b border-blue-50 border-r border-blue-100 last:border-r-0">
+                              <div className="space-y-1 text-sm text-gray-900">
+                                {isCollege ? (
                                   <div className="flex items-center gap-2">
-                                    <div
-                                      className="w-3 h-3 flex-shrink-0"
-                                      style={{
-                                        backgroundColor: getGradeColor(section),
-                                      }}
-                                    ></div>
-                                    {enrollment.enrollmentInfo?.gradeLevel ||
-                                      'N/A'}{' '}
-                                    {section
-                                      ? `${section.sectionName}`
-                                      : 'Unassigned'}
+                                    <span className="px-2 py-0.5 bg-blue-50 text-blue-900 rounded-full text-xs">
+                                      {enrollment.enrollmentInfo?.courseCode ||
+                                        'N/A'}{' '}
+                                      {enrollment.enrollmentInfo?.yearLevel ||
+                                        ''}
+                                    </span>
+                                    {enrollment.enrollmentInfo?.semester && (
+                                      <span className="text-xs text-gray-500">
+                                        {enrollment.enrollmentInfo.semester ===
+                                        'first-sem'
+                                          ? '1st Sem'
+                                          : '2nd Sem'}
+                                      </span>
+                                    )}
                                   </div>
-                                </div>
-                                <div className="text-xs text-gray-500 font-mono">
-                                  Section {section?.rank}
-                                </div>
+                                ) : (
+                                  <>
+                                    <div className="flex items-center gap-2">
+                                      <span
+                                        className="w-2.5 h-2.5 rounded-full"
+                                        style={{
+                                          backgroundColor:
+                                            getGradeColor(section),
+                                        }}
+                                      ></span>
+                                      {enrollment.enrollmentInfo?.gradeLevel ||
+                                        'N/A'}{' '}
+                                      •{' '}
+                                      {section
+                                        ? section.sectionName
+                                        : 'Unassigned'}
+                                    </div>
+                                    {section?.rank && (
+                                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                        <span className="px-2 py-0.5 bg-blue-50 text-blue-900 rounded-full">
+                                          Section {section?.rank}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                                {isCollege && section && (
+                                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                                    <span className="px-2 py-0.5 bg-blue-50 text-blue-900 rounded-full">
+                                      {section.sectionName}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </td>
 
                             {/* Subjects Column */}
-                            <td className="px-6 py-5 border-b border-blue-50">
-                              <div className="text-left">
-                                <div className="text-sm font-medium text-gray-900 font-mono">
-                                  {teacherSubjects.length}{' '}
-                                  {teacherSubjects.length === 1
-                                    ? 'Subject'
-                                    : 'Subjects'}
+                            <td className="px-6 py-5 border-b border-blue-50 border-r border-blue-100 last:border-r-0">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                                  <span className="px-2 py-0.5 text-xs bg-blue-50 text-blue-900 rounded-full">
+                                    {teacherSubjects.length}{' '}
+                                    {teacherSubjects.length === 1
+                                      ? 'Subject'
+                                      : 'Subjects'}
+                                  </span>
                                 </div>
-                                <div
-                                  className="text-xs text-gray-500"
-                                  style={{
-                                    fontFamily: 'Poppins',
-                                    fontWeight: 300,
-                                  }}
-                                >
-                                  Assigned
+                                <div className="flex flex-wrap gap-1.5">
+                                  {teacherSubjects
+                                    .slice(0, 2)
+                                    .map((subject) => (
+                                      <span
+                                        key={subject.id}
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-blue-100 bg-blue-50 text-xs text-blue-900"
+                                      >
+                                        <span
+                                          className="w-2 h-2 rounded-full"
+                                          style={{
+                                            backgroundColor: getSubjectColor(
+                                              subject.color
+                                            ),
+                                          }}
+                                        ></span>
+                                        {subject.code}
+                                      </span>
+                                    ))}
+                                  {teacherSubjects.length > 2 && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-blue-100 bg-blue-50 text-xs text-blue-900 font-medium">
+                                      +{teacherSubjects.length - 2} more
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </td>
 
                             {/* Actions Column */}
                             <td className="px-6 py-5 border-b border-blue-50">
-                              <Button
-                                onClick={() =>
-                                  handleEditGrades(studentId, studentGradesData)
-                                }
-                                size="sm"
-                                className="bg-blue-900 hover:bg-blue-900"
-                                style={{
-                                  fontFamily: 'Poppins',
-                                  fontWeight: 300,
-                                }}
-                              >
-                                <Pencil size={14} className="mr-1" />
-                                Edit Grades
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  onClick={() =>
+                                    handleEditGrades(
+                                      studentId,
+                                      studentGradesData
+                                    )
+                                  }
+                                  size="sm"
+                                  className="bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-700 hover:to-blue-900 text-white shadow-sm px-4 rounded-lg"
+                                  style={{
+                                    fontFamily: 'Poppins',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  <Pencil size={14} className="mr-2" />
+                                  Update
+                                </Button>
+                                <Button
+                                  onClick={() => {
+                                    // Print functionality to be implemented
+                                  }}
+                                  size="sm"
+                                  variant="outline"
+                                  className="rounded-lg"
+                                  style={{
+                                    fontFamily: 'Poppins',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  <Printer size={14} className="mr-2" />
+                                  Print
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         )
@@ -1213,11 +1742,51 @@ export default function TeacherGradesView({
                   const studentSection = enrollment?.enrollmentInfo?.sectionId
                   const profile = studentProfiles[editingStudent]
 
-                  // Get subjects taught by this teacher in this student's section
-                  const teacherSubjects = assignments
-                    .filter((a) => a.sectionId === studentSection)
-                    .map((a) => subjects[a.subjectId])
-                    .filter(Boolean)
+                  // Get subjects taught by this teacher
+                  const isCollege =
+                    enrollment.enrollmentInfo?.level === 'college'
+                  const studentSubjects = enrollment.selectedSubjects || []
+                  const currentStudentGrades =
+                    studentGrades[editingStudent] || {}
+                  const studentGradeSubjects = Object.keys(
+                    currentStudentGrades
+                  ).filter(
+                    (key) =>
+                      ![
+                        'studentName',
+                        'studentSection',
+                        'studentLevel',
+                        'studentSemester',
+                        'createdAt',
+                        'updatedAt',
+                      ].includes(key)
+                  )
+
+                  // For college students: get subjects from teacher's assignments to their section
+                  // OR from their selectedSubjects if available
+                  // OR from their grades (if they have grades, they have those subjects)
+                  const teacherSubjects = isCollege
+                    ? assignments
+                        .filter((a) => {
+                          // If student has section, match by section (primary method)
+                          if (
+                            studentSection &&
+                            a.sectionId === studentSection
+                          ) {
+                            return true
+                          }
+                          // Otherwise check if student has this subject in selectedSubjects or grades
+                          return (
+                            studentSubjects.includes(a.subjectId) ||
+                            studentGradeSubjects.includes(a.subjectId)
+                          )
+                        })
+                        .map((a) => subjects[a.subjectId])
+                        .filter(Boolean)
+                    : assignments
+                        .filter((a) => a.sectionId === studentSection)
+                        .map((a) => subjects[a.subjectId])
+                        .filter(Boolean)
 
                   return (
                     <>
@@ -1250,8 +1819,19 @@ export default function TeacherGradesView({
                             </h3>
                             <p className="text-sm text-gray-700 font-mono">
                               ID:{' '}
-                              {enrollment.enrollmentInfo?.studentId || 'N/A'} •{' '}
-                              {enrollment.enrollmentInfo?.gradeLevel}{' '}
+                              {studentProfiles[editingStudent]?.studentId ||
+                                enrollment.enrollmentInfo?.studentId ||
+                                'N/A'}{' '}
+                              •{' '}
+                              {enrollment.enrollmentInfo?.gradeLevel ||
+                                (enrollment.enrollmentInfo?.level === 'college'
+                                  ? `${
+                                      enrollment.enrollmentInfo?.courseCode ||
+                                      ''
+                                    } ${
+                                      enrollment.enrollmentInfo?.yearLevel || ''
+                                    }`
+                                  : 'N/A')}{' '}
                               {sections[studentSection || '']?.sectionName ||
                                 sectionsMap[studentSection || '']
                                   ?.sectionName ||
@@ -1704,7 +2284,7 @@ export default function TeacherGradesView({
                         <Button
                           onClick={handleCancelEdit}
                           variant="outline"
-                          className="flex-1"
+                          className="flex-1 rounded-lg"
                         >
                           <X size={16} className="mr-2" />
                           Cancel
@@ -1712,7 +2292,7 @@ export default function TeacherGradesView({
                         <Button
                           onClick={() => handleSaveGrades(editingStudent)}
                           disabled={saving[editingStudent]}
-                          className="flex-1 bg-blue-900 hover:bg-blue-900"
+                          className="flex-1 bg-blue-900 hover:bg-blue-900 rounded-lg"
                         >
                           {saving[editingStudent] ? (
                             <>

@@ -18,6 +18,7 @@ import ChatInterface from '@/components/chat/chat-interface'
 import TaskManager from '@/components/task-manager'
 import EventsSidebar from '@/components/events-sidebar'
 import RegistrarAnalytics from '@/components/registrar-analytics'
+import RegistrarProfileModal from '@/components/registrar-profile-modal'
 import { ContactData } from '@/lib/chat-database'
 import {
   collection,
@@ -56,6 +57,7 @@ import {
   Users as UsersIcon,
   PaperPlaneTilt,
   ListChecks,
+  ArrowBendLeftUp,
 } from '@phosphor-icons/react'
 
 interface RegistrarData {
@@ -63,7 +65,12 @@ interface RegistrarData {
   email: string
   firstName: string
   lastName: string
+  middleName?: string
+  nameExtension?: string
+  birthday?: string
+  photoURL?: string
   role: string
+  permissions?: string[] // For teachers accessing registrar dashboard
 }
 
 type ViewType =
@@ -106,7 +113,17 @@ export default function RegistrarPage() {
     null
   )
   const [contactsLoading, setContactsLoading] = useState(false)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [searchQuery, setSearchQuery] = useState('')
+  const [showProfileModal, setShowProfileModal] = useState(false)
+  const [sidebarCounts, setSidebarCounts] = useState<{
+    enrollments: { pending: number; regular: number; irregular: number }
+    teachers: { faculty: number }
+    subjects: { subjects: number; subjectSets: number }
+    courses: { courses: number }
+    gradesAndSections: { grades: number; sections: number }
+    events: { due: number; upcoming: number; expired: number }
+  } | null>(null)
   const previousContacts = useRef<ContactData[]>([])
   const chatInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -125,8 +142,8 @@ export default function RegistrarPage() {
 
     const checkRegistrarAccess = async () => {
       try {
-        // Check registrar role using UID and email
-        const response = await fetch('/api/registrar/check-role', {
+        // First check if user is a registrar
+        const registrarResponse = await fetch('/api/registrar/check-role', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -137,16 +154,46 @@ export default function RegistrarPage() {
           }),
         })
 
-        const data = await response.json()
-
-        if (response.ok) {
-          setRegistrar(data.registrar)
-        } else {
-          setError(data.error || 'Access denied')
-          setTimeout(() => {
-            router.push('/')
-          }, 3000)
+        if (registrarResponse.ok) {
+          const registrarData = await registrarResponse.json()
+          setRegistrar(registrarData.registrar)
+          setLoading(false)
+          return
         }
+
+        // If not registrar, check if user is a teacher with permissions
+        const teacherResponse = await fetch('/api/teachers/check-role', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+          }),
+        })
+
+        if (teacherResponse.ok) {
+          const teacherData = await teacherResponse.json()
+          // Convert teacher data to registrar format for compatibility
+          setRegistrar({
+            uid: teacherData.teacher.uid,
+            email: teacherData.teacher.email,
+            firstName: teacherData.teacher.firstName,
+            lastName: teacherData.teacher.lastName,
+            middleName: teacherData.teacher.middleName,
+            role: 'teacher',
+            permissions: teacherData.teacher.permissions || [],
+          })
+          setLoading(false)
+          return
+        }
+
+        // Neither registrar nor teacher
+        setError('Access denied')
+        setTimeout(() => {
+          router.push('/')
+        }, 3000)
       } catch (error: any) {
         setError('Failed to verify access: ' + error.message)
         setTimeout(() => {
@@ -159,6 +206,41 @@ export default function RegistrarPage() {
 
     checkRegistrarAccess()
   }, [user, authLoading, router])
+
+  // Set default view for teachers based on permissions
+  useEffect(() => {
+    if (registrar?.role === 'teacher' && registrar?.permissions) {
+      // If current view is not in permissions, redirect to first allowed view
+      if (!registrar.permissions.includes(currentView)) {
+        const firstAllowedView = registrar.permissions[0] as ViewType
+        if (firstAllowedView) {
+          setCurrentView(firstAllowedView)
+        }
+      }
+    }
+  }, [registrar, currentView])
+
+  // Fetch sidebar counts
+  useEffect(() => {
+    const fetchSidebarCounts = async () => {
+      try {
+        const response = await fetch('/api/registrar/sidebar-counts')
+        const data = await response.json()
+        if (data.success && data.counts) {
+          setSidebarCounts(data.counts)
+        }
+      } catch (error) {
+        console.error('Error fetching sidebar counts:', error)
+      }
+    }
+
+    if (registrar) {
+      fetchSidebarCounts()
+      // Refresh counts every 30 seconds
+      const interval = setInterval(fetchSidebarCounts, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [registrar])
 
   // Auto-scroll to bottom when new messages are added or during typewriter effect
   useEffect(() => {
@@ -256,6 +338,16 @@ export default function RegistrarPage() {
     typeWriterEffect(welcomeMessage.id, welcomeMessage.content, 45) // Faster typing for welcome message
   }, [])
 
+  // Mouse movement effect for background glow
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY })
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
+
   const handleSignOut = async () => {
     try {
       await signOut()
@@ -266,13 +358,68 @@ export default function RegistrarPage() {
   }
 
   const handleNavigation = (view: ViewType) => {
+    // If user is a teacher, check if they have permission for this view
+    if (registrar?.role === 'teacher' && registrar?.permissions) {
+      if (!registrar.permissions.includes(view)) {
+        // Redirect to first allowed view
+        const firstAllowedView = registrar.permissions[0] as ViewType
+        if (firstAllowedView) {
+          setCurrentView(firstAllowedView)
+          toast.error('You do not have permission to access this section')
+          return
+        }
+      }
+    }
     setCurrentView(view)
   }
 
   const handleSettingsClick = () => {
-    toast.info('Profile settings are coming soon.', {
-      autoClose: 3000,
-    })
+    setShowProfileModal(true)
+  }
+
+  const handleProfileUpdate = async () => {
+    // Reload registrar data after profile update
+    if (user) {
+      try {
+        const response = await fetch('/api/registrar/check-role', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          setRegistrar(data.registrar)
+        }
+
+        // Refresh contacts if chat sidebar is open
+        if (sidebarView === 'chat' && user.uid) {
+          try {
+            const contactsResponse = await fetch(
+              `/api/chat/contacts?userId=${user.uid}&role=registrar`
+            )
+            const contactsData = await contactsResponse.json()
+
+            if (contactsData.success) {
+              setContacts((prevContacts) => {
+                previousContacts.current = [...prevContacts]
+                return contactsData.contacts
+              })
+            }
+          } catch (error) {
+            console.error('Error refreshing contacts:', error)
+          }
+        }
+      } catch (error) {
+        console.error('Error reloading registrar data:', error)
+      }
+    }
   }
 
   const handleToggleLeftSidebar = () => {
@@ -499,65 +646,120 @@ export default function RegistrarPage() {
 
   const isArrangeViewActive = isArrangeView && !isLeftCollapsed
 
-  const navigationItems = useMemo(
-    () => [
+  const navigationItems = useMemo(() => {
+    const allItems = [
       {
         view: 'overview' as ViewType,
         label: 'Overview',
         description: 'Dashboard summary',
         icon: House,
+        counts: null,
       },
       {
         view: 'student-enrollments' as ViewType,
         label: 'Student Enrollments',
         description: 'Enrollment pipeline',
         icon: Users,
+        counts: sidebarCounts?.enrollments
+          ? [
+              { label: 'pending', value: sidebarCounts.enrollments.pending },
+              { label: 'regular', value: sidebarCounts.enrollments.regular },
+              {
+                label: 'irregular',
+                value: sidebarCounts.enrollments.irregular,
+              },
+            ]
+          : null,
       },
       {
         view: 'student-management' as ViewType,
         label: 'Student Management',
         description: 'Academic records',
         icon: GraduationCap,
+        counts: null,
       },
       {
         view: 'teacher-management' as ViewType,
         label: 'Teacher Management',
         description: 'Faculty overview',
         icon: GraduationCap,
+        counts: sidebarCounts?.teachers
+          ? [{ label: 'faculty', value: sidebarCounts.teachers.faculty }]
+          : null,
       },
       {
         view: 'subject-management' as ViewType,
         label: 'Subject Management',
         description: 'Curriculum tools',
         icon: BookOpen,
+        counts: sidebarCounts?.subjects
+          ? [
+              { label: 'subjects', value: sidebarCounts.subjects.subjects },
+              {
+                label: 'subject sets',
+                value: sidebarCounts.subjects.subjectSets,
+              },
+            ]
+          : null,
       },
       {
         view: 'course-management' as ViewType,
         label: 'Course Management',
         description: 'Programs catalog',
         icon: BookOpen,
+        counts: sidebarCounts?.courses
+          ? [{ label: 'courses', value: sidebarCounts.courses.courses }]
+          : null,
       },
       {
         view: 'grade-section-management' as ViewType,
         label: 'Grades & Sections',
         description: 'Section builder',
         icon: MemberOfIcon,
+        counts: sidebarCounts?.gradesAndSections
+          ? [
+              {
+                label: 'grades',
+                value: sidebarCounts.gradesAndSections.grades,
+              },
+              {
+                label: 'sections',
+                value: sidebarCounts.gradesAndSections.sections,
+              },
+            ]
+          : null,
       },
       {
         view: 'events-management' as ViewType,
         label: 'Events & Announcements',
         description: 'Content management',
         icon: Bell,
+        counts: sidebarCounts?.events
+          ? [
+              { label: 'due', value: sidebarCounts.events.due },
+              { label: 'upcoming', value: sidebarCounts.events.upcoming },
+              { label: 'expired', value: sidebarCounts.events.expired },
+            ]
+          : null,
       },
       {
         view: 'analytics' as ViewType,
         label: 'Analytics & Reports',
         description: 'Student insights',
         icon: ChartBar,
+        counts: null,
       },
-    ],
-    []
-  )
+    ]
+
+    // If user is a teacher with permissions, filter navigation items
+    if (registrar?.role === 'teacher' && registrar?.permissions) {
+      const allowedViews = registrar.permissions
+      return allItems.filter((item) => allowedViews.includes(item.view))
+    }
+
+    // Registrar sees all items
+    return allItems
+  }, [sidebarCounts, registrar])
 
   if (loading || authLoading) {
     return (
@@ -639,7 +841,15 @@ export default function RegistrarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-blue-100 flex min-w-[1200px]">
+    <div className="min-h-screen bg-blue-50   bg-[linear-gradient(rgba(59,130,246,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.05)_1px,transparent_1px)] bg-[size:20px_20px] flex min-w-[1200px]">
+      {/* Mouse-following glow effect */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{
+          background: `radial-gradient(circle 240px at ${mousePosition.x}px ${mousePosition.y}px, rgba(59, 130, 246, 0.15), transparent 40%)`,
+          transition: 'background 0.3s ease-out',
+        }}
+      />
       {/* Left Sidebar */}
       <aside
         className={`${leftSidebarLayout.widthClass} bg-white/60 shadow-lg flex flex-col transition-all duration-300 h-screen fixed left-0 top-0 z-10 border-r border-blue-100`}
@@ -727,9 +937,9 @@ export default function RegistrarPage() {
           <div className="px-4 py-5 border-b border-blue-100 bg-gray-50/70 flex flex-col gap-4">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center border-2 border-blue-900">
-                {user?.photoURL ? (
+                {user?.photoURL || registrar?.photoURL ? (
                   <img
-                    src={user.photoURL}
+                    src={user?.photoURL || registrar?.photoURL || ''}
                     alt="Profile"
                     className="w-full h-full object-cover rounded-full aspect-square"
                   />
@@ -745,7 +955,7 @@ export default function RegistrarPage() {
                   {registrar?.email}
                 </p>
                 <p className="text-xs text-gray-600 font-mono font-medium">
-                  Registrar
+                  {registrar?.role === 'teacher' ? 'Teacher' : 'Registrar'}
                 </p>
               </div>
             </div>
@@ -756,10 +966,15 @@ export default function RegistrarPage() {
           {!isLeftCollapsed && (
             <div className="px-1 mb-3">
               <h4 className="text-sm font-medium text-blue-900 tracking-wide">
-                Hey {registrar?.firstName || 'Registrar'}!
+                Hey{' '}
+                {registrar?.firstName ||
+                  (registrar?.role === 'teacher' ? 'Teacher' : 'Registrar')}
+                !
               </h4>
               <p className="text-xs text-blue-900/70">
-                What would you like to manage today?
+                {registrar?.role === 'teacher'
+                  ? 'Access granted sections'
+                  : 'What would you like to manage today?'}
               </p>
             </div>
           )}
@@ -864,7 +1079,7 @@ export default function RegistrarPage() {
                       {item.label.split(' ')[0]}
                     </span>
                   ) : (
-                    <span className="flex flex-col items-start">
+                    <span className="flex flex-col items-start flex-1">
                       <span
                         className={`text-sm font-medium ${
                           isActive ? 'text-white' : 'text-blue-900'
@@ -879,6 +1094,61 @@ export default function RegistrarPage() {
                       >
                         {item.description}
                       </span>
+                      {item.counts && item.counts.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {item.counts.map((count, idx) => {
+                            // Color mapping for different count types
+                            const getBadgeColor = (label: string) => {
+                              if (label === 'pending') {
+                                return 'bg-yellow-500'
+                              } else if (label === 'regular') {
+                                return 'bg-green-500'
+                              } else if (label === 'irregular') {
+                                return 'bg-orange-500'
+                              } else if (label === 'faculty') {
+                                return 'bg-blue-500'
+                              } else if (label === 'subjects') {
+                                return 'bg-purple-500'
+                              } else if (label === 'subject sets') {
+                                return 'bg-indigo-500'
+                              } else if (label === 'courses') {
+                                return 'bg-teal-500'
+                              } else if (label === 'grades') {
+                                return 'bg-pink-500'
+                              } else if (label === 'sections') {
+                                return 'bg-cyan-500'
+                              } else if (label === 'due') {
+                                return 'bg-green-500'
+                              } else if (label === 'upcoming') {
+                                return 'bg-blue-500'
+                              } else if (label === 'expired') {
+                                return 'bg-red-500'
+                              }
+                              return 'bg-blue-900'
+                            }
+
+                            return (
+                              <span
+                                key={idx}
+                                className={`flex items-center gap-1.5 text-[10px] font-medium px-2 py-0.5 rounded-lg bg-white ${
+                                  isActive ? 'text-blue-900' : 'text-blue-900'
+                                }`}
+                                style={{
+                                  fontFamily: 'monospace',
+                                  fontWeight: 500,
+                                }}
+                              >
+                                <span
+                                  className={`w-2 h-2 rounded-full ${getBadgeColor(
+                                    count.label
+                                  )}`}
+                                />
+                                {count.value} {count.label}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )}
                     </span>
                   )}
                 </button>
@@ -886,7 +1156,7 @@ export default function RegistrarPage() {
             })}
           </div>
 
-          {!isArrangeViewActive && (
+          {!isArrangeViewActive && registrar?.role === 'teacher' && (
             <div className="pt-4 mt-4 border-t border-blue-100">
               <div
                 className={`border border-dashed border-blue-200 text-blue-900/70 rounded-xl transition-all duration-200 ${
@@ -896,23 +1166,34 @@ export default function RegistrarPage() {
                 }`}
               >
                 <div className="flex items-center justify-center bg-blue-900 rounded-lg w-8 h-8 mb-2">
-                  <ChartBar size={16} className="text-white" weight="fill" />
+                  <ArrowBendLeftUp
+                    size={16}
+                    className="text-white"
+                    weight="fill"
+                  />
                 </div>
                 {isLeftCollapsed ? (
                   <span className="text-[10px] font-medium uppercase tracking-wide text-blue-900">
-                    Reports
+                    Return
                   </span>
                 ) : (
                   <button
                     type="button"
-                    onClick={() => handleNavigation('analytics')}
+                    onClick={() => router.push('/teacher')}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        router.push('/teacher')
+                      }
+                    }}
                     className="w-full text-left space-y-1"
+                    aria-label="Return to teacher dashboard"
                   >
                     <p className="text-sm font-medium text-gray-900">
-                      Reports & Analytics
+                      Return to Teacher's Dashboard
                     </p>
                     <p className="text-xs text-blue-900/70">
-                      View student insights and statistics.
+                      Go back to your teacher dashboard.
                     </p>
                   </button>
                 )}
@@ -934,7 +1215,9 @@ export default function RegistrarPage() {
               </span>
               <span className="flex flex-col items-start">
                 <span className="text-sm font-medium text-red-800">
-                  Sign Out {registrar?.firstName || 'Registrar'}
+                  Sign Out{' '}
+                  {registrar?.firstName ||
+                    (registrar?.role === 'teacher' ? 'Teacher' : 'Registrar')}
                 </span>
                 <span className="text-[11px] text-red-800/70">Log out</span>
               </span>
@@ -947,8 +1230,8 @@ export default function RegistrarPage() {
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${mainContentSpacing}`}
       >
-        {currentView === 'overview' && (
-          <RegistrarOverview registrarUid={registrar?.uid || ''} />
+        {currentView === 'overview' && registrar && (
+          <RegistrarOverview registrarUid={registrar.uid} />
         )}
 
         {currentView === 'student-enrollments' && registrar && (
@@ -1712,6 +1995,16 @@ export default function RegistrarPage() {
             </div>
           )}
         </aside>
+      )}
+
+      {/* Profile Modal */}
+      {registrar && (
+        <RegistrarProfileModal
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          registrar={registrar}
+          onUpdate={handleProfileUpdate}
+        />
       )}
 
       <style jsx>{`

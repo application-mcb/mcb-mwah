@@ -31,6 +31,10 @@ export async function POST(request: NextRequest) {
               email: registrarByEmail.email,
               firstName: registrarByEmail.firstName,
               lastName: registrarByEmail.lastName,
+              middleName: registrarByEmail.middleName,
+              nameExtension: registrarByEmail.nameExtension,
+              birthday: registrarByEmail.birthday,
+              photoURL: registrarByEmail.photoURL,
               role: registrarByEmail.role
             }
           });
@@ -63,6 +67,10 @@ export async function POST(request: NextRequest) {
         email: registrar.email,
         firstName: registrar.firstName,
         lastName: registrar.lastName,
+        middleName: registrar.middleName,
+        nameExtension: registrar.nameExtension,
+        birthday: registrar.birthday,
+        photoURL: registrar.photoURL,
         role: registrar.role
       }
     });

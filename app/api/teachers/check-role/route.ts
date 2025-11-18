@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
         middleName: teacher.middleName,
         extension: teacher.extension,
         phone: teacher.phone,
-        status: teacher.status || 'active'
+        status: teacher.status || 'active',
+        permissions: teacher.permissions || []
       }
     });
 

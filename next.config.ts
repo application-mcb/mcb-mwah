@@ -2,6 +2,8 @@ import type { NextConfig } from 'next'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
+const cdnPrefix = process.env.NEXT_PUBLIC_CDN_URL
+
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -19,7 +21,7 @@ const nextConfig: NextConfig = {
   },
   compress: true,
   poweredByHeader: false,
-  assetPrefix: process.env.NEXT_PUBLIC_CDN_URL || undefined,
+  assetPrefix: isProduction && cdnPrefix ? cdnPrefix : undefined,
   headers: async () => [
     {
       source: '/:all*(svg|jpg|png|webp|ico)',

@@ -1394,12 +1394,89 @@ export class EnrollmentDatabase {
       // Get system config for current AY code
       const systemConfig = await this.getSystemConfig()
       const ayCode = systemConfig.ayCode
+      const semester =
+        systemConfig.semester && systemConfig.semester !== 'None'
+          ? systemConfig.semester
+          : undefined
+
+      const normalizeSemester = (value?: string) => {
+        if (!value) return undefined
+        const lower = value.toLowerCase()
+        if (lower.includes('first')) return 'first'
+        if (lower.includes('second')) return 'second'
+        return lower
+      }
 
       // Get current enrollment to check if student is already assigned to a different section
-      const currentEnrollment = await this.getEnrollment(userId, ayCode)
-      const currentSectionId =
-        currentEnrollment.success &&
-        currentEnrollment.data?.enrollmentInfo?.sectionId
+      const currentEnrollment = await this.getEnrollment(
+        userId,
+        ayCode,
+        semester
+      )
+      let enrollmentInfo = currentEnrollment.data?.enrollmentInfo
+
+      const targetSemester = normalizeSemester(
+        enrollmentInfo?.semester || semester
+      )
+
+      // Locate the exact enrollment document reference
+      let enrollmentDocRef = doc(db, 'students', userId, 'enrollment', ayCode)
+      let enrollmentDocSnap = await getDoc(enrollmentDocRef)
+
+      if (!enrollmentDocSnap.exists()) {
+        const enrollmentSubcolRef = collection(
+          db,
+          'students',
+          userId,
+          'enrollment'
+        )
+        const enrollmentSubcolSnap = await getDocs(enrollmentSubcolRef)
+
+        for (const docSnap of enrollmentSubcolSnap.docs) {
+          const enrollmentData = docSnap.data()
+          const docSemester = normalizeSemester(
+            enrollmentData.enrollmentInfo?.semester
+          )
+          const fallbackSemesterFromId = (() => {
+            const lowerId = docSnap.id.toLowerCase()
+            if (lowerId.includes('first')) return 'first'
+            if (lowerId.includes('second')) return 'second'
+            return undefined
+          })()
+          const semesterMatches =
+            !targetSemester ||
+            docSemester === targetSemester ||
+            fallbackSemesterFromId === targetSemester
+          const ayMatches =
+            enrollmentData.enrollmentInfo?.schoolYear === ayCode ||
+            docSnap.id.includes(ayCode)
+
+          if (ayMatches && semesterMatches) {
+            enrollmentDocRef = docSnap.ref
+            enrollmentDocSnap = docSnap
+            enrollmentInfo = enrollmentData.enrollmentInfo
+            break
+          }
+
+          // Keep fallback to first document in case we don't find exact match
+        }
+
+        if (!enrollmentDocSnap.exists() && enrollmentSubcolSnap.docs.length) {
+          const fallbackDoc = enrollmentSubcolSnap.docs[0]
+          enrollmentDocRef = fallbackDoc.ref
+          enrollmentDocSnap = fallbackDoc
+          enrollmentInfo = fallbackDoc.data().enrollmentInfo
+        }
+      }
+
+      if (!enrollmentDocSnap.exists()) {
+        return {
+          success: false,
+          error: `Enrollment document not found for student in academic year ${ayCode}. Please ensure the student is properly enrolled.`,
+        }
+      }
+
+      const currentSectionId = enrollmentInfo?.sectionId
 
       // If student is currently assigned to a different section, remove them from that section's students array
       if (currentSectionId && currentSectionId !== sectionId) {
@@ -1415,26 +1492,35 @@ export class EnrollmentDatabase {
       }
 
       // Update the enrollment document with section assignment
-      const enrollmentRef = doc(db, 'students', userId, 'enrollment', ayCode)
       const enrollmentUpdate = {
         'enrollmentInfo.sectionId': sectionId,
         updatedAt: serverTimestamp(),
       }
-
-      await updateDoc(enrollmentRef, enrollmentUpdate)
+      await updateDoc(enrollmentDocRef, enrollmentUpdate)
 
       // Also update the top-level enrollments collection
-      const topLevelEnrollmentRef = doc(
-        db,
-        'enrollments',
-        `${userId}_${ayCode}`
-      )
-      const topLevelUpdate = {
-        'enrollmentData.enrollmentInfo.sectionId': sectionId,
-        updatedAt: serverTimestamp(),
-      }
+      // Check multiple possible document ID formats
+      const possibleDocIds = [
+        `${userId}_${ayCode}`,
+        ...(enrollmentInfo?.semester
+          ? [`${userId}_${ayCode}_${enrollmentInfo.semester}`]
+          : []),
+        `${userId}_${enrollmentDocSnap.id}`,
+      ]
 
-      await updateDoc(topLevelEnrollmentRef, topLevelUpdate)
+      for (const docId of possibleDocIds) {
+        const topLevelEnrollmentRef = doc(db, 'enrollments', docId)
+        const topLevelDoc = await getDoc(topLevelEnrollmentRef)
+
+        if (topLevelDoc.exists()) {
+          const topLevelUpdate = {
+            'enrollmentData.enrollmentInfo.sectionId': sectionId,
+            updatedAt: serverTimestamp(),
+          }
+          await updateDoc(topLevelEnrollmentRef, topLevelUpdate)
+          break // Found and updated, no need to check other formats
+        }
+      }
 
       // Add student to new section's students array
       const sectionRef = doc(db, 'sections', sectionId)

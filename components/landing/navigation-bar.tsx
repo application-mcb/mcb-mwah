@@ -5,11 +5,14 @@ import { Button } from '@/components/ui/button'
 import { List, X } from '@phosphor-icons/react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { useAuth } from '@/lib/auth-context'
 
 export const NavigationBar = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false)
   const router = useRouter()
+  const { user } = useAuth()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,6 +33,45 @@ export const NavigationBar = () => {
 
   const handleLogin = () => {
     router.push('/login')
+  }
+
+  const handleAvatarClick = async () => {
+    if (!user) return
+
+    setIsNavigating(true)
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to navigate')
+      }
+
+      if (result.isRegistrar) {
+        router.push(result.redirectTo || '/registrar')
+      } else if (result.isTeacher) {
+        router.push(result.redirectTo || '/teacher')
+      } else if (result.hasCompleteProfile) {
+        router.push('/dashboard')
+      } else {
+        router.push('/setup')
+      }
+    } catch (error) {
+      console.error('Navigation failed:', error)
+      router.push('/dashboard')
+    } finally {
+      setIsNavigating(false)
+    }
   }
 
   return (
@@ -100,23 +142,47 @@ export const NavigationBar = () => {
             >
               Programs
             </button>
-            <div className="flex items-center space-x-3">
-              <Button
-                onClick={handleLogin}
-                variant="outline"
-                className="rounded-lg border-blue-900 text-blue-900 hover:bg-blue-50"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            {user ? (
+              <button
+                onClick={handleAvatarClick}
+                disabled={isNavigating}
+                className="w-10 h-10 rounded-full overflow-hidden bg-blue-900 flex items-center justify-center border-2 border-blue-900 hover:opacity-80 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
+                aria-label="Go to dashboard"
               >
-                Login
-              </Button>
-              <Button
-                onClick={handleLogin}
-                className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Get Started
-              </Button>
-            </div>
+                {user.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || user.email || 'Profile'}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span
+                    className="text-white text-sm font-medium"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
+                    {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </button>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <Button
+                  onClick={handleLogin}
+                  variant="outline"
+                  className="rounded-lg border-blue-900 text-blue-900 hover:bg-blue-50"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Login
+                </Button>
+                <Button
+                  onClick={handleLogin}
+                  className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Get Started
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -167,21 +233,49 @@ export const NavigationBar = () => {
               Programs
             </button>
             <div className="pt-4 space-y-2 border-t border-blue-100">
-              <Button
-                onClick={handleLogin}
-                variant="outline"
-                className="w-full rounded-lg border-blue-900 text-blue-900 hover:bg-blue-50"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Login
-              </Button>
-              <Button
-                onClick={handleLogin}
-                className="w-full rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Get Started
-              </Button>
+              {user ? (
+                <div className="flex items-center justify-center py-2">
+                  <button
+                    onClick={handleAvatarClick}
+                    disabled={isNavigating}
+                    className="w-10 h-10 rounded-full overflow-hidden bg-blue-900 flex items-center justify-center border-2 border-blue-900 hover:opacity-80 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
+                    aria-label="Go to dashboard"
+                  >
+                    {user.photoURL ? (
+                      <img
+                        src={user.photoURL}
+                        alt={user.displayName || user.email || 'Profile'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="text-white text-sm font-medium"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Button
+                    onClick={handleLogin}
+                    variant="outline"
+                    className="w-full rounded-lg border-blue-900 text-blue-900 hover:bg-blue-50"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    onClick={handleLogin}
+                    className="w-full rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Get Started
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

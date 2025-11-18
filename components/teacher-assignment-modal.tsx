@@ -602,6 +602,13 @@ export default function TeacherAssignmentModal({
           toast.warning(`Some assignments failed: ${errors.join(', ')}`)
         }
 
+        // Reload subjects to get fresh teacherAssignments data
+        if (selectedLevel === 'high-school' && selectedGrade) {
+          await loadSubjectsForGrade(selectedGrade.gradeLevel)
+        } else if (selectedLevel === 'college' && selectedCourse) {
+          await loadSubjectsForCourse(selectedCourse.code)
+        }
+
         // Reset modal
         setStep('level')
         setSelectedLevel(null)
@@ -1653,6 +1660,12 @@ export default function TeacherAssignmentModal({
                                 ...prev,
                                 [subject.id]: [],
                               }))
+                              // Reload subjects to get fresh teacherAssignments data
+                              if (selectedLevel === 'high-school' && selectedGrade) {
+                                await loadSubjectsForGrade(selectedGrade.gradeLevel)
+                              } else if (selectedLevel === 'college' && selectedCourse) {
+                                await loadSubjectsForCourse(selectedCourse.code)
+                              }
                             }
                             if (errors.length > 0) {
                               toast.warning(

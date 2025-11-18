@@ -5,9 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import TeacherOverview from '@/components/teacher-overview'
 import TeacherClassesView from '@/components/teacher-classes-view'
 import TeacherStudentsView from '@/components/teacher-students-view'
 import TeacherGradesView from '@/components/teacher-grades-view'
+import TeacherAnalytics from '@/components/teacher-analytics'
+import EventsSidebar from '@/components/events-sidebar'
+import TeacherProfileModal from '@/components/teacher-profile-modal'
 import { SCHOOL_NAME_FORMAL } from '@/lib/constants'
 import {
   User,
@@ -24,6 +28,7 @@ import {
   ClipboardText,
   CaretLeft,
   List,
+  Terminal,
 } from '@phosphor-icons/react'
 
 interface TeacherData {
@@ -38,7 +43,7 @@ interface TeacherData {
   status?: 'active' | 'inactive'
 }
 
-type ViewType = 'overview' | 'my-classes' | 'students' | 'grades'
+type ViewType = 'overview' | 'my-classes' | 'students' | 'grades' | 'analytics'
 
 export default function TeacherPage() {
   const [teacher, setTeacher] = useState<TeacherData | null>(null)
@@ -46,6 +51,13 @@ export default function TeacherPage() {
   const [error, setError] = useState('')
   const [currentView, setCurrentView] = useState<ViewType>('overview')
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
+  const [isRightCollapsed, setIsRightCollapsed] = useState(false)
+  const [sidebarCounts, setSidebarCounts] = useState<{
+    classes: { subjects: number; sections: number }
+    students: { total: number }
+    grades: { entries: number }
+  } | null>(null)
+  const [showProfileModal, setShowProfileModal] = useState(false)
   const router = useRouter()
   const { user, loading: authLoading, signOut } = useAuth()
 
@@ -96,6 +108,32 @@ export default function TeacherPage() {
     checkTeacherAccess()
   }, [user, authLoading, router])
 
+  // Fetch sidebar counts
+  useEffect(() => {
+    const fetchSidebarCounts = async () => {
+      if (!teacher?.id) return
+
+      try {
+        const response = await fetch(
+          `/api/teachers/sidebar-counts?teacherId=${teacher.id}`
+        )
+        const data = await response.json()
+        if (data.success && data.counts) {
+          setSidebarCounts(data.counts)
+        }
+      } catch (error) {
+        console.error('Error fetching sidebar counts:', error)
+      }
+    }
+
+    if (teacher) {
+      fetchSidebarCounts()
+      // Refresh counts every 30 seconds
+      const interval = setInterval(fetchSidebarCounts, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [teacher])
+
   const handleSignOut = async () => {
     try {
       await signOut()
@@ -113,7 +151,39 @@ export default function TeacherPage() {
     setIsLeftCollapsed((prev) => !prev)
   }
 
-  const handleSettingsClick = () => {}
+  const handleToggleRightSidebar = () => {
+    setIsRightCollapsed((prev) => !prev)
+  }
+
+  const handleSettingsClick = () => {
+    setShowProfileModal(true)
+  }
+
+  const handleProfileUpdate = async () => {
+    // Reload teacher data after profile update
+    if (user) {
+      try {
+        const response = await fetch('/api/teachers/check-role', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          setTeacher(data.teacher)
+        }
+      } catch (error) {
+        console.error('Error reloading teacher data:', error)
+      }
+    }
+  }
 
   const handleToggleKeyDown = (
     event: React.KeyboardEvent,
@@ -141,6 +211,18 @@ export default function TeacherPage() {
     }
   }, [isLeftCollapsed])
 
+  const rightSidebarLayout = useMemo(() => {
+    if (isRightCollapsed) {
+      return {
+        marginClass: 'mr-16 sm:mr-20',
+      }
+    }
+
+    return {
+      marginClass: 'sm:mr-80 md:mr-96',
+    }
+  }, [isRightCollapsed])
+
   const navigationItems = useMemo(
     () => [
       {
@@ -148,27 +230,47 @@ export default function TeacherPage() {
         label: 'Overview',
         description: 'Dashboard summary',
         icon: House,
+        counts: null,
       },
       {
         view: 'my-classes' as ViewType,
         label: 'My Classes',
         description: 'Your subjects',
         icon: BookOpen,
+        counts: sidebarCounts?.classes
+          ? [
+              { label: 'subjects', value: sidebarCounts.classes.subjects },
+              { label: 'sections', value: sidebarCounts.classes.sections },
+            ]
+          : null,
       },
       {
         view: 'students' as ViewType,
         label: 'My Students',
         description: 'Student roster',
         icon: Users,
+        counts: sidebarCounts?.students
+          ? [{ label: 'total', value: sidebarCounts.students.total }]
+          : null,
       },
       {
         view: 'grades' as ViewType,
         label: 'Student Grades',
         description: 'Grade management',
         icon: ClipboardText,
+        counts: sidebarCounts?.grades
+          ? [{ label: 'entries', value: sidebarCounts.grades.entries }]
+          : null,
+      },
+      {
+        view: 'analytics' as ViewType,
+        label: 'Analytics',
+        description: 'Performance insights',
+        icon: ChartBar,
+        counts: null,
       },
     ],
-    []
+    [sidebarCounts]
   )
 
   if (loading || authLoading) {
@@ -427,7 +529,7 @@ export default function TeacherPage() {
                       {item.label.split(' ')[0]}
                     </span>
                   ) : (
-                    <span className="flex flex-col items-start">
+                    <span className="flex flex-col items-start flex-1">
                       <span
                         className={`text-sm font-medium ${
                           isActive ? 'text-white' : 'text-blue-900'
@@ -442,12 +544,80 @@ export default function TeacherPage() {
                       >
                         {item.description}
                       </span>
+                      {item.counts && item.counts.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {item.counts.map((count, idx) => {
+                            // Color mapping for different count types
+                            const getBadgeColor = (label: string) => {
+                              if (label === 'subjects') {
+                                return 'bg-purple-500'
+                              } else if (label === 'sections') {
+                                return 'bg-cyan-500'
+                              } else if (label === 'total') {
+                                return 'bg-green-500'
+                              } else if (label === 'entries') {
+                                return 'bg-blue-500'
+                              }
+                              return 'bg-blue-900'
+                            }
+
+                            return (
+                              <span
+                                key={idx}
+                                className={`flex items-center gap-1.5 text-[10px] font-medium px-2 py-0.5 rounded-lg bg-white ${
+                                  isActive ? 'text-blue-900' : 'text-blue-900'
+                                }`}
+                                style={{
+                                  fontFamily: 'monospace',
+                                  fontWeight: 500,
+                                }}
+                              >
+                                <span
+                                  className={`w-2 h-2 rounded-full ${getBadgeColor(
+                                    count.label
+                                  )}`}
+                                />
+                                {count.value} {count.label}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      )}
                     </span>
                   )}
                 </button>
               )
             })}
           </div>
+
+          {!isLeftCollapsed && (
+            <div className="pt-4 mt-4 border-t border-blue-100">
+              <div className="border border-dashed border-blue-200 text-blue-900/70 rounded-xl transition-all duration-200 px-4 py-3 text-left">
+                <div className="flex items-center justify-center bg-blue-900 rounded-lg w-8 h-8 mb-2">
+                  <Terminal size={16} className="text-white" weight="fill" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push('/registrar')}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      router.push('/registrar')
+                    }
+                  }}
+                  className="w-full text-left space-y-1"
+                  aria-label="Access registrar dashboard"
+                >
+                  <p className="text-sm font-medium text-gray-900">
+                    Special Console Permission
+                  </p>
+                  <p className="text-xs text-blue-900/70">
+                    Access registrar dashboard with granted permissions.
+                  </p>
+                </button>
+              </div>
+            </div>
+          )}
         </nav>
 
         {!isLeftCollapsed && (
@@ -474,105 +644,11 @@ export default function TeacherPage() {
 
       {/* Main Content */}
       <div
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${leftSidebarLayout.marginClass}`}
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${leftSidebarLayout.marginClass} ${rightSidebarLayout.marginClass}`}
       >
-        {currentView === 'overview' && (
-          <div className="p-6">
-            <div className="mb-6">
-              <h1
-                className="text-3xl font-medium text-gray-900 mb-2"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Welcome back, {teacher?.firstName || 'Teacher'}!
-              </h1>
-              <p
-                className="text-gray-600"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-              >
-                Here's an overview of your teaching dashboard.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-              <button
-                onClick={() => handleNavigation('my-classes')}
-                className="bg-white/95 border border-blue-100 rounded-xl p-6 hover:shadow-lg transition-all duration-200 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-900"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg flex items-center justify-center">
-                    <BookOpen size={24} className="text-white" weight="fill" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h3
-                      className="text-lg font-medium text-gray-900 mb-1"
-                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                    >
-                      My Classes
-                    </h3>
-                    <p
-                      className="text-sm text-gray-600"
-                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                    >
-                      View your assigned subjects
-                    </p>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => handleNavigation('students')}
-                className="bg-white/95 border border-blue-100 rounded-xl p-6 hover:shadow-lg transition-all duration-200 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-900"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg flex items-center justify-center">
-                    <Users size={24} className="text-white" weight="fill" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h3
-                      className="text-lg font-medium text-gray-900 mb-1"
-                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                    >
-                      My Students
-                    </h3>
-                    <p
-                      className="text-sm text-gray-600"
-                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                    >
-                      Manage your student roster
-                    </p>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => handleNavigation('grades')}
-                className="bg-white/95 border border-blue-100 rounded-xl p-6 hover:shadow-lg transition-all duration-200 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-900"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg flex items-center justify-center">
-                    <ClipboardText
-                      size={24}
-                      className="text-white"
-                      weight="fill"
-                    />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h3
-                      className="text-lg font-medium text-gray-900 mb-1"
-                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                    >
-                      Student Grades
-                    </h3>
-                    <p
-                      className="text-sm text-gray-600"
-                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                    >
-                      Track and manage grades
-                    </p>
-                  </div>
-                </div>
-              </button>
-            </div>
+        {currentView === 'overview' && teacher && (
+          <div className="p-0">
+            <TeacherOverview teacherId={teacher.id} />
           </div>
         )}
 
@@ -593,7 +669,46 @@ export default function TeacherPage() {
             <TeacherGradesView teacherId={teacher.id} />
           </div>
         )}
+
+        {currentView === 'analytics' && teacher && (
+          <div className="p-0">
+            <TeacherAnalytics
+              teacherId={teacher.id}
+              teacherName={teacher.firstName}
+            />
+          </div>
+        )}
       </div>
+
+      {/* Right Sidebar - Events & Chat */}
+      {teacher && (
+        <EventsSidebar
+          level={null}
+          userId={teacher.uid}
+          isCollapsed={isRightCollapsed}
+          onToggleCollapse={handleToggleRightSidebar}
+        />
+      )}
+
+      {/* Profile Modal */}
+      {teacher && (
+        <TeacherProfileModal
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          teacher={{
+            id: teacher.id,
+            uid: teacher.uid,
+            email: teacher.email,
+            firstName: teacher.firstName,
+            lastName: teacher.lastName,
+            middleName: teacher.middleName,
+            extension: teacher.extension,
+            phone: teacher.phone,
+            photoURL: user?.photoURL || undefined,
+          }}
+          onUpdate={handleProfileUpdate}
+        />
+      )}
     </div>
   )
 }

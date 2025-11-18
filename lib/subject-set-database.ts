@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase-server';
 import { SubjectSetData, CreateSubjectSetData, SUBJECT_COLORS } from './types/subject';
-import { Logger } from './logger';
+import { logger } from './logger';
 
 // Utility function to serialize Firestore data for client components
 function serializeFirestoreData(data: any): any {
@@ -105,7 +105,7 @@ export class SubjectSetDatabase {
       const createdSubjectSet = await this.getSubjectSet(subjectSetId);
       return createdSubjectSet!;
     } catch (error) {
-      Logger.error('Failed to create subject set', error, { operation: 'create', resource: 'subjectSet' });
+      logger.error('Failed to create subject set', error, { operation: 'create', resource: 'subjectSet' });
       throw new Error('Failed to create subject set');
     }
   }
@@ -122,7 +122,7 @@ export class SubjectSetDatabase {
       }
       return null;
     } catch (error) {
-      Logger.error('Failed to get subject set', error, { operation: 'read', resource: 'subjectSet', subjectSetId: id });
+      logger.error('Failed to get subject set', error, { operation: 'read', resource: 'subjectSet', subjectSetId: id });
       throw new Error('Failed to get subject set data');
     }
   }
@@ -142,7 +142,7 @@ export class SubjectSetDatabase {
         return serializeFirestoreData(data) as SubjectSetData;
       });
     } catch (error) {
-      Logger.error('Failed to get all subject sets', error, { operation: 'read', resource: 'subjectSets' });
+      logger.error('Failed to get all subject sets', error, { operation: 'read', resource: 'subjectSets' });
       throw new Error('Failed to get all subject sets');
     }
   }
@@ -163,7 +163,7 @@ export class SubjectSetDatabase {
         return serializeFirestoreData(data) as SubjectSetData;
       });
     } catch (error) {
-      Logger.error('Failed to get subject sets by grade level', error, { operation: 'read', resource: 'subjectSets', gradeLevel: gradeLevel.toString() });
+      logger.error('Failed to get subject sets by grade level', error, { operation: 'read', resource: 'subjectSets', gradeLevel: gradeLevel.toString() });
       throw new Error('Failed to get subject sets by grade level');
     }
   }
@@ -185,7 +185,7 @@ export class SubjectSetDatabase {
         subjectSet.subjects.includes(subjectId)
       );
     } catch (error) {
-      Logger.error('Failed to get subject sets containing subject', error, { operation: 'read', resource: 'subjectSets', subjectId });
+      logger.error('Failed to get subject sets containing subject', error, { operation: 'read', resource: 'subjectSets', subjectId });
       throw new Error('Failed to get subject sets containing subject');
     }
   }
@@ -232,7 +232,7 @@ export class SubjectSetDatabase {
       const updatedSubjectSet = await this.getSubjectSet(id);
       return updatedSubjectSet;
     } catch (error) {
-      Logger.error('Failed to update subject set', error, { operation: 'update', resource: 'subjectSet', subjectSetId: id });
+      logger.error('Failed to update subject set', error, { operation: 'update', resource: 'subjectSet', subjectSetId: id });
       throw new Error('Failed to update subject set');
     }
   }
@@ -244,7 +244,7 @@ export class SubjectSetDatabase {
       await deleteDoc(subjectSetRef);
       return true;
     } catch (error) {
-      Logger.error('Failed to delete subject set', error, { operation: 'delete', resource: 'subjectSet', subjectSetId: id });
+      logger.error('Failed to delete subject set', error, { operation: 'delete', resource: 'subjectSet', subjectSetId: id });
       throw new Error('Failed to delete subject set');
     }
   }
@@ -255,7 +255,7 @@ export class SubjectSetDatabase {
       const subjectSet = await this.getSubjectSet(id);
       return subjectSet !== null;
     } catch (error) {
-      Logger.error('Failed to check if subject set exists', error, { operation: 'check', resource: 'subjectSet', subjectSetId: id });
+      logger.error('Failed to check if subject set exists', error, { operation: 'check', resource: 'subjectSet', subjectSetId: id });
       return false;
     }
   }

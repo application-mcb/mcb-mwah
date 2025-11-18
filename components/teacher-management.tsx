@@ -25,6 +25,7 @@ import {
   Trash,
   Circle,
   UserPlus,
+  Lock,
 } from '@phosphor-icons/react'
 import TeacherAssignmentModal from './teacher-assignment-modal'
 
@@ -44,6 +45,7 @@ interface Teacher {
   updatedAt: string
   uid?: string // Firebase user ID
   status?: 'active' | 'inactive' // Account status
+  permissions?: string[] // Allowed dashboard tabs/sections
 }
 
 // Helper functions defined outside component for better scoping
@@ -95,9 +97,13 @@ export default function TeacherManagement({
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showAssignmentModal, setShowAssignmentModal] = useState(false)
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null)
   const [passwordTeacher, setPasswordTeacher] = useState<Teacher | null>(null)
   const [assignmentTeacher, setAssignmentTeacher] = useState<Teacher | null>(
+    null
+  )
+  const [permissionsTeacher, setPermissionsTeacher] = useState<Teacher | null>(
     null
   )
   const [searchQuery, setSearchQuery] = useState('')
@@ -271,6 +277,11 @@ export default function TeacherManagement({
     setShowAssignmentModal(true)
   }
 
+  const handlePermissionsTeacher = (teacher: Teacher) => {
+    setPermissionsTeacher(teacher)
+    setShowPermissionsModal(true)
+  }
+
   const handleCancel = () => {
     setShowCreateModal(false)
     setEditingTeacher(null)
@@ -279,6 +290,11 @@ export default function TeacherManagement({
   const handleAssignmentModalClose = () => {
     setShowAssignmentModal(false)
     setAssignmentTeacher(null)
+  }
+
+  const handlePermissionsModalClose = () => {
+    setShowPermissionsModal(false)
+    setPermissionsTeacher(null)
   }
 
   const handlePasswordModalCancel = () => {
@@ -715,6 +731,15 @@ export default function TeacherManagement({
                         </Button>
                         <Button
                           size="sm"
+                          className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
+                          onClick={() => handlePermissionsTeacher(teacher)}
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
+                          <Lock size={14} className="mr-1" />
+                          Permissions
+                        </Button>
+                        <Button
+                          size="sm"
                           className="rounded-lg bg-red-600 hover:bg-red-700 text-white border"
                           style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                         >
@@ -774,6 +799,47 @@ export default function TeacherManagement({
         teacher={assignmentTeacher}
         registrarUid={registrarUid}
       />
+
+      {/* Permissions Modal */}
+      <Modal
+        isOpen={showPermissionsModal}
+        onClose={handlePermissionsModalClose}
+        title="Manage Teacher Permissions"
+        size="lg"
+      >
+        <PermissionsForm
+          teacher={permissionsTeacher}
+          onCancel={handlePermissionsModalClose}
+          onSave={async (permissions) => {
+            if (!permissionsTeacher) return
+
+            try {
+              const response = await fetch('/api/teachers/update-permissions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  teacherId: permissionsTeacher.id,
+                  permissions,
+                }),
+              })
+
+              if (!response.ok) {
+                const data = await response.json()
+                throw new Error(data.error || 'Failed to update permissions')
+              }
+
+              toast.success('Permissions updated successfully!')
+              await loadTeachers()
+              handlePermissionsModalClose()
+            } catch (error: any) {
+              console.error('Error updating permissions:', error)
+              toast.error(error.message)
+            }
+          }}
+        />
+      </Modal>
     </div>
   )
 }
@@ -1520,6 +1586,223 @@ function TeacherForm({
           </Button>
         </div>
       </form>
+    </div>
+  )
+}
+
+// Permissions Form Component
+interface PermissionsFormProps {
+  teacher: Teacher | null
+  onCancel: () => void
+  onSave: (permissions: string[]) => void
+}
+
+const PERMISSION_OPTIONS = [
+  {
+    key: 'overview',
+    label: 'Overview',
+    description: 'Dashboard summary',
+  },
+  {
+    key: 'student-enrollments',
+    label: 'Student Enrollments',
+    description: 'Enrollment pipeline',
+  },
+  {
+    key: 'student-management',
+    label: 'Student Management',
+    description: 'Academic records',
+  },
+  {
+    key: 'course-management',
+    label: 'Course Management',
+    description: 'Programs catalog',
+  },
+  {
+    key: 'grade-section-management',
+    label: 'Grades & Sections',
+    description: 'Section builder',
+  },
+  {
+    key: 'subject-management',
+    label: 'Subject Management',
+    description: 'Curriculum tools',
+  },
+  {
+    key: 'teacher-management',
+    label: 'Teacher Management',
+    description: 'Faculty overview',
+  },
+  {
+    key: 'events-management',
+    label: 'Events & Announcements',
+    description: 'Content management',
+  },
+  {
+    key: 'analytics',
+    label: 'Analytics & Reports',
+    description: 'Student insights',
+  },
+]
+
+function PermissionsForm({
+  teacher,
+  onCancel,
+  onSave,
+}: PermissionsFormProps) {
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
+
+  useEffect(() => {
+    if (teacher) {
+      setSelectedPermissions(teacher.permissions || [])
+    } else {
+      setSelectedPermissions([])
+    }
+  }, [teacher])
+
+  const handleTogglePermission = (permissionKey: string) => {
+    setSelectedPermissions((prev) => {
+      if (prev.includes(permissionKey)) {
+        return prev.filter((p) => p !== permissionKey)
+      } else {
+        return [...prev, permissionKey]
+      }
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedPermissions.length === PERMISSION_OPTIONS.length) {
+      setSelectedPermissions([])
+    } else {
+      setSelectedPermissions(PERMISSION_OPTIONS.map((p) => p.key))
+    }
+  }
+
+  const handleSave = () => {
+    onSave(selectedPermissions)
+  }
+
+  if (!teacher) {
+    return (
+      <div className="p-6 text-center">
+        <p
+          className="text-gray-600"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          No teacher selected
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-6">
+      <div className="mb-6">
+        <h4
+          className="text-sm font-medium text-gray-900 mb-2"
+          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+        >
+          Access Permissions for {teacher.firstName} {teacher.lastName}
+        </h4>
+        <p
+          className="text-xs text-gray-600"
+          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+        >
+          Select which sections of the registrar dashboard this teacher can
+          access. Only selected sections will be visible when they log in.
+        </p>
+      </div>
+
+      <div className="mb-4">
+        <button
+          type="button"
+          onClick={handleSelectAll}
+          className="text-xs text-blue-900 hover:text-blue-700 font-medium"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          {selectedPermissions.length === PERMISSION_OPTIONS.length
+            ? 'Deselect All'
+            : 'Select All'}
+        </button>
+      </div>
+
+      <div className="space-y-3 mb-6 max-h-[400px] overflow-y-auto">
+        {PERMISSION_OPTIONS.map((option) => {
+          const isSelected = selectedPermissions.includes(option.key)
+          return (
+            <div
+              key={option.key}
+              className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
+                isSelected
+                  ? 'border-blue-900 bg-blue-50'
+                  : 'border-gray-200 bg-white hover:border-blue-300'
+              }`}
+              onClick={() => handleTogglePermission(option.key)}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                    isSelected
+                      ? 'border-blue-900 bg-blue-900'
+                      : 'border-gray-300 bg-white'
+                  }`}
+                >
+                  {isSelected && (
+                    <svg
+                      className="w-3 h-3 text-white"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="3"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h5
+                    className={`text-sm font-medium mb-1 ${
+                      isSelected ? 'text-blue-900' : 'text-gray-900'
+                    }`}
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
+                    {option.label}
+                  </h5>
+                  <p
+                    className={`text-xs ${
+                      isSelected ? 'text-blue-700' : 'text-gray-600'
+                    }`}
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    {option.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="flex gap-3 pt-4 border-t border-gray-200">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 px-4 py-2 rounded-lg bg-gray-500 text-white text-xs font-medium hover:bg-gray-600 transition-colors"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white text-xs font-medium transition-colors"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          Save Permissions
+        </button>
+      </div>
     </div>
   )
 }
