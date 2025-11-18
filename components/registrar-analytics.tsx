@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { toast } from 'react-toastify'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import Print from '@/components/print'
 import { ExtendedEnrollmentData } from './enrollment-management/types'
 import {
@@ -15,10 +16,13 @@ import {
   GenderIntersex,
   BookOpen,
   Printer,
-  CaretDown,
   TrendUp,
   TrendDown,
   Lightbulb,
+  FunnelSimple,
+  X,
+  MagnifyingGlass,
+  WarningCircle,
 } from '@phosphor-icons/react'
 import Image from 'next/image'
 import {
@@ -231,11 +235,23 @@ export default function RegistrarAnalytics({
   >({})
   const [loading, setLoading] = useState(true)
   const [currentAY, setCurrentAY] = useState('')
-  const [currentSemester, setCurrentSemester] = useState('')
+  const [currentSemester, setCurrentSemester] = useState('1')
   const [selectedAY, setSelectedAY] = useState('')
-  const [selectedSemester, setSelectedSemester] = useState('')
+  const [selectedSemester, setSelectedSemester] = useState('1')
   const [availableAYs, setAvailableAYs] = useState<string[]>([])
   const [showPrintModal, setShowPrintModal] = useState(false)
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedStudentType, setSelectedStudentType] = useState<
+    ('regular' | 'irregular')[]
+  >([])
+  const [selectedLevel, setSelectedLevel] = useState<
+    ('college' | 'senior' | 'junior')[]
+  >([])
+  const [fallbackAYInfo, setFallbackAYInfo] = useState<{
+    requested: string
+    actual: string
+  } | null>(null)
 
   useEffect(() => {
     loadData()
@@ -315,15 +331,19 @@ export default function RegistrarAnalytics({
       setLoading(true)
 
       // Get current AY config
+      let configAY = ''
+      let configSemester = '1'
       const configResponse = await fetch('/api/enrollment?getConfig=true')
       const configData = await configResponse.json()
 
       if (configResponse.ok && configData.ayCode) {
-        setCurrentAY(configData.ayCode)
-        setSelectedAY(configData.ayCode)
-        setCurrentSemester(configData.semester || '1')
-        setSelectedSemester(configData.semester || '1')
+        configAY = configData.ayCode
       }
+      if (configResponse.ok && configData.semester) {
+        configSemester = configData.semester
+      }
+      setCurrentSemester(configSemester)
+      setSelectedSemester(configSemester)
 
       // Fetch all enrolled students
       const response = await fetch('/api/enrollment?getEnrolledStudents=true')
@@ -343,6 +363,46 @@ export default function RegistrarAnalytics({
         ).sort() as string[]
         setAvailableAYs(uniqueAYs)
 
+        let effectiveAY = configAY
+        if (!effectiveAY && uniqueAYs.length > 0) {
+          effectiveAY = uniqueAYs[uniqueAYs.length - 1]
+        }
+
+        if (effectiveAY) {
+          const hasDataForEffectiveAY = enrollmentsData.some(
+            (enrollment) =>
+              enrollment.enrollmentInfo?.schoolYear === effectiveAY
+          )
+
+          if (!hasDataForEffectiveAY && uniqueAYs.length > 0) {
+            const fallbackAY = uniqueAYs[uniqueAYs.length - 1]
+            if (fallbackAY && fallbackAY !== effectiveAY) {
+              if (configAY && configAY !== fallbackAY) {
+                toast.info(
+                  `No records found for ${configAY}. Showing ${fallbackAY} instead.`,
+                  { autoClose: 4000 }
+                )
+              }
+              effectiveAY = fallbackAY
+              setFallbackAYInfo({
+                requested: configAY || 'current AY',
+                actual: fallbackAY,
+              })
+            } else {
+              setFallbackAYInfo(null)
+            }
+          } else {
+            setFallbackAYInfo(null)
+          }
+
+          setCurrentAY(effectiveAY)
+          setSelectedAY(effectiveAY)
+        } else {
+          setFallbackAYInfo(null)
+          setCurrentAY('')
+          setSelectedAY('')
+        }
+
         // Fetch student profiles with address data
         await loadStudentProfiles(enrollmentsData)
       }
@@ -354,22 +414,52 @@ export default function RegistrarAnalytics({
     }
   }
 
-  // Filter enrollments by selected AY and semester
+  // Filter enrollments by selected AY, semester, student type, and level
   const filteredEnrollments = useMemo(() => {
     if (!selectedAY) return []
 
     return enrollments.filter((enrollment) => {
       const enrollmentAY = enrollment.enrollmentInfo?.schoolYear
       const enrollmentSemester = enrollment.enrollmentInfo?.semester
+      const enrollmentLevel = enrollment.enrollmentInfo?.level
+      const enrollmentDepartment = enrollment.enrollmentInfo?.department
+      const enrollmentStudentType =
+        enrollment.enrollmentInfo?.studentType || 'regular'
 
       // Must match AY
       if (enrollmentAY !== selectedAY) return false
 
+      // Filter by student type
+      if (selectedStudentType.length > 0) {
+        if (
+          !selectedStudentType.includes(
+            enrollmentStudentType as 'regular' | 'irregular'
+          )
+        ) {
+          return false
+        }
+      }
+
+      // Filter by level/department
+      if (selectedLevel.length > 0) {
+        const isCollege = enrollmentLevel === 'college'
+        const isSHS =
+          enrollmentLevel === 'high-school' && enrollmentDepartment === 'SHS'
+        const isJHS =
+          enrollmentLevel === 'high-school' && enrollmentDepartment !== 'SHS'
+
+        const matchesLevel =
+          (isCollege && selectedLevel.includes('college')) ||
+          (isSHS && selectedLevel.includes('senior')) ||
+          (isJHS && selectedLevel.includes('junior'))
+
+        if (!matchesLevel) return false
+      }
+
       // For college and SHS, must match semester
-      const isCollege = enrollment.enrollmentInfo?.level === 'college'
+      const isCollege = enrollmentLevel === 'college'
       const isSHS =
-        enrollment.enrollmentInfo?.level === 'high-school' &&
-        enrollment.enrollmentInfo?.department === 'SHS'
+        enrollmentLevel === 'high-school' && enrollmentDepartment === 'SHS'
 
       if (isCollege || isSHS) {
         const semesterValue =
@@ -380,7 +470,13 @@ export default function RegistrarAnalytics({
       // For JHS, semester filter doesn't apply
       return true
     })
-  }, [enrollments, selectedAY, selectedSemester])
+  }, [
+    enrollments,
+    selectedAY,
+    selectedSemester,
+    selectedStudentType,
+    selectedLevel,
+  ])
 
   // Calculate analytics
   const analytics = useMemo(() => {
@@ -558,8 +654,75 @@ export default function RegistrarAnalytics({
 
   const totalStudents = filteredEnrollments.length
 
-  // Generate insights and forecasts
-  const insights = useMemo(() => {
+  // Calculate students by department
+  const studentsByDepartment = useMemo(() => {
+    let jhs = 0
+    let shs = 0
+    let college = 0
+
+    filteredEnrollments.forEach((enrollment) => {
+      const level = enrollment.enrollmentInfo?.level
+      const department = enrollment.enrollmentInfo?.department
+
+      if (level === 'college') {
+        college++
+      } else if (level === 'high-school') {
+        if (department === 'SHS') {
+          shs++
+        } else {
+          // JHS or no department specified (defaults to JHS)
+          jhs++
+        }
+      }
+    })
+
+    return { jhs, shs, college }
+  }, [filteredEnrollments])
+
+  // Counting animation hook
+  const useCountUp = (end: number, duration: number = 2000) => {
+    const [count, setCount] = useState(0)
+
+    useEffect(() => {
+      if (end === 0) {
+        setCount(0)
+        return
+      }
+
+      let startTime: number | null = null
+      const startValue = 0
+
+      const animate = (currentTime: number) => {
+        if (startTime === null) startTime = currentTime
+        const progress = Math.min((currentTime - startTime) / duration, 1)
+
+        // Easing function for smooth animation
+        const easeOutQuart = 1 - Math.pow(1 - progress, 4)
+        const currentCount = Math.floor(
+          startValue + (end - startValue) * easeOutQuart
+        )
+
+        setCount(currentCount)
+
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          setCount(end)
+        }
+      }
+
+      requestAnimationFrame(animate)
+    }, [end, duration])
+
+    return count
+  }
+
+  const jhsCount = useCountUp(studentsByDepartment.jhs, 200)
+  const shsCount = useCountUp(studentsByDepartment.shs, 200)
+  const collegeCount = useCountUp(studentsByDepartment.college, 200)
+
+  // Generate narrative insights and forecasts (20 words each)
+  const generateInsights = useMemo(() => {
     const gradeEntries = Object.entries(analytics.studentsByGrade).map(
       ([grade, count]) => ({ grade: parseInt(grade), count })
     )
@@ -571,42 +734,357 @@ export default function RegistrarAnalytics({
       (min, curr) => (curr.count < min.count ? curr : min),
       { grade: 0, count: Infinity }
     )
-
     const totalRegular = analytics.regularVsIrregular.regular
     const totalIrregular = analytics.regularVsIrregular.irregular
     const irregularPercentage =
       totalStudents > 0
         ? ((totalIrregular / totalStudents) * 100).toFixed(1)
         : '0'
-
     const topProvince = Object.entries(
       analytics.locationBreakdown.province
     ).sort((a, b) => b[1] - a[1])[0]
-
     const genderEntries = Object.entries(analytics.genderDistribution)
     const topGender = genderEntries.sort((a, b) => b[1] - a[1])[0]
-
-    // Forecasting: Predict next semester enrollment based on current trends
     const avgGradeEnrollment =
       gradeEntries.length > 0
         ? gradeEntries.reduce((sum, g) => sum + g.count, 0) /
           gradeEntries.length
         : 0
-    const forecastedEnrollment = Math.round(avgGradeEnrollment * 1.15) // 15% growth assumption
+
+    // Grade Level Insight
+    const gradeLevelInsight =
+      gradeEntries.length > 0
+        ? `Grade ${maxGrade.grade} leads with ${
+            maxGrade.count
+          } students. Distribution shows ${
+            maxGrade.count > minGrade.count ? 'stronger' : 'balanced'
+          } retention in upper grades. Strategic resource allocation should prioritize high-enrollment levels to maintain quality.`
+        : 'No grade level data available.'
+
+    const gradeLevelForecast =
+      gradeEntries.length > 0
+        ? `Projected ${Math.round(avgGradeEnrollment * 0.1)} to ${Math.round(
+            avgGradeEnrollment * 0.15
+          )} student increase next year. Upper grades will continue strong enrollment. Lower grades may need targeted recruitment efforts.`
+        : 'Forecasting requires enrollment data.'
+
+    // Strand Insight
+    const strandEntries = Object.entries(analytics.studentsByStrand)
+    const topStrand = strandEntries.sort((a, b) => b[1] - a[1])[0]
+    const strandInsight =
+      strandEntries.length > 0
+        ? `${topStrand?.[0] || 'Various'} strand leads with ${
+            topStrand?.[1] || 0
+          } students. Distribution reflects career interests and market demands. Academic counseling should align with preferences to support student success.`
+        : 'No strand data available.'
+
+    const strandForecast =
+      strandEntries.length > 0
+        ? `${
+            topStrand?.[0] || 'Leading strands'
+          } will maintain strong enrollment. Market-driven programs expected to see ${Math.round(
+            (topStrand?.[1] || 0) * 0.1
+          )} additional students. Strategic partnerships will attract more students.`
+        : 'Forecasting requires strand data.'
+
+    // Course Insight
+    const courseEntries = Object.entries(analytics.studentsByCourse)
+    const topCourse = courseEntries.sort((a, b) => b[1] - a[1])[0]
+    const courseInsight =
+      courseEntries.length > 0
+        ? `${topCourse?.[0] || 'Various'} course leads with ${
+            topCourse?.[1] || 0
+          } students. Reflects strong demand for professional programs. Faculty allocation should prioritize high-enrollment courses to maintain quality.`
+        : 'No course data available.'
+
+    const courseForecast =
+      courseEntries.length > 0
+        ? `${
+            topCourse?.[0] || 'Leading courses'
+          } will continue strong enrollment. Technical programs expected ${Math.round(
+            (topCourse?.[1] || 0) * 0.12
+          )} additional students. Industry partnerships will attract more applicants.`
+        : 'Forecasting requires course data.'
+
+    // Regular vs Irregular Insight
+    const regularIrregularInsight =
+      totalStudents > 0
+        ? `${totalRegular} regular (${(
+            100 - parseFloat(irregularPercentage)
+          ).toFixed(
+            1
+          )}%) and ${totalIrregular} irregular (${irregularPercentage}%) students. ${
+            parseFloat(irregularPercentage) < 10
+              ? 'Low'
+              : parseFloat(irregularPercentage) < 25
+              ? 'Moderate'
+              : 'High'
+          } irregular ratio ${
+            parseFloat(irregularPercentage) < 10
+              ? 'indicates strong progression'
+              : 'requires support systems'
+          }. Academic advisors should monitor closely.`
+        : 'No student type data available.'
+
+    const regularIrregularForecast =
+      totalStudents > 0
+        ? `Irregular ratio projected to ${
+            parseFloat(irregularPercentage) < 15
+              ? 'remain stable'
+              : 'slightly decrease'
+          } with improved support. Anticipate ${Math.round(
+            totalIrregular * 0.95
+          )} to ${Math.round(
+            totalIrregular * 1.05
+          )} irregular students next year. Enhanced guidance will help reduce cases.`
+        : 'Forecasting requires student type data.'
+
+    // Gender Insight
+    const genderInsight =
+      genderEntries.length > 0
+        ? `${topGender?.[0] || 'Various'} represents ${(
+            ((topGender?.[1] || 0) / totalStudents) *
+            100
+          ).toFixed(1)}% of enrollment. ${
+            Math.abs(
+              (topGender?.[1] || 0) - totalStudents / genderEntries.length
+            ) <
+            totalStudents * 0.1
+              ? 'Balanced'
+              : 'Varied'
+          } distribution ${
+            Math.abs(
+              (topGender?.[1] || 0) - totalStudents / genderEntries.length
+            ) <
+            totalStudents * 0.1
+              ? 'reflects equitable access'
+              : 'needs targeted recruitment'
+          }.`
+        : 'No gender data available.'
+
+    const genderForecast =
+      genderEntries.length > 0
+        ? `Gender distribution expected to remain ${
+            Math.abs(
+              (topGender?.[1] || 0) - totalStudents / genderEntries.length
+            ) <
+            totalStudents * 0.1
+              ? 'stable'
+              : 'consistent'
+          } next year. Projected growth of ${Math.round(
+            totalStudents * 0.1
+          )} students should maintain similar ratios. Recruitment will target equitable participation.`
+        : 'Forecasting requires gender data.'
+
+    // Religion Insight
+    const religionEntries = Object.entries(analytics.religionDistribution).sort(
+      (a, b) => b[1] - a[1]
+    )
+    const topReligion = religionEntries[0]
+    const religionInsight =
+      religionEntries.length > 0
+        ? `${religionEntries.length} faith backgrounds represented. ${
+            topReligion?.[0] || 'Various'
+          } leads with ${topReligion?.[1] || 0} students (${(
+            ((topReligion?.[1] || 0) / totalStudents) *
+            100
+          ).toFixed(1)}%). Diversity ${
+            religionEntries.length > 3 ? 'enriches' : 'reflects'
+          } campus community. Policies should respect all backgrounds.`
+        : 'No religion data available.'
+
+    const religionForecast =
+      religionEntries.length > 0
+        ? `Religious diversity projected to remain consistent. As enrollment grows ${Math.round(
+            totalStudents * 0.1
+          )} students, representation should maintain similar proportions. ${
+            topReligion?.[0] || 'Major groups'
+          } will continue as largest segments. Interfaith dialogue supports inclusive environment.`
+        : 'Forecasting requires religion data.'
+
+    // Age Insight
+    const ageInsight =
+      analytics.birthdateRange.min && analytics.birthdateRange.max
+        ? `Students range from ${new Date(
+            analytics.birthdateRange.min
+          ).getFullYear()} to ${new Date(
+            analytics.birthdateRange.max
+          ).getFullYear()} birth years. ${
+            Object.entries(analytics.birthdateRange.ageGroups).sort(
+              (a, b) => b[1] - a[1]
+            )[0]?.[0] || 'Various'
+          } age group represents largest segment. Distribution reflects typical enrollment patterns.`
+        : 'No age data available.'
+
+    const ageForecast =
+      analytics.birthdateRange.min && analytics.birthdateRange.max
+        ? `Age distribution expected to remain consistent. Projected growth of ${Math.round(
+            totalStudents * 0.1
+          )} students will follow similar patterns. ${
+            Object.entries(analytics.birthdateRange.ageGroups).sort(
+              (a, b) => b[1] - a[1]
+            )[0]?.[0] || 'Primary'
+          } age groups will continue as majority.`
+        : 'Forecasting requires age data.'
+
+    // Location Insights
+    const provinceEntries = Object.entries(
+      analytics.locationBreakdown.province
+    ).sort((a, b) => b[1] - a[1])
+    const topProvinceData = provinceEntries[0]
+    const provinceInsight =
+      provinceEntries.length > 0
+        ? `${provinceEntries.length} provinces represented. ${
+            topProvinceData?.[0] || 'Various'
+          } leads with ${topProvinceData?.[1] || 0} students (${(
+            ((topProvinceData?.[1] || 0) / totalStudents) *
+            100
+          ).toFixed(1)}%). ${
+            topProvinceData && topProvinceData[1] > totalStudents * 0.4
+              ? 'Strong local enrollment'
+              : 'Regional diversity'
+          } demonstrates ${
+            provinceEntries.length > 5 ? 'broad' : 'institutional'
+          } reach.`
+        : 'No province data available.'
+
+    const provinceForecast =
+      provinceEntries.length > 0
+        ? `Geographic patterns projected to remain stable. ${
+            topProvinceData?.[0] || 'Primary regions'
+          } will continue as largest segments. Growth of ${Math.round(
+            totalStudents * 0.1
+          )} students maintains similar ratios. Strategic partnerships support continued growth.`
+        : 'Forecasting requires province data.'
+
+    const municipalityEntries = Object.entries(
+      analytics.locationBreakdown.municipality
+    ).sort((a, b) => b[1] - a[1])
+    const topMunicipality = municipalityEntries[0]
+    const municipalityInsight =
+      municipalityEntries.length > 0
+        ? `${municipalityEntries.length} municipalities represented. ${
+            topMunicipality?.[0] || 'Various'
+          } leads with ${topMunicipality?.[1] || 0} students. ${
+            municipalityEntries.length > 10 ? 'Wide' : 'Varied'
+          } distribution ${
+            topMunicipality && topMunicipality[1] > totalStudents * 0.2
+              ? 'indicates strong local engagement'
+              : 'demonstrates regional reach'
+          }.`
+        : 'No municipality data available.'
+
+    const municipalityForecast =
+      municipalityEntries.length > 0
+        ? `Municipal patterns expected to remain consistent. ${
+            topMunicipality?.[0] || 'Leading municipalities'
+          } will continue significant contributions. Growth of ${Math.round(
+            totalStudents * 0.1
+          )} students maintains proportions. Targeted outreach supports diversity.`
+        : 'Forecasting requires municipality data.'
+
+    const barangayEntries = Object.entries(
+      analytics.locationBreakdown.barangay
+    ).sort((a, b) => b[1] - a[1])
+    const topBarangay = barangayEntries[0]
+    const barangayInsight =
+      barangayEntries.length > 0
+        ? `${barangayEntries.length} barangays represented. ${
+            topBarangay?.[0] || 'Various'
+          } leads with ${topBarangay?.[1] || 0} students. ${
+            barangayEntries.length > 20 ? 'Extensive' : 'Varied'
+          } distribution demonstrates deep community penetration. Data helps identify high-enrollment communities.`
+        : 'No barangay data available.'
+
+    const barangayForecast =
+      barangayEntries.length > 0
+        ? `Barangay patterns projected to remain stable. ${
+            topBarangay?.[0] || 'Leading barangays'
+          } will continue strong enrollment. Growth of ${Math.round(
+            totalStudents * 0.1
+          )} students maintains similar patterns. Community-based recruitment supports diversity.`
+        : 'Forecasting requires barangay data.'
+
+    // Previous School Type Insight
+    const schoolTypeEntries = Object.entries(analytics.previousSchoolType).sort(
+      (a, b) => b[1] - a[1]
+    )
+    const topSchoolType = schoolTypeEntries[0]
+    const schoolTypeInsight =
+      schoolTypeEntries.length > 0
+        ? `${schoolTypeEntries.length} school types represented. ${
+            topSchoolType?.[0] || 'Various'
+          } most common with ${topSchoolType?.[1] || 0} students (${(
+            ((topSchoolType?.[1] || 0) / totalStudents) *
+            100
+          ).toFixed(
+            1
+          )}%). Distribution reflects diverse educational pathways. Understanding patterns helps tailor support programs.`
+        : 'No school type data available.'
+
+    const schoolTypeForecast =
+      schoolTypeEntries.length > 0
+        ? `School type distribution expected to remain consistent. ${
+            topSchoolType?.[0] || 'Primary types'
+          } will continue as largest segments. Growth of ${Math.round(
+            totalStudents * 0.1
+          )} students maintains similar ratios. Strategic partnerships strengthen enrollment pipelines.`
+        : 'Forecasting requires school type data.'
+
+    // Previous School Insight
+    const schoolEntries = Object.entries(
+      analytics.previousSchoolDistribution
+    ).sort((a, b) => b[1] - a[1])
+    const topSchool = schoolEntries[0]
+    const schoolInsight =
+      schoolEntries.length > 0
+        ? `${schoolEntries.length} feeder schools identified. ${
+            topSchool?.[0] || 'Various'
+          } leads with ${topSchool?.[1] || 0} students. ${
+            schoolEntries.length > 10 ? 'Extensive' : 'Varied'
+          } distribution ${
+            topSchool && topSchool[1] > 3
+              ? 'indicates strong partnerships'
+              : 'demonstrates broad reach'
+          }.`
+        : 'No previous school data available.'
+
+    const schoolForecast =
+      schoolEntries.length > 0
+        ? `Feeder school patterns projected to remain stable. ${
+            topSchool?.[0] || 'Leading schools'
+          } will continue sending significant students. Growth of ${Math.round(
+            totalStudents * 0.1
+          )} students maintains similar proportions. Strategic partnerships strengthen enrollment pipelines.`
+        : 'Forecasting requires previous school data.'
 
     return {
-      maxGrade: maxGrade.count > 0 ? `Grade ${maxGrade.grade}` : 'N/A',
-      minGrade: minGrade.count < Infinity ? `Grade ${minGrade.grade}` : 'N/A',
-      irregularPercentage,
-      topProvince: topProvince
-        ? `${topProvince[0]} (${topProvince[1]} students)`
-        : 'N/A',
-      topGender: topGender
-        ? `${topGender[0]} (${topGender[1]} students)`
-        : 'N/A',
-      forecastedEnrollment,
+      gradeLevelInsight,
+      gradeLevelForecast,
+      strandInsight,
+      strandForecast,
+      courseInsight,
+      courseForecast,
+      regularIrregularInsight,
+      regularIrregularForecast,
+      genderInsight,
+      genderForecast,
+      religionInsight,
+      religionForecast,
+      ageInsight,
+      ageForecast,
+      provinceInsight,
+      provinceForecast,
+      municipalityInsight,
+      municipalityForecast,
+      barangayInsight,
+      barangayForecast,
+      schoolTypeInsight,
+      schoolTypeForecast,
+      schoolInsight,
+      schoolForecast,
     }
-  }, [analytics, totalStudents])
+  }, [analytics, totalStudents, studentsByDepartment])
 
   // Prepare chart data
   const gradeChartData = useMemo(() => {
@@ -709,93 +1187,124 @@ export default function RegistrarAnalytics({
       }))
   }, [analytics.previousSchoolDistribution])
 
-  if (loading) {
+  // Skeleton Loader Component
+  const SkeletonLoader = () => {
     return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="flex justify-center space-x-2 mb-4">
-            <div className="w-3 h-3 bg-blue-900 rounded-full animate-pulse"></div>
-            <div
-              className="w-3 h-3 bg-blue-900 rounded-full animate-pulse"
-              style={{ animationDelay: '0.2s' }}
-            ></div>
-            <div
-              className="w-3 h-3 bg-blue-900 rounded-full animate-pulse"
-              style={{ animationDelay: '0.4s' }}
-            ></div>
+      <div className="p-6 space-y-6">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-blue-100 animate-pulse rounded"></div>
+            <div className="space-y-2">
+              <div className="h-6 bg-gray-200 animate-pulse rounded w-48"></div>
+              <div className="h-4 bg-gray-100 animate-pulse rounded w-64"></div>
+            </div>
           </div>
-          <p
-            className="text-gray-600"
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-          >
-            Loading analytics...
-          </p>
+          <div className="h-10 w-40 bg-gray-200 animate-pulse rounded-lg"></div>
+        </div>
+
+        {/* Search and Filter Skeleton */}
+        <div className="bg-white p-6 border border-gray-200 rounded-xl shadow-lg">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="h-10 w-full sm:w-96 bg-gray-200 animate-pulse rounded-lg"></div>
+            <div className="h-10 w-24 bg-gray-200 animate-pulse rounded-lg"></div>
+          </div>
+        </div>
+
+        {/* Department Cards Skeleton */}
+        <div className="flex flex-wrap gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card
+              key={i}
+              className="p-6 bg-white border border-gray-200 rounded-xl flex-[1_1_min(100%,_350px)]"
+            >
+              <div className="animate-pulse space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                    <div className="h-8 bg-gray-200 rounded w-16"></div>
+                    <div className="h-3 bg-gray-100 rounded w-24"></div>
+                  </div>
+                  <div className="w-14 h-14 bg-gray-200 rounded-xl"></div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Chart Cards Skeleton */}
+        <div className="flex flex-wrap gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card
+              key={i}
+              className={`p-6 bg-white border border-gray-200 rounded-xl flex-[1_1_min(100%,_350px)] ${
+                i <= 2 ? 'lg:flex-[1_1_100%]' : ''
+              }`}
+            >
+              <div className="animate-pulse space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                  <div className="space-y-2 flex-1">
+                    <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-64 bg-gray-200 rounded-lg"></div>
+                </div>
+                <div className="space-y-2 pt-4 border-t border-gray-100">
+                  <div className="flex items-start gap-2">
+                    <div className="w-4 h-4 bg-gray-200 rounded mt-0.5"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 bg-gray-200 rounded w-16"></div>
+                      <div className="h-3 bg-gray-100 rounded w-full"></div>
+                      <div className="h-3 bg-gray-100 rounded w-2/3"></div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <div className="w-4 h-4 bg-gray-200 rounded mt-0.5"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 bg-gray-200 rounded w-20"></div>
+                      <div className="h-3 bg-gray-100 rounded w-full"></div>
+                      <div className="h-3 bg-gray-100 rounded w-3/4"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
       </div>
     )
   }
 
+  const hasAnalyticsData = filteredEnrollments.length > 0
+  const latestAvailableAY =
+    availableAYs.length > 0 ? availableAYs[availableAYs.length - 1] : undefined
+
+  if (loading) {
+    return <SkeletonLoader />
+  }
+
   return (
     <div className="p-6 space-y-6" style={{ fontFamily: 'Poppins' }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1
-            className="text-2xl font-medium text-gray-900 mb-1"
-            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-          >
-            Analytics & Reports
-          </h1>
-          <p
-            className="text-sm text-gray-600"
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-          >
-            Student enrollment insights and statistics
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* AY Filter */}
-          <div className="relative">
-            <select
-              value={selectedAY}
-              onChange={(e) => setSelectedAY(e.target.value)}
-              className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 appearance-none pr-8"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1
+              className="text-2xl font-medium text-gray-900 mb-1"
+              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
             >
-              {availableAYs.length > 0 ? (
-                availableAYs.map((ay) => (
-                  <option key={ay} value={ay}>
-                    {ay}
-                  </option>
-                ))
-              ) : (
-                <option value={currentAY}>{currentAY || 'Select AY'}</option>
-              )}
-            </select>
-            <CaretDown
-              size={16}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500"
-            />
-          </div>
-
-          {/* Semester Filter */}
-          <div className="relative">
-            <select
-              value={selectedSemester}
-              onChange={(e) => setSelectedSemester(e.target.value)}
-              className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 appearance-none pr-8"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              Analytics & Reports
+            </h1>
+            <p
+              className="text-sm text-gray-600"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
             >
-              <option value="1">Semester 1</option>
-              <option value="2">Semester 2</option>
-            </select>
-            <CaretDown
-              size={16}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500"
-            />
+              Student enrollment insights and statistics
+            </p>
           </div>
-
-          {/* Print Button */}
           <Button
             onClick={() => setShowPrintModal(true)}
             className="rounded-lg bg-blue-900 text-white hover:bg-blue-900 flex items-center gap-2"
@@ -805,774 +1314,1201 @@ export default function RegistrarAnalytics({
             Print Dashboard
           </Button>
         </div>
-      </div>
 
-      {/* Total Students Card */}
-      <Card className="p-6 rounded-xl border border-gray-200 bg-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <p
-              className="text-sm text-gray-600 mb-1"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              Total Students
-            </p>
-            <p
-              className="text-3xl font-medium text-gray-900"
-              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-            >
-              {totalStudents}
-            </p>
-            <p
-              className="text-xs text-gray-500 mt-1"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              {selectedAY}
-              {selectedSemester && ` - Semester ${selectedSemester}`}
-            </p>
+        {/* Search and Filter Controls */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4 flex-1">
+            <div className="flex-1">
+              <Input
+                type="text"
+                placeholder="Search analytics..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pr-4 py-2 w-full border-blue-900"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              />
+            </div>
           </div>
-          <div className="w-16 h-16 rounded-xl bg-blue-900 flex items-center justify-center">
-            <Users size={32} className="text-white" weight="fill" />
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 ${
+                  selectedAY ||
+                  selectedSemester ||
+                  selectedStudentType.length > 0 ||
+                  selectedLevel.length > 0
+                    ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                    : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                }`}
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                <FunnelSimple size={16} weight="bold" />
+                Filter
+                {(selectedAY ||
+                  selectedSemester ||
+                  selectedStudentType.length > 0 ||
+                  selectedLevel.length > 0) && (
+                  <span className="w-2 h-2 bg-white rounded-full"></span>
+                )}
+              </button>
+
+              {/* Filter Dropdown */}
+              {showFilterDropdown && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowFilterDropdown(false)}
+                  ></div>
+                  <div className="absolute right-0 mt-2 w-96 bg-white border border-gray-200 shadow-lg rounded-xl z-20 p-6">
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <h3
+                          className="text-sm font-medium text-gray-900"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          Filter Options
+                        </h3>
+                        <button
+                          onClick={() => setShowFilterDropdown(false)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      {/* Academic Year Filter */}
+                      <div>
+                        <label
+                          className="text-xs text-gray-700 mb-2 block"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          Academic Year
+                        </label>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {availableAYs.length > 0 ? (
+                            availableAYs.map((ay) => (
+                              <button
+                                key={ay}
+                                onClick={() => setSelectedAY(ay)}
+                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                                  selectedAY === ay
+                                    ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                                    : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                                }`}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {ay}
+                              </button>
+                            ))
+                          ) : (
+                            <button
+                              onClick={() => setSelectedAY(currentAY)}
+                              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                                selectedAY === currentAY
+                                  ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                                  : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                              }`}
+                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            >
+                              {currentAY || 'Select AY'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Semester Filter */}
+                      <div>
+                        <label
+                          className="text-xs text-gray-700 mb-2 block"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          Semester
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setSelectedSemester('1')}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                              selectedSemester === '1'
+                                ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                                : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                            }`}
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
+                            Semester 1
+                          </button>
+                          <button
+                            onClick={() => setSelectedSemester('2')}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                              selectedSemester === '2'
+                                ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                                : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                            }`}
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
+                            Semester 2
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Student Type Filter */}
+                      <div>
+                        <label
+                          className="text-xs text-gray-700 mb-2 block"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          Student Type
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { key: 'regular', label: 'Regular' },
+                            { key: 'irregular', label: 'Irregular' },
+                          ].map((option) => {
+                            const isSelected = selectedStudentType.includes(
+                              option.key as 'regular' | 'irregular'
+                            )
+                            return (
+                              <button
+                                key={option.key}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedStudentType(
+                                      selectedStudentType.filter(
+                                        (t) => t !== option.key
+                                      )
+                                    )
+                                  } else {
+                                    setSelectedStudentType([
+                                      ...selectedStudentType,
+                                      option.key as 'regular' | 'irregular',
+                                    ])
+                                  }
+                                }}
+                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                                  isSelected
+                                    ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                                    : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                                }`}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {option.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Level/Department Filter */}
+                      <div>
+                        <label
+                          className="text-xs text-gray-700 mb-2 block"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          Level/Department
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { key: 'college', label: 'College' },
+                            { key: 'senior', label: 'Senior' },
+                            { key: 'junior', label: 'Junior' },
+                          ].map((option) => {
+                            const isSelected = selectedLevel.includes(
+                              option.key as 'college' | 'senior' | 'junior'
+                            )
+                            return (
+                              <button
+                                key={option.key}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedLevel(
+                                      selectedLevel.filter(
+                                        (t) => t !== option.key
+                                      )
+                                    )
+                                  } else {
+                                    setSelectedLevel([
+                                      ...selectedLevel,
+                                      option.key as
+                                        | 'college'
+                                        | 'senior'
+                                        | 'junior',
+                                    ])
+                                  }
+                                }}
+                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                                  isSelected
+                                    ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                                    : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                                }`}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {option.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Clear Filters */}
+                      {(selectedAY ||
+                        selectedSemester ||
+                        selectedStudentType.length > 0 ||
+                        selectedLevel.length > 0) && (
+                        <button
+                          onClick={() => {
+                            setSelectedAY(currentAY)
+                            setSelectedSemester(currentSemester || '1')
+                            setSelectedStudentType([])
+                            setSelectedLevel([])
+                          }}
+                          className="w-full px-3 py-2 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
+                          Reset Filters
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </Card>
-
-      {/* Analytics Grid - Max 2 columns per row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Students by Grade Level - Bar Chart - Full Width */}
-        {gradeChartData.length > 0 && (
-          <div className="col-span-1 lg:col-span-2">
-            <ChartCard
-              title="Students by Grade Level"
-              icon={GraduationCap}
-              insight={`Highest enrollment: ${insights.maxGrade}. Consider resource allocation for ${insights.maxGrade}.`}
-              forecast={`Forecasted enrollment growth: ~${insights.forecastedEnrollment} students next semester.`}
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={gradeChartData}>
-                  <defs>
-                    <linearGradient id="colorGrade" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#1e40af" stopOpacity={1} />
-                      <stop
-                        offset="95%"
-                        stopColor="#3b82f6"
-                        stopOpacity={0.8}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontFamily: 'Poppins',
-                      fontWeight: 400,
-                    }}
-                  />
-                  <Bar
-                    dataKey="students"
-                    fill="url(#colorGrade)"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-        )}
-
-        {/* Students by Strand - Bar Chart - Full Width */}
-        {strandChartData.length > 0 && (
-          <div className="col-span-1 lg:col-span-2">
-            <ChartCard
-              title="Students by Strand"
-              icon={BookOpen}
-              insight={`Most popular strand: ${
-                strandChartData.sort((a, b) => b.students - a.students)[0]
-                  ?.name || 'N/A'
-              }.`}
-              forecast="SHS enrollment trends suggest steady growth in STEM and ABM strands."
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={strandChartData}>
-                  <defs>
-                    <linearGradient
-                      id="colorStrand"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={1} />
-                      <stop
-                        offset="95%"
-                        stopColor="#60a5fa"
-                        stopOpacity={0.8}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={100}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontFamily: 'Poppins',
-                      fontWeight: 400,
-                    }}
-                  />
-                  <Bar
-                    dataKey="students"
-                    fill="url(#colorStrand)"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-        )}
-
-        {/* Students by Course - Bar Chart - Full Width */}
-        {courseChartData.length > 0 && (
-          <div className="col-span-1 lg:col-span-2">
-            <ChartCard
-              title="Students by Course"
-              icon={ChartBar}
-              insight={`Top course: ${
-                courseChartData.sort((a, b) => b.students - a.students)[0]
-                  ?.fullName || 'N/A'
-              }.`}
-              forecast="College enrollment shows strong demand in technical programs."
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={courseChartData}>
-                  <defs>
-                    <linearGradient
-                      id="colorCourse"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#1e40af" stopOpacity={1} />
-                      <stop
-                        offset="95%"
-                        stopColor="#60a5fa"
-                        stopOpacity={0.8}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={100}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontFamily: 'Poppins',
-                      fontWeight: 400,
-                    }}
-                  />
-                  <Bar
-                    dataKey="students"
-                    fill="url(#colorCourse)"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-        )}
-
-        {/* Regular vs Irregular - Bar Chart */}
-        {regularIrregularData.some((d) => d.value > 0) && (
-          <ChartCard
-            title="Regular vs Irregular"
-            icon={Users}
-            insight={`${insights.irregularPercentage}% are irregular students. Monitor academic progress closely.`}
-            forecast="Irregular student ratio expected to stabilize with improved guidance programs."
-          >
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={regularIrregularData}>
-                <defs>
-                  <linearGradient
-                    id="colorRegularIrregular"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="5%" stopColor="#1e40af" stopOpacity={1} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.8} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: '#6b7280' }}
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontFamily: 'Poppins',
-                    fontWeight: 400,
-                  }}
-                />
-                <Bar
-                  dataKey="value"
-                  fill="url(#colorRegularIrregular)"
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        )}
-
-        {/* Gender Distribution - Pie Chart */}
-        {genderChartData.length > 0 && (
-          <ChartCard
-            title="Gender Distribution"
-            icon={GenderIntersex}
-            insight={`${insights.topGender}. Gender balance is ${
-              genderChartData.length === 2
-                ? 'well-distributed'
-                : 'needs attention'
-            }.`}
-            forecast="Gender distribution trends remain consistent across enrollment periods."
-          >
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={genderChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name}: ${(percent * 100).toFixed(0)}%`
-                  }
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {genderChartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontFamily: 'Poppins',
-                    fontWeight: 400,
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        )}
-
-        {/* Religion Distribution - Bar Chart - Full Width */}
-        {religionChartData.length > 0 && (
-          <div className="col-span-1 lg:col-span-2">
-            <ChartCard
-              title="Religion Distribution"
-              icon={MapPin}
-              insight={`Most represented: ${
-                religionChartData[0]?.name || 'N/A'
-              }. Diverse religious background.`}
-              forecast="Religious diversity continues to reflect community demographics."
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={Object.entries(analytics.religionDistribution)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([religion, count]) => ({
-                      name:
-                        religion.length > 25
-                          ? religion.substring(0, 25) + '...'
-                          : religion,
-                      fullName: religion,
-                      students: count,
-                    }))}
-                >
-                  <defs>
-                    <linearGradient
-                      id="colorReligion"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={1} />
-                      <stop
-                        offset="95%"
-                        stopColor="#93c5fd"
-                        stopOpacity={0.8}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={100}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontFamily: 'Poppins',
-                      fontWeight: 400,
-                    }}
-                  />
-                  <Bar
-                    dataKey="students"
-                    fill="url(#colorReligion)"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-        )}
-
-        {/* Age Groups - Bar Chart - Full Width */}
-        {ageGroupChartData.length > 0 && (
-          <div className="col-span-1 lg:col-span-2">
-            <ChartCard
-              title="Age Distribution"
-              icon={Calendar}
-              insight={`Age range: ${
-                analytics.birthdateRange.min || 'N/A'
-              } to ${analytics.birthdateRange.max || 'N/A'}.`}
-              forecast="Age distribution aligns with expected enrollment patterns for each level."
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={ageGroupChartData}>
-                  <defs>
-                    <linearGradient id="colorAge" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#1e40af" stopOpacity={1} />
-                      <stop
-                        offset="95%"
-                        stopColor="#60a5fa"
-                        stopOpacity={0.8}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontFamily: 'Poppins',
-                      fontWeight: 400,
-                    }}
-                  />
-                  <Bar
-                    dataKey="students"
-                    fill="url(#colorAge)"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-        )}
-
-        {/* Provinces - Bar Chart - Full Width */}
-        {provinceChartData.length > 0 && (
-          <div className="col-span-1 lg:col-span-2">
-            <ChartCard
-              title="Students by Province"
-              icon={MapPin}
-              insight={`${insights.topProvince}. Geographic distribution shows strong local enrollment.`}
-              forecast="Provincial enrollment patterns remain stable with slight regional variations."
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={provinceChartData}>
-                  <defs>
-                    <linearGradient
-                      id="colorProvince"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#60a5fa" stopOpacity={1} />
-                      <stop
-                        offset="95%"
-                        stopColor="#93c5fd"
-                        stopOpacity={0.8}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 11, fill: '#6b7280' }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={100}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontFamily: 'Poppins',
-                      fontWeight: 400,
-                    }}
-                  />
-                  <Bar
-                    dataKey="students"
-                    fill="url(#colorProvince)"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-        )}
-
-        {/* Municipalities - Bar Chart - Full Width */}
-        {Object.keys(analytics.locationBreakdown.municipality).length > 0 && (
-          <div className="col-span-1 lg:col-span-2">
-            <ChartCard
-              title="Students by Municipality"
-              icon={MapPin}
-              insight={`Top municipality: ${
-                Object.entries(analytics.locationBreakdown.municipality).sort(
-                  (a, b) => b[1] - a[1]
-                )[0]?.[0] || 'N/A'
-              }.`}
-              forecast="Municipal enrollment distribution reflects local community engagement."
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={Object.entries(analytics.locationBreakdown.municipality)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([municipality, count]) => ({
-                      name:
-                        municipality.length > 25
-                          ? municipality.substring(0, 25) + '...'
-                          : municipality,
-                      fullName: municipality,
-                      students: count,
-                    }))}
-                >
-                  <defs>
-                    <linearGradient
-                      id="colorMunicipality"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={1} />
-                      <stop
-                        offset="95%"
-                        stopColor="#60a5fa"
-                        stopOpacity={0.8}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={100}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontFamily: 'Poppins',
-                      fontWeight: 400,
-                    }}
-                  />
-                  <Bar
-                    dataKey="students"
-                    fill="url(#colorMunicipality)"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-        )}
-
-        {/* Barangays - Bar Chart - Full Width */}
-        {Object.keys(analytics.locationBreakdown.barangay).length > 0 && (
-          <div className="col-span-1 lg:col-span-2">
-            <ChartCard
-              title="Students by Barangay"
-              icon={MapPin}
-              insight={`Top barangay: ${
-                Object.entries(analytics.locationBreakdown.barangay).sort(
-                  (a, b) => b[1] - a[1]
-                )[0]?.[0] || 'N/A'
-              }.`}
-              forecast="Barangay-level data helps identify local enrollment hotspots."
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={Object.entries(analytics.locationBreakdown.barangay)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([barangay, count]) => ({
-                      name:
-                        barangay.length > 25
-                          ? barangay.substring(0, 25) + '...'
-                          : barangay,
-                      fullName: barangay,
-                      students: count,
-                    }))}
-                >
-                  <defs>
-                    <linearGradient
-                      id="colorBarangay"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#1e40af" stopOpacity={1} />
-                      <stop
-                        offset="95%"
-                        stopColor="#3b82f6"
-                        stopOpacity={0.8}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={100}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontFamily: 'Poppins',
-                      fontWeight: 400,
-                    }}
-                  />
-                  <Bar
-                    dataKey="students"
-                    fill="url(#colorBarangay)"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-        )}
-
-        {/* Previous School Type Distribution - Bar Chart - Full Width */}
-        {previousSchoolTypeChartData.length > 0 && (
-          <div className="col-span-1 lg:col-span-2">
-            <ChartCard
-              title="Previous School Type Distribution"
-              icon={GraduationCap}
-              insight={`Most common school type: ${
-                previousSchoolTypeChartData.sort(
-                  (a, b) => b.students - a.students
-                )[0]?.name || 'N/A'
-              }.`}
-              forecast="School type distribution reflects student background diversity."
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={previousSchoolTypeChartData}>
-                  <defs>
-                    <linearGradient
-                      id="colorPreviousSchoolType"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#1e40af" stopOpacity={1} />
-                      <stop
-                        offset="95%"
-                        stopColor="#60a5fa"
-                        stopOpacity={0.8}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontFamily: 'Poppins',
-                      fontWeight: 400,
-                    }}
-                  />
-                  <Bar
-                    dataKey="students"
-                    fill="url(#colorPreviousSchoolType)"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-        )}
-
-        {/* Previous School Distribution - Bar Chart - Full Width */}
-        {previousSchoolChartData.length > 0 && (
-          <div className="col-span-1 lg:col-span-2">
-            <ChartCard
-              title="Previous School Distribution"
-              icon={GraduationCap}
-              insight={`Top previous school: ${
-                previousSchoolChartData[0]?.fullName || 'N/A'
-              }.`}
-              forecast="Previous school data helps identify feeder schools and recruitment opportunities."
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={previousSchoolChartData}>
-                  <defs>
-                    <linearGradient
-                      id="colorPreviousSchool"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={1} />
-                      <stop
-                        offset="95%"
-                        stopColor="#93c5fd"
-                        stopOpacity={0.8}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 10, fill: '#6b7280' }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={100}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12, fill: '#6b7280' }}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontFamily: 'Poppins',
-                      fontWeight: 400,
-                    }}
-                  />
-                  <Bar
-                    dataKey="students"
-                    fill="url(#colorPreviousSchool)"
-                    radius={[8, 8, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartCard>
-          </div>
-        )}
       </div>
+
+      {fallbackAYInfo && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+          <p style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+            No enrollments were found for{' '}
+            <span className="font-semibold">{fallbackAYInfo.requested}</span>.
+            Displaying data for{' '}
+            <span className="font-semibold">{fallbackAYInfo.actual}</span>{' '}
+            instead.
+          </p>
+        </div>
+      )}
+
+      {!hasAnalyticsData ? (
+        <Card className="w-full p-10 border border-gray-200 text-center bg-white shadow-sm rounded-xl">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-800 to-blue-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <WarningCircle size={32} className="text-white" weight="fill" />
+          </div>
+          <h3
+            className="text-lg font-medium text-gray-900 mb-2"
+            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+          >
+            No analytics available
+          </h3>
+          <p
+            className="text-sm text-gray-600 mb-6 max-w-2xl mx-auto"
+            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+          >
+            There are no enrolled students that match the selected academic
+            year, semester, or filters. Try switching to another academic year
+            or reload the dataset once new enrollments are available.
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            <Button
+              onClick={() => loadData()}
+              className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              Reload data
+            </Button>
+            {latestAvailableAY && selectedAY !== latestAvailableAY && (
+              <Button
+                variant="outline"
+                onClick={() => setSelectedAY(latestAvailableAY)}
+                className="rounded-lg border-blue-200 text-blue-900 hover:bg-blue-50"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Show latest AY ({latestAvailableAY})
+              </Button>
+            )}
+          </div>
+        </Card>
+      ) : (
+        <>
+          {/* Total Students by Department */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Junior High School */}
+            <Card className="p-6 rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p
+                    className="text-sm text-gray-600 mb-1"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    Junior High School
+                  </p>
+                  <p
+                    className="text-3xl font-medium text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
+                    {jhsCount}
+                  </p>
+                  <p
+                    className="text-xs text-gray-500 mt-1"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    Grades 7-10
+                  </p>
+                </div>
+                <div className="w-14 h-14 rounded-xl bg-blue-800 flex items-center justify-center">
+                  <GraduationCap
+                    size={24}
+                    className="text-white"
+                    weight="fill"
+                  />
+                </div>
+              </div>
+            </Card>
+
+            {/* Senior High School */}
+            <Card className="p-6 rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p
+                    className="text-sm text-gray-600 mb-1"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    Senior High School
+                  </p>
+                  <p
+                    className="text-3xl font-medium text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
+                    {shsCount}
+                  </p>
+                  <p
+                    className="text-xs text-gray-500 mt-1"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    Grades 11-12
+                  </p>
+                </div>
+                <div className="w-14 h-14 rounded-xl bg-blue-800 flex items-center justify-center">
+                  <BookOpen size={24} className="text-white" weight="fill" />
+                </div>
+              </div>
+            </Card>
+
+            {/* College Department */}
+            <Card className="p-6 rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p
+                    className="text-sm text-gray-600 mb-1"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    College Department
+                  </p>
+                  <p
+                    className="text-3xl font-medium text-gray-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
+                    {collegeCount}
+                  </p>
+                  <p
+                    className="text-xs text-gray-500 mt-1"
+                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  >
+                    Year 1-4
+                  </p>
+                </div>
+                <div className="w-14 h-14 rounded-xl bg-blue-800 flex items-center justify-center">
+                  <ChartBar size={24} className="text-white" weight="fill" />
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Analytics Grid - Max 2 columns per row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Students by Grade Level - Bar Chart - Full Width */}
+            {gradeChartData.length > 0 && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Students by Grade Level"
+                  icon={GraduationCap}
+                  insight={generateInsights.gradeLevelInsight}
+                  forecast={generateInsights.gradeLevelForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={gradeChartData}>
+                      <defs>
+                        <linearGradient
+                          id="colorGrade"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#1e40af"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#3b82f6"
+                            stopOpacity={0.8}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                      <Bar
+                        dataKey="students"
+                        fill="url(#colorGrade)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+
+            {/* Students by Strand - Bar Chart - Full Width */}
+            {strandChartData.length > 0 && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Students by Strand"
+                  icon={BookOpen}
+                  insight={generateInsights.strandInsight}
+                  forecast={generateInsights.strandForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={strandChartData}>
+                      <defs>
+                        <linearGradient
+                          id="colorStrand"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#3b82f6"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#60a5fa"
+                            stopOpacity={0.8}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 11, fill: '#6b7280' }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                      <Bar
+                        dataKey="students"
+                        fill="url(#colorStrand)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+
+            {/* Students by Course - Bar Chart - Full Width */}
+            {courseChartData.length > 0 && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Students by Course"
+                  icon={ChartBar}
+                  insight={generateInsights.courseInsight}
+                  forecast={generateInsights.courseForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={courseChartData}>
+                      <defs>
+                        <linearGradient
+                          id="colorCourse"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#1e40af"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#60a5fa"
+                            stopOpacity={0.8}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 11, fill: '#6b7280' }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                      <Bar
+                        dataKey="students"
+                        fill="url(#colorCourse)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+
+            {/* Regular vs Irregular - Bar Chart */}
+            {regularIrregularData.some((d) => d.value > 0) && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Regular vs Irregular"
+                  icon={Users}
+                  insight={generateInsights.regularIrregularInsight}
+                  forecast={generateInsights.regularIrregularForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={regularIrregularData}>
+                      <defs>
+                        <linearGradient
+                          id="colorRegularIrregular"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#1e40af"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#3b82f6"
+                            stopOpacity={0.8}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                      <Bar
+                        dataKey="value"
+                        fill="url(#colorRegularIrregular)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+
+            {/* Gender Distribution - Pie Chart */}
+            {genderChartData.length > 0 && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Gender Distribution"
+                  icon={GenderIntersex}
+                  insight={generateInsights.genderInsight}
+                  forecast={generateInsights.genderForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={genderChartData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) =>
+                          `${name}: ${(percent * 100).toFixed(0)}%`
+                        }
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {genderChartData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+
+            {/* Religion Distribution - Bar Chart - Full Width */}
+            {religionChartData.length > 0 && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Religion Distribution"
+                  icon={MapPin}
+                  insight={generateInsights.religionInsight}
+                  forecast={generateInsights.religionForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={Object.entries(analytics.religionDistribution)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([religion, count]) => ({
+                          name:
+                            religion.length > 25
+                              ? religion.substring(0, 25) + '...'
+                              : religion,
+                          fullName: religion,
+                          students: count,
+                        }))}
+                    >
+                      <defs>
+                        <linearGradient
+                          id="colorReligion"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#3b82f6"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#93c5fd"
+                            stopOpacity={0.8}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 11, fill: '#6b7280' }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                      <Bar
+                        dataKey="students"
+                        fill="url(#colorReligion)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+
+            {/* Age Groups - Bar Chart - Full Width */}
+            {ageGroupChartData.length > 0 && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Age Distribution"
+                  icon={Calendar}
+                  insight={generateInsights.ageInsight}
+                  forecast={generateInsights.ageForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={ageGroupChartData}>
+                      <defs>
+                        <linearGradient
+                          id="colorAge"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#1e40af"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#60a5fa"
+                            stopOpacity={0.8}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                      <Bar
+                        dataKey="students"
+                        fill="url(#colorAge)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+
+            {/* Provinces - Bar Chart - Full Width */}
+            {provinceChartData.length > 0 && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Students by Province"
+                  icon={MapPin}
+                  insight={generateInsights.provinceInsight}
+                  forecast={generateInsights.provinceForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={provinceChartData}>
+                      <defs>
+                        <linearGradient
+                          id="colorProvince"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#60a5fa"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#93c5fd"
+                            stopOpacity={0.8}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 11, fill: '#6b7280' }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                      <Bar
+                        dataKey="students"
+                        fill="url(#colorProvince)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+
+            {/* Municipalities - Bar Chart - Full Width */}
+            {Object.keys(analytics.locationBreakdown.municipality).length >
+              0 && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Students by Municipality"
+                  icon={MapPin}
+                  insight={generateInsights.municipalityInsight}
+                  forecast={generateInsights.municipalityForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={Object.entries(
+                        analytics.locationBreakdown.municipality
+                      )
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([municipality, count]) => ({
+                          name:
+                            municipality.length > 25
+                              ? municipality.substring(0, 25) + '...'
+                              : municipality,
+                          fullName: municipality,
+                          students: count,
+                        }))}
+                    >
+                      <defs>
+                        <linearGradient
+                          id="colorMunicipality"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#3b82f6"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#60a5fa"
+                            stopOpacity={0.8}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 10, fill: '#6b7280' }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                      <Bar
+                        dataKey="students"
+                        fill="url(#colorMunicipality)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+
+            {/* Barangays - Bar Chart - Full Width */}
+            {Object.keys(analytics.locationBreakdown.barangay).length > 0 && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Students by Barangay"
+                  icon={MapPin}
+                  insight={generateInsights.barangayInsight}
+                  forecast={generateInsights.barangayForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={Object.entries(analytics.locationBreakdown.barangay)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([barangay, count]) => ({
+                          name:
+                            barangay.length > 25
+                              ? barangay.substring(0, 25) + '...'
+                              : barangay,
+                          fullName: barangay,
+                          students: count,
+                        }))}
+                    >
+                      <defs>
+                        <linearGradient
+                          id="colorBarangay"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#1e40af"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#3b82f6"
+                            stopOpacity={0.8}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 10, fill: '#6b7280' }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                      <Bar
+                        dataKey="students"
+                        fill="url(#colorBarangay)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+
+            {/* Previous School Type Distribution - Bar Chart - Full Width */}
+            {previousSchoolTypeChartData.length > 0 && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Previous School Type Distribution"
+                  icon={GraduationCap}
+                  insight={generateInsights.schoolTypeInsight}
+                  forecast={generateInsights.schoolTypeForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={previousSchoolTypeChartData}>
+                      <defs>
+                        <linearGradient
+                          id="colorPreviousSchoolType"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#1e40af"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#60a5fa"
+                            stopOpacity={0.8}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                      <Bar
+                        dataKey="students"
+                        fill="url(#colorPreviousSchoolType)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+
+            {/* Previous School Distribution - Bar Chart - Full Width */}
+            {previousSchoolChartData.length > 0 && (
+              <div className="col-span-1 lg:col-span-2">
+                <ChartCard
+                  title="Previous School Distribution"
+                  icon={GraduationCap}
+                  insight={generateInsights.schoolInsight}
+                  forecast={generateInsights.schoolForecast}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={previousSchoolChartData}>
+                      <defs>
+                        <linearGradient
+                          id="colorPreviousSchool"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#3b82f6"
+                            stopOpacity={1}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#93c5fd"
+                            stopOpacity={0.8}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 10, fill: '#6b7280' }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={100}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#6b7280' }}
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          fontFamily: 'Poppins',
+                          fontWeight: 400,
+                        }}
+                      />
+                      <Bar
+                        dataKey="students"
+                        fill="url(#colorPreviousSchool)"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Print Modal */}
       {showPrintModal && (
@@ -1736,7 +2672,7 @@ const ChartCard: React.FC<ChartCardProps> = ({
           />
           <p
             className="text-xs text-gray-600"
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            style={{ fontFamily: 'monospace', fontWeight: 400 }}
           >
             <span className="font-medium text-gray-900">Insight:</span>{' '}
             {insight}
@@ -1750,7 +2686,7 @@ const ChartCard: React.FC<ChartCardProps> = ({
           />
           <p
             className="text-xs text-gray-600"
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            style={{ fontFamily: 'monospace', fontWeight: 400 }}
           >
             <span className="font-medium text-gray-900">Forecast:</span>{' '}
             {forecast}

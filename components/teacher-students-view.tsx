@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import {
   GraduationCap,
   Users,
@@ -451,9 +449,9 @@ export default function TeacherStudentsView({
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <Users size={20} className="text-white" weight="fill" />
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-lg">
+            <Users size={22} className="text-white" weight="fill" />
           </div>
           <div>
             <h1 className="text-2xl font-medium text-gray-900">My Students</h1>
@@ -463,75 +461,25 @@ export default function TeacherStudentsView({
           </div>
         </div>
 
-        <Card className="overflow-hidden pt-0 pb-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100 border-b-2 border-gray-300">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                        <User size={12} weight="bold" className="text-white" />
-                      </div>
-                      Student
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                        <GraduationCap
-                          size={12}
-                          weight="bold"
-                          className="text-white"
-                        />
-                      </div>
-                      Section
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                        <IdentificationCard
-                          size={12}
-                          weight="bold"
-                          className="text-white"
-                        />
-                      </div>
-                      Subjects with You
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <tr key={index} className="animate-pulse">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full mr-3"></div>
-                        <div className="space-y-1">
-                          <div className="h-3 bg-gray-200 rounded w-32"></div>
-                          <div className="h-2 bg-gray-200 rounded w-24"></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="space-y-1">
-                        <div className="h-3 bg-gray-200 rounded w-20"></div>
-                        <div className="h-2 bg-gray-200 rounded w-16"></div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-wrap gap-1">
-                        <div className="h-6 bg-gray-200 rounded w-16"></div>
-                        <div className="h-6 bg-gray-200 rounded w-20"></div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="bg-white/90 border border-blue-100 rounded-2xl shadow-sm p-6">
+          <div className="space-y-4 animate-pulse">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-blue-100"></div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-blue-100 rounded w-40"></div>
+                    <div className="h-2 bg-blue-100 rounded w-28"></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-16 h-3 bg-blue-50 rounded"></div>
+                  <div className="w-20 h-3 bg-blue-50 rounded"></div>
+                </div>
+              </div>
+            ))}
           </div>
-        </Card>
+        </div>
       </div>
     )
   }
@@ -539,9 +487,9 @@ export default function TeacherStudentsView({
   if (filteredStudents.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <Users size={20} className="text-white" weight="fill" />
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-lg">
+            <Users size={22} className="text-white" weight="fill" />
           </div>
           <div>
             <h1 className="text-2xl font-medium text-gray-900">My Students</h1>
@@ -551,227 +499,161 @@ export default function TeacherStudentsView({
           </div>
         </div>
 
-        {/* Search and Filter Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="flex-1 max-w-md">
-              <input
-                type="text"
-                placeholder="Search students..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pr-4 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
-              />
-            </div>
+        <div className="bg-white/90 border border-blue-100 rounded-xl shadow-sm p-4 space-y-3">
+          <div className="relative">
+            <MagnifyingGlass
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-900/60"
+            />
+            <input
+              type="text"
+              placeholder="Search students..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-blue-100 bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-900/30 text-sm"
+            />
           </div>
-
-          <div className="flex flex-col gap-3">
-            {/* Subject Filter Pills */}
-            <div className="flex items-center gap-1 flex-wrap">
-              <button
-                onClick={() =>
-                  setSelectedSubjectFilter(
-                    selectedSubjectFilter.length === availableSubjects.length
-                      ? []
-                      : availableSubjects
-                  )
-                }
-                className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-                  selectedSubjectFilter.length === availableSubjects.length
-                    ? 'bg-blue-900 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                style={{
-                  fontFamily: 'Poppins',
-                  fontWeight:
-                    selectedSubjectFilter.length === availableSubjects.length
-                      ? 400
-                      : 300,
-                }}
+          <div className="flex flex-wrap gap-2">
+            {[{ label: 'Subjects', list: availableSubjects, type: 'subject' }, { label: 'Sections', list: availableSections, type: 'section' }].map((group) => (
+              <div
+                key={group.label}
+                className="flex items-center gap-2 flex-wrap bg-white/80 border border-blue-50 rounded-xl px-3 py-2"
               >
-                {selectedSubjectFilter.length === availableSubjects.length
-                  ? 'None'
-                  : 'All'}
-              </button>
-              {availableSubjects.map((subjectId) => {
-                const subject = subjects[subjectId]
-                return subject ? (
-                  <button
-                    key={subjectId}
-                    onClick={() => {
-                      const isSelected =
-                        selectedSubjectFilter.includes(subjectId)
-                      if (isSelected) {
-                        setSelectedSubjectFilter((prev) =>
-                          prev.filter((id) => id !== subjectId)
-                        )
-                      } else {
-                        setSelectedSubjectFilter((prev) => [...prev, subjectId])
-                      }
-                    }}
-                    className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-                      selectedSubjectFilter.includes(subjectId)
-                        ? 'text-white'
-                        : 'text-white hover:opacity-70'
-                    }`}
-                    style={{
-                      fontFamily: 'Poppins',
-                      fontWeight: selectedSubjectFilter.includes(subjectId)
-                        ? 400
-                        : 300,
-
-                      backgroundColor: getSubjectColor(subject.color),
-                      opacity: selectedSubjectFilter.includes(subjectId)
-                        ? 1
-                        : 0.5,
-                    }}
-                  >
-                    {subject.code}
-                  </button>
-                ) : null
-              })}
-            </div>
-
-            {/* Section Filter Pills */}
-            <div className="flex items-center gap-1 flex-wrap">
-              <button
-                onClick={() =>
-                  setSelectedSectionFilter(
-                    selectedSectionFilter.length === availableSections.length
-                      ? []
-                      : availableSections
+                <span className="text-xs uppercase tracking-wide text-blue-900/70">
+                  {group.label}:
+                </span>
+                <button
+                  onClick={() => {
+                    if (group.type === 'subject') {
+                      setSelectedSubjectFilter(
+                        selectedSubjectFilter.length === availableSubjects.length
+                          ? []
+                          : availableSubjects
+                      )
+                    } else {
+                      setSelectedSectionFilter(
+                        selectedSectionFilter.length === availableSections.length
+                          ? []
+                          : availableSections
+                      )
+                    }
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium rounded-full border border-blue-100 bg-white text-blue-900"
+                >
+                  {group.type === 'subject'
+                    ? selectedSubjectFilter.length === availableSubjects.length
+                      ? 'Clear'
+                      : 'All'
+                    : selectedSectionFilter.length === availableSections.length
+                    ? 'Clear'
+                    : 'All'}
+                </button>
+                {group.list.map((item) => {
+                  const isSubject = group.type === 'subject'
+                  const isSelected = isSubject
+                    ? selectedSubjectFilter.includes(item)
+                    : selectedSectionFilter.includes(item)
+                  return (
+                    <button
+                      key={item}
+                      onClick={() => {
+                        if (isSubject) {
+                          setSelectedSubjectFilter((prev) =>
+                            isSelected
+                              ? prev.filter((id) => id !== item)
+                              : [...prev, item]
+                          )
+                        } else {
+                          setSelectedSectionFilter((prev) =>
+                            isSelected
+                              ? prev.filter((id) => id !== item)
+                              : [...prev, item]
+                          )
+                        }
+                      }}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
+                          : 'bg-white text-blue-900 border-blue-100 hover:border-blue-300'
+                      }`}
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    >
+                      {group.type === 'subject'
+                        ? subjects[item]?.code || 'Subject'
+                        : (sections[item] || sectionsMap[item])?.sectionName ||
+                          'Section'}
+                    </button>
                   )
-                }
-                className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-                  selectedSectionFilter.length === availableSections.length
-                    ? 'bg-blue-900 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                style={{
-                  fontFamily: 'Poppins',
-                  fontWeight:
-                    selectedSectionFilter.length === availableSections.length
-                      ? 400
-                      : 300,
-                }}
-              >
-                {selectedSectionFilter.length === availableSections.length
-                  ? 'None'
-                  : 'All'}
-              </button>
-              {availableSections.map((sectionId) => {
-                const section = sections[sectionId] || sectionsMap[sectionId]
-                return section ? (
-                  <button
-                    key={sectionId}
-                    onClick={() => {
-                      const isSelected =
-                        selectedSectionFilter.includes(sectionId)
-                      if (isSelected) {
-                        setSelectedSectionFilter((prev) =>
-                          prev.filter((id) => id !== sectionId)
-                        )
-                      } else {
-                        setSelectedSectionFilter((prev) => [...prev, sectionId])
-                      }
-                    }}
-                    className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-                      selectedSectionFilter.includes(sectionId)
-                        ? 'bg-blue-900 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                    style={{
-                      fontFamily: 'Poppins',
-                      fontWeight: selectedSectionFilter.includes(sectionId)
-                        ? 400
-                        : 300,
-                    }}
-                  >
-                    {section.sectionName}
-                  </button>
-                ) : null
-              })}
-            </div>
+                })}
+              </div>
+            ))}
           </div>
         </div>
 
-        <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-sm border-blue-900 pt-0 pb-0">
-          <Users
-            size={48}
-            className="mx-auto text-gray-400 mb-4"
-            weight="duotone"
-          />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="bg-white/95 border border-dashed border-blue-200 rounded-2xl text-center px-8 py-10 shadow-sm">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Users size={32} className="text-white" weight="fill" />
+          </div>
+          <h3 className="text-xl font-medium text-gray-900 mb-2">
             {Object.keys(enrollments).length === 0
               ? 'No Students Assigned'
-              : 'No Students Match Your Search'}
+              : 'No Results Found'}
           </h3>
-          <p className="text-gray-600 mb-4">
+          <p className="text-sm text-gray-600 mb-6">
             {Object.keys(enrollments).length === 0
-              ? 'No students are currently enrolled in your classes.'
-              : 'Try adjusting your search or filter criteria.'}
+              ? 'Students have not been enrolled in your classes yet.'
+              : 'Try adjusting your search keywords or clearing the filters.'}
           </p>
-          {Object.keys(enrollments).length > 0 &&
-            (searchQuery ||
-              selectedSubjectFilter.length > 0 ||
-              selectedSectionFilter.length > 0) && (
-              <button
-                onClick={() => {
-                  setSearchQuery('')
-                  setSelectedSubjectFilter([])
-                  setSelectedSectionFilter([])
-                }}
-                className="px-4 py-2 bg-blue-900 hover:bg-blue-900 text-white text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-                style={{
-                  fontFamily: 'Poppins',
-                  fontWeight: 300,
-                  borderRadius: '9999px',
-                }}
-              >
-                Clear Filters
-              </button>
-            )}
-        </Card>
+          {Object.keys(enrollments).length > 0 && (
+            <button
+              onClick={() => {
+                setSearchQuery('')
+                setSelectedSubjectFilter([])
+                setSelectedSectionFilter([])
+              }}
+              className="px-5 py-2.5 text-sm font-medium rounded-xl bg-gradient-to-r from-blue-800 to-blue-900 text-white shadow-md shadow-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-900/40"
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <Users size={20} className="text-white" weight="fill" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-medium text-gray-900">
-              My Students ({filteredStudents.length})
-            </h1>
-            <p className="text-sm text-gray-600">
-              View students in your classes
-            </p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-lg">
+          <Users size={22} className="text-white" weight="fill" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-medium text-gray-900">
+            My Students ({filteredStudents.length})
+          </h1>
+          <p className="text-sm text-gray-600">View students in your classes</p>
         </div>
       </div>
 
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="flex-1 max-w-md">
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+          <div className="relative">
+            <MagnifyingGlass
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-900/60"
+            />
             <input
               type="text"
               placeholder="Search students..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pr-4 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-blue-100 bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-900/30 text-sm"
             />
           </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {/* Subject Filter Pills */}
-          <div className="flex items-center gap-1 flex-wrap">
+          <div className="bg-white/80 border border-blue-100 rounded-xl px-4 py-3 shadow-sm flex flex-wrap gap-2">
+            <span className="text-xs uppercase tracking-wide text-blue-900/70">
+              Subjects:
+            </span>
             <button
               onClick={() =>
                 setSelectedSubjectFilter(
@@ -780,30 +662,25 @@ export default function TeacherStudentsView({
                     : availableSubjects
                 )
               }
-              className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
                 selectedSubjectFilter.length === availableSubjects.length
-                  ? 'bg-blue-900 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
+                  : 'bg-white text-blue-900 border-blue-100'
               }`}
-              style={{
-                fontFamily: 'Poppins',
-                fontWeight:
-                  selectedSubjectFilter.length === availableSubjects.length
-                    ? 400
-                    : 300,
-              }}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               {selectedSubjectFilter.length === availableSubjects.length
-                ? 'None'
+                ? 'Clear'
                 : 'All'}
             </button>
             {availableSubjects.map((subjectId) => {
               const subject = subjects[subjectId]
-              return subject ? (
+              if (!subject) return null
+              const isSelected = selectedSubjectFilter.includes(subjectId)
+              return (
                 <button
                   key={subjectId}
                   onClick={() => {
-                    const isSelected = selectedSubjectFilter.includes(subjectId)
                     if (isSelected) {
                       setSelectedSubjectFilter((prev) =>
                         prev.filter((id) => id !== subjectId)
@@ -812,172 +689,160 @@ export default function TeacherStudentsView({
                       setSelectedSubjectFilter((prev) => [...prev, subjectId])
                     }
                   }}
-                  className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-                    selectedSubjectFilter.includes(subjectId)
-                      ? 'text-white'
-                      : 'text-white hover:opacity-70'
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
+                      : 'bg-white text-blue-900 border-blue-100'
                   }`}
-                  style={{
-                    fontFamily: 'Poppins',
-                    fontWeight: selectedSubjectFilter.includes(subjectId)
-                      ? 400
-                      : 300,
-
-                    backgroundColor: getSubjectColor(subject.color),
-                    opacity: selectedSubjectFilter.includes(subjectId)
-                      ? 1
-                      : 0.5,
-                  }}
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                 >
                   {subject.code}
                 </button>
-              ) : null
-            })}
-          </div>
-
-          {/* Section Filter Pills */}
-          <div className="flex items-center gap-1 flex-wrap">
-            <button
-              onClick={() =>
-                setSelectedSectionFilter(
-                  selectedSectionFilter.length === availableSections.length
-                    ? []
-                    : availableSections
-                )
-              }
-              className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-                selectedSectionFilter.length === availableSections.length
-                  ? 'bg-blue-900 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-              style={{
-                fontFamily: 'Poppins',
-                fontWeight:
-                  selectedSectionFilter.length === availableSections.length
-                    ? 400
-                    : 300,
-              }}
-            >
-              {selectedSectionFilter.length === availableSections.length
-                ? 'None'
-                : 'All'}
-            </button>
-            {availableSections.map((sectionId) => {
-              const section = sections[sectionId] || sectionsMap[sectionId]
-              return section ? (
-                <button
-                  key={sectionId}
-                  onClick={() => {
-                    const isSelected = selectedSectionFilter.includes(sectionId)
-                    if (isSelected) {
-                      setSelectedSectionFilter((prev) =>
-                        prev.filter((id) => id !== sectionId)
-                      )
-                    } else {
-                      setSelectedSectionFilter((prev) => [...prev, sectionId])
-                    }
-                  }}
-                  className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-                    selectedSectionFilter.includes(sectionId)
-                      ? 'bg-blue-900 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                  style={{
-                    fontFamily: 'Poppins',
-                    fontWeight: selectedSectionFilter.includes(sectionId)
-                      ? 400
-                      : 300,
-                  }}
-                >
-                  {section.sectionName}
-                </button>
-              ) : null
+              )
             })}
           </div>
         </div>
+        <div className="bg-white/80 border border-blue-100 rounded-xl px-4 py-3 shadow-sm flex flex-wrap gap-2">
+          <span className="text-xs uppercase tracking-wide text-blue-900/70">
+            Sections:
+          </span>
+          <button
+            onClick={() =>
+              setSelectedSectionFilter(
+                selectedSectionFilter.length === availableSections.length
+                  ? []
+                  : availableSections
+              )
+            }
+            className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
+              selectedSectionFilter.length === availableSections.length
+                ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
+                : 'bg-white text-blue-900 border-blue-100'
+            }`}
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
+            {selectedSectionFilter.length === availableSections.length
+              ? 'Clear'
+              : 'All'}
+          </button>
+          {availableSections.map((sectionId) => {
+            const section = sections[sectionId] || sectionsMap[sectionId]
+            if (!section) return null
+            const isSelected = selectedSectionFilter.includes(sectionId)
+            return (
+              <button
+                key={sectionId}
+                onClick={() => {
+                  if (isSelected) {
+                    setSelectedSectionFilter((prev) =>
+                      prev.filter((id) => id !== sectionId)
+                    )
+                  } else {
+                    setSelectedSectionFilter((prev) => [...prev, sectionId])
+                  }
+                }}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
+                    : 'bg-white text-blue-900 border-blue-100'
+                }`}
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                {section.sectionName}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      {/* Results Count */}
       {(searchQuery ||
         selectedSubjectFilter.length > 0 ||
         selectedSectionFilter.length > 0) && (
-        <div className="text-xs text-gray-500">
-          Showing {filteredStudents.length} of {Object.keys(enrollments).length}{' '}
-          student{Object.keys(enrollments).length !== 1 ? 's' : ''}
-          {(searchQuery ||
-            selectedSubjectFilter.length > 0 ||
-            selectedSectionFilter.length > 0) && (
-            <span className="ml-2">
-              {searchQuery && `• Search: "${searchQuery}"`}
-              {selectedSubjectFilter.length > 0 &&
-                (() => {
-                  const selectedSubjectsText = selectedSubjectFilter
-                    .map((id) => subjects[id]?.code)
-                    .filter(Boolean)
-                    .join(', ')
-                  return selectedSubjectsText
-                    ? `• Subjects: ${selectedSubjectsText}`
-                    : ''
-                })()}
-              {selectedSectionFilter.length > 0 &&
-                (() => {
-                  const selectedSectionsText = selectedSectionFilter
-                    .map((id) => {
-                      const section = sections[id] || sectionsMap[id]
-                      return section?.sectionName
-                    })
-                    .filter(Boolean)
-                    .join(', ')
-                  return selectedSectionsText
-                    ? `• Sections: ${selectedSectionsText}`
-                    : ''
-                })()}
+        <div className="flex items-center flex-wrap gap-2 text-xs text-blue-900/80 bg-white/80 border border-blue-100 rounded-xl px-4 py-2 shadow-sm">
+          <span>
+            Showing {filteredStudents.length} of {Object.keys(enrollments).length}{' '}
+            students
+          </span>
+          {searchQuery && (
+            <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-100">
+              Search: "{searchQuery}"
+            </span>
+          )}
+          {selectedSubjectFilter.length > 0 && (
+            <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-100">
+              Subjects:{' '}
+              {selectedSubjectFilter
+                .map((id) => subjects[id]?.code)
+                .filter(Boolean)
+                .join(', ')}
+            </span>
+          )}
+          {selectedSectionFilter.length > 0 && (
+            <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-100">
+              Sections:{' '}
+              {selectedSectionFilter
+                .map((id) => {
+                  const section = sections[id] || sectionsMap[id]
+                  return section?.sectionName
+                })
+                .filter(Boolean)
+                .join(', ')}
             </span>
           )}
         </div>
       )}
 
       {/* Students Table */}
-      <Card className="overflow-hidden pt-0 pb-0">
+      <div className="bg-white/95 border border-blue-100 rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-6 py-4 flex items-center justify-between text-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+              <User size={18} weight="fill" />
+            </div>
+            <div>
+              <p className="text-sm uppercase tracking-wide text-white/70">
+                Student Directory
+              </p>
+              <p className="text-lg font-medium">
+                {Object.keys(enrollments).length} Enrolled
+              </p>
+            </div>
+          </div>
+          <span className="text-sm text-white/80">
+            {assignments.length} subject assignments
+          </span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-100 border-b-2 border-gray-300">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+            <thead>
+              <tr className="bg-blue-50/80 text-blue-900 text-[11px] uppercase tracking-wide">
+                <th className="px-6 py-3 text-left font-medium">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <User size={12} weight="bold" className="text-white" />
-                    </div>
-                    Student
+                    <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                      <User size={14} weight="bold" />
+                    </span>
+                    Student Information
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                <th className="px-6 py-3 text-left font-medium">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <GraduationCap
-                        size={12}
-                        weight="bold"
-                        className="text-white"
-                      />
-                    </div>
-                    Section
+                    <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                      <GraduationCap size={14} weight="bold" />
+                    </span>
+                    Section Details
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left font-medium">
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 aspect-square bg-blue-900 flex items-center justify-center">
-                      <IdentificationCard
-                        size={12}
-                        weight="bold"
-                        className="text-white"
-                      />
-                    </div>
+                    <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                      <IdentificationCard size={14} weight="bold" />
+                    </span>
                     Subjects with You
                   </div>
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-blue-50 bg-white">
               {Object.entries(studentsBySection).map(
                 ([sectionId, sectionStudents]) =>
                   sectionStudents.map((enrollment) => {
@@ -985,18 +850,19 @@ export default function TeacherStudentsView({
                     const section =
                       sections[sectionId] || sectionsMap[sectionId]
 
-                    // Find subjects this teacher teaches in this student's section
                     const studentSubjects = assignments
                       .filter((a) => a.sectionId === sectionId)
                       .map((a) => subjects[a.subjectId])
                       .filter(Boolean)
 
                     return (
-                      <tr key={enrollment.userId} className="hover:bg-gray-50">
-                        {/* Student Column */}
-                        <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 relative mr-3">
+                      <tr
+                        key={enrollment.userId}
+                        className="hover:bg-blue-50/50 transition-colors"
+                      >
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 relative">
                               {profile?.photoURL ? (
                                 <img
                                   src={profile.photoURL}
@@ -1004,76 +870,69 @@ export default function TeacherStudentsView({
                                     enrollment.personalInfo.firstName ||
                                     'Student'
                                   } profile`}
-                                  className="h-10 w-10 rounded-full object-cover border-2 border-black/80"
+                                  className="h-12 w-12 rounded-full object-cover border-2 border-blue-900/40"
                                 />
                               ) : (
-                                <div className="h-10 w-10 rounded-full bg-blue-900 flex items-center justify-center border-2 border-black/80">
-                                  <span className="text-white text-xs font-medium">
-                                    {getInitials(
-                                      enrollment.personalInfo.firstName,
-                                      enrollment.personalInfo.lastName
-                                    )}
-                                  </span>
+                                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center text-white text-sm font-medium border-2 border-blue-900/40">
+                                  {getInitials(
+                                    enrollment.personalInfo.firstName,
+                                    enrollment.personalInfo.lastName
+                                  )}
                                 </div>
                               )}
                             </div>
-                            <div>
-                              <div className="text-xs font-medium text-gray-900">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-900">
                                 {formatFullName(enrollment)}
-                              </div>
-                              <div className="text-xs text-gray-500 font-mono">
-                                {studentProfiles[enrollment.userId]
-                                  ?.studentId || 'No ID'}
-                              </div>
-                              <div className="text-xs text-gray-500">
+                              </p>
+                              <p className="text-xs text-gray-500 font-mono">
+                                ID:{' '}
+                                {studentProfiles[enrollment.userId]?.studentId ||
+                                  'Pending'}
+                              </p>
+                              <p className="text-xs text-gray-500">
                                 {enrollment.personalInfo.email}
-                              </div>
+                              </p>
                             </div>
                           </div>
                         </td>
 
-                        {/* Section Column */}
-                        <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                          <div>
-                            <div className="text-xs font-medium text-gray-900">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-3 h-3 flex-shrink-0"
-                                  style={{
-                                    backgroundColor: getGradeColor(section),
-                                  }}
-                                ></div>
-                                {enrollment.enrollmentInfo?.gradeLevel || 'N/A'}{' '}
-                                {section
-                                  ? `${section.sectionName}`
-                                  : 'Unassigned'}
-                              </div>
+                        <td className="px-6 py-5">
+                          <div className="space-y-1 text-sm text-gray-900">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="w-2.5 h-2.5 rounded-full"
+                                style={{
+                                  backgroundColor: getGradeColor(section),
+                                }}
+                              ></span>
+                              {enrollment.enrollmentInfo?.gradeLevel || 'N/A'}{' '}
+                              {section ? section.sectionName : 'Unassigned'}
                             </div>
-                            <div className="text-xs text-gray-500 font-mono">
-                              Section {section?.rank}
-                            </div>
-                            <div className="text-xs text-gray-500">
+                            <p className="text-xs text-gray-500 font-mono">
+                              Section {section?.rank || '—'}
+                            </p>
+                            <p className="text-xs text-gray-500">
                               {enrollment.enrollmentInfo?.schoolYear || 'N/A'}
-                            </div>
+                            </p>
                           </div>
                         </td>
 
-                        {/* Subjects Column */}
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-1">
+                        <td className="px-6 py-5">
+                          <div className="flex flex-wrap gap-2">
                             {studentSubjects.map((subject) => (
                               <div
                                 key={subject.id}
-                                className="inline-flex items-center px-2 py-1 border border-gray-200 text-xs font-medium bg-gray-50"
+                                className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-100 bg-blue-50/70 text-xs text-blue-900"
                               >
-                                <div
-                                  className="w-2 h-2 mr-2 flex-shrink-0"
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full"
                                   style={{
                                     backgroundColor: getSubjectColor(
                                       subject.color
                                     ),
                                   }}
-                                ></div>
+                                ></span>
                                 {subject.code}
                               </div>
                             ))}
@@ -1086,7 +945,7 @@ export default function TeacherStudentsView({
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }

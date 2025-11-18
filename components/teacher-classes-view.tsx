@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import {
   GraduationCap,
   BookOpen,
@@ -220,9 +218,9 @@ export default function TeacherClassesView({
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <BookOpen size={20} className="text-white" weight="fill" />
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-lg">
+            <BookOpen size={22} className="text-white" weight="fill" />
           </div>
           <div>
             <h1
@@ -240,49 +238,22 @@ export default function TeacherClassesView({
           </div>
         </div>
 
-        <Card className="overflow-hidden pb-0 pt-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100 border-b-2 border-gray-300">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-gray-300 rounded"></div>
-                      Subject
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-gray-300 rounded"></div>
-                      Sections
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <tr key={index} className="animate-pulse">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gray-200 rounded-lg mr-4"></div>
-                        <div className="space-y-2">
-                          <div className="h-3 bg-gray-200 rounded w-32"></div>
-                          <div className="h-2 bg-gray-200 rounded w-20"></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="space-y-2">
-                        <div className="h-3 bg-gray-200 rounded w-24"></div>
-                        <div className="h-2 bg-gray-200 rounded w-16"></div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="bg-white/90 border border-blue-100 rounded-xl shadow-sm p-6">
+          <div className="space-y-4 animate-pulse">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-100"></div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-blue-100 rounded w-32"></div>
+                    <div className="h-2 bg-blue-100 rounded w-24"></div>
+                  </div>
+                </div>
+                <div className="w-24 h-3 bg-blue-50 rounded"></div>
+              </div>
+            ))}
           </div>
-        </Card>
+        </div>
       </div>
     )
   }
@@ -290,9 +261,9 @@ export default function TeacherClassesView({
   if (filteredAssignments.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <BookOpen size={20} className="text-white" weight="fill" />
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-lg">
+            <BookOpen size={22} className="text-white" weight="fill" />
           </div>
           <div>
             <h1
@@ -310,66 +281,54 @@ export default function TeacherClassesView({
           </div>
         </div>
 
-        {/* Search and Filter Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="relative flex-1 max-w-md">
-              <MagnifyingGlass
-                size={20}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                placeholder="Search subjects or sections..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-              />
-            </div>
+        <div className="bg-white/90 border border-blue-100 rounded-xl shadow-sm p-4 space-y-4">
+          <div className="relative flex-1 max-w-xl">
+            <MagnifyingGlass
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-900/60"
+            />
+            <input
+              type="text"
+              placeholder="Search subjects or sections..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-900/40 text-sm bg-white/70"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            />
           </div>
-
-          <div className="flex flex-col gap-3">
-            {/* Grade Filter Pills */}
-            <div className="flex items-center gap-1 flex-wrap">
-              <span
-                className="text-xs text-gray-600 mr-2 min-w-fit"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-              >
-                Grade:
-              </span>
-              <button
-                onClick={() =>
-                  setSelectedGradeFilter(
-                    selectedGradeFilter.length === availableGrades.length
-                      ? []
-                      : availableGrades.map((g) => g.toString())
-                  )
-                }
-                className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className="text-xs text-blue-900/70"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
+              Grade Levels:
+            </span>
+            <button
+              onClick={() =>
+                setSelectedGradeFilter(
                   selectedGradeFilter.length === availableGrades.length
-                    ? 'bg-blue-900 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                style={{
-                  fontFamily: 'Poppins',
-                  fontWeight:
-                    selectedGradeFilter.length === availableGrades.length
-                      ? 400
-                      : 300,
-                  borderRadius: '9999px',
-                }}
-              >
-                {selectedGradeFilter.length === availableGrades.length
-                  ? 'None'
-                  : 'All'}
-              </button>
-              {availableGrades.map((gradeLevel) => (
+                    ? []
+                    : availableGrades.map((g) => g.toString())
+                )
+              }
+              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
+                selectedGradeFilter.length === availableGrades.length
+                  ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
+                  : 'bg-white text-blue-900 border-blue-100 hover:border-blue-300'
+              }`}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              {selectedGradeFilter.length === availableGrades.length
+                ? 'Clear'
+                : 'Select All'}
+            </button>
+            {availableGrades.map((gradeLevel) => {
+              const gradeStr = gradeLevel.toString()
+              const isSelected = selectedGradeFilter.includes(gradeStr)
+              return (
                 <button
                   key={gradeLevel}
                   onClick={() => {
-                    const gradeStr = gradeLevel.toString()
-                    const isSelected = selectedGradeFilter.includes(gradeStr)
                     if (isSelected) {
                       setSelectedGradeFilter((prev) =>
                         prev.filter((id) => id !== gradeStr)
@@ -378,79 +337,63 @@ export default function TeacherClassesView({
                       setSelectedGradeFilter((prev) => [...prev, gradeStr])
                     }
                   }}
-                  className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-                    selectedGradeFilter.includes(gradeLevel.toString())
-                      ? 'bg-blue-900 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow-md shadow-blue-900/30'
+                      : 'bg-white text-blue-900 border-blue-100 hover:border-blue-300'
                   }`}
-                  style={{
-                    fontFamily: 'Poppins',
-                    fontWeight: selectedGradeFilter.includes(
-                      gradeLevel.toString()
-                    )
-                      ? 400
-                      : 300,
-                    borderRadius: '9999px',
-                  }}
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                 >
                   Grade {gradeLevel}
                 </button>
-              ))}
-            </div>
+              )
+            })}
           </div>
         </div>
 
-        <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-sm border-blue-900">
-          <BookOpen
-            size={48}
-            className="mx-auto text-gray-400 mb-4"
-            weight="duotone"
-          />
+        <div className="bg-white/95 border border-dashed border-blue-200 rounded-2xl text-center px-8 py-10 shadow-sm">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <BookOpen size={32} className="text-white" weight="fill" />
+          </div>
           <h3
-            className="text-lg font-medium text-gray-900 mb-2"
+            className="text-xl font-medium text-gray-900 mb-2"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
           >
             {assignments.length === 0
-              ? 'No Class Assignments'
+              ? 'No Class Assignments Yet'
               : 'No Classes Match Your Search'}
           </h3>
           <p
-            className="text-gray-600 mb-4"
+            className="text-sm text-gray-600 mb-6"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             {assignments.length === 0
-              ? "You haven't been assigned to any classes yet. Please contact your registrar."
-              : 'Try adjusting your search or filter criteria.'}
+              ? "You haven't been assigned to any subjects yet. Please coordinate with the registrar."
+              : 'Try refining your search keywords or adjusting the grade filters.'}
           </p>
-          {assignments.length > 0 &&
-            (searchQuery || selectedGradeFilter.length > 0) && (
-              <button
-                onClick={() => {
-                  setSearchQuery('')
-                  setSelectedGradeFilter([])
-                }}
-                className="px-4 py-2 bg-blue-900 hover:bg-blue-900 text-white text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-                style={{
-                  fontFamily: 'Poppins',
-                  fontWeight: 300,
-                  borderRadius: '9999px',
-                }}
-              >
-                Clear Filters
-              </button>
-            )}
-        </Card>
+          {assignments.length > 0 && (
+            <button
+              onClick={() => {
+                setSearchQuery('')
+                setSelectedGradeFilter([])
+              }}
+              className="px-5 py-2.5 text-sm font-medium rounded-xl bg-gradient-to-r from-blue-800 to-blue-900 text-white shadow-md shadow-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-900/40"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              Reset Filters
+            </button>
+          )}
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <BookOpen size={20} className="text-white" weight="fill" />
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-lg">
+            <BookOpen size={22} className="text-white" weight="fill" />
           </div>
           <div>
             <h1
@@ -467,35 +410,27 @@ export default function TeacherClassesView({
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="relative flex-1 max-w-md">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="relative">
             <MagnifyingGlass
-              size={20}
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-900/60"
             />
             <input
               type="text"
               placeholder="Search subjects or sections..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-blue-100 bg-white/90 focus:outline-none focus:ring-2 focus:ring-blue-900/30 text-sm"
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
             />
           </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {/* Grade Filter Pills */}
-          <div className="flex items-center gap-1 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap bg-white/80 border border-blue-100 rounded-xl px-4 py-2.5 shadow-sm">
             <span
-              className="text-xs text-gray-600 mr-2 min-w-fit"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              className="text-xs uppercase tracking-wide text-blue-900/70"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
-              Grade:
+              Grades:
             </span>
             <button
               onClick={() =>
@@ -505,179 +440,169 @@ export default function TeacherClassesView({
                     : availableGrades.map((g) => g.toString())
                 )
               }
-              className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
                 selectedGradeFilter.length === availableGrades.length
-                  ? 'bg-blue-900 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
+                  : 'bg-white text-blue-900 border-blue-100 hover:border-blue-300'
               }`}
-              style={{
-                fontFamily: 'Poppins',
-                fontWeight:
-                  selectedGradeFilter.length === availableGrades.length
-                    ? 400
-                    : 300,
-                borderRadius: '9999px',
-              }}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               {selectedGradeFilter.length === availableGrades.length
-                ? 'None'
+                ? 'Clear'
                 : 'All'}
             </button>
-            {availableGrades.map((gradeLevel) => (
-              <button
-                key={gradeLevel}
-                onClick={() => {
-                  const gradeStr = gradeLevel.toString()
-                  const isSelected = selectedGradeFilter.includes(gradeStr)
-                  if (isSelected) {
-                    setSelectedGradeFilter((prev) =>
-                      prev.filter((id) => id !== gradeStr)
-                    )
-                  } else {
-                    setSelectedGradeFilter((prev) => [...prev, gradeStr])
-                  }
-                }}
-                className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-                  selectedGradeFilter.includes(gradeLevel.toString())
-                    ? 'bg-blue-900 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                style={{
-                  fontFamily: 'Poppins',
-                  fontWeight: selectedGradeFilter.includes(
-                    gradeLevel.toString()
-                  )
-                    ? 400
-                    : 300,
-                  borderRadius: '9999px',
-                }}
-              >
-                Grade {gradeLevel}
-              </button>
-            ))}
+            {availableGrades.map((gradeLevel) => {
+              const gradeStr = gradeLevel.toString()
+              const isSelected = selectedGradeFilter.includes(gradeStr)
+              return (
+                <button
+                  key={gradeLevel}
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedGradeFilter((prev) =>
+                        prev.filter((id) => id !== gradeStr)
+                      )
+                    } else {
+                      setSelectedGradeFilter((prev) => [...prev, gradeStr])
+                    }
+                  }}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
+                      : 'bg-white text-blue-900 border-blue-100 hover:border-blue-300'
+                  }`}
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Grade {gradeLevel}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
 
-      {/* Results Count */}
       {(searchQuery || selectedGradeFilter.length > 0) && (
-        <div
-          className="text-xs text-gray-500"
-          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-        >
-          Showing {filteredAssignments.length} of{' '}
-          {Object.keys(groupedAssignments).length} subject
-          {Object.keys(groupedAssignments).length !== 1 ? 's' : ''}
-          {(searchQuery || selectedGradeFilter.length > 0) && (
-            <span className="ml-2">
-              {searchQuery && `• Search: "${searchQuery}"`}
-              {selectedGradeFilter.length > 0 &&
-                (() => {
-                  const selectedGradesText = selectedGradeFilter
-                    .map((grade) => `Grade ${grade}`)
-                    .join(', ')
-                  return selectedGradesText
-                    ? `• Grades: ${selectedGradesText}`
-                    : ''
-                })()}
+        <div className="flex items-center flex-wrap gap-2 text-xs text-blue-900/80 bg-white/80 border border-blue-100 rounded-xl px-4 py-2 shadow-sm">
+          <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+            Showing {filteredAssignments.length} of{' '}
+            {Object.keys(groupedAssignments).length} subjects
+          </span>
+          {searchQuery && (
+            <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-100">
+              Search: "{searchQuery}"
+            </span>
+          )}
+          {selectedGradeFilter.length > 0 && (
+            <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-100">
+              Grades: {selectedGradeFilter.map((grade) => `Grade ${grade}`).join(', ')}
             </span>
           )}
         </div>
       )}
 
-      {/* Classes Table */}
-      <Card className="overflow-hidden pb-0 pt-0">
+      <div className="bg-white/95 border border-blue-100 rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-6 py-4 flex items-center justify-between text-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+              <BookOpen size={18} weight="fill" />
+            </div>
+            <div>
+              <p
+                className="text-sm uppercase tracking-wide text-white/80"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Subjects Overview
+              </p>
+              <p
+                className="text-lg font-medium"
+                style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+              >
+                {filteredAssignments.length} Subject
+                {filteredAssignments.length === 1 ? '' : 's'}
+              </p>
+            </div>
+          </div>
+          <span
+            className="text-sm text-white/80"
+            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+          >
+            {assignments.length} total section assignments
+          </span>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-100 border-b-2 border-gray-300">
-              <tr>
+            <thead>
+              <tr className="bg-blue-50/80 text-blue-900 text-[11px] uppercase tracking-wide">
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200"
-                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  className="px-6 py-3 text-left font-medium"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-                      <BookOpen
-                        size={12}
-                        weight="bold"
-                        className="text-white"
-                      />
-                    </div>
-                    Subject
+                    <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                      <BookOpen size={14} weight="bold" />
+                    </span>
+                    Subject Details
                   </div>
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  className="px-6 py-3 text-left font-medium"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-                      <Users size={12} weight="bold" className="text-white" />
-                    </div>
-                    Sections ({assignments.length} total)
+                    <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                      <Users size={14} weight="bold" />
+                    </span>
+                    Sections ({assignments.length})
                   </div>
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-blue-50 bg-white">
               {filteredAssignments.map(([subjectId, { subject, sections }]) => (
-                <tr key={subjectId} className="hover:bg-gray-50">
-                  {/* Subject Column */}
-                  <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                    <div className="flex items-center">
+                <tr key={subjectId} className="hover:bg-blue-50/50 transition-colors">
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-4">
                       <div
-                        className="w-10 h-10 flex items-center justify-center shadow-lg mr-4"
+                        className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg text-white"
                         style={{
                           backgroundColor: getSubjectColor(subject.color),
                         }}
                       >
-                        <BookOpen
-                          size={16}
-                          className="text-white"
-                          weight="fill"
-                        />
+                        <BookOpen size={18} weight="fill" />
                       </div>
-                      <div>
-                        <div
-                          className="text-xs font-medium text-gray-900"
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      <div className="space-y-1">
+                        <p
+                          className="text-sm font-medium text-gray-900"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                         >
-                          {subject.code} {subject.name}
-                        </div>
-                        <div
-                          className="text-xs text-gray-500 font-mono"
-                          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                        >
-                          {subject.code} •{' '}
-                          {subject.lectureUnits + subject.labUnits} units
-                        </div>
-                        <div
+                          {subject.code} — {subject.name}
+                        </p>
+                        <p
                           className="text-xs text-gray-500"
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                         >
-                          Grade {subject.gradeLevel}
-                        </div>
+                          {subject.lectureUnits + subject.labUnits} units • Grade{' '}
+                          {subject.gradeLevel}
+                        </p>
                       </div>
                     </div>
                   </td>
-
-                  {/* Sections Column */}
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-5">
                     <div className="flex flex-wrap gap-2">
                       {sections.map((section) => (
                         <div
                           key={section.id}
-                          className="inline-flex items-center px-2 py-1 border border-gray-200 text-xs font-medium bg-gray-50"
-                          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                          className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50/60 px-3 py-1 text-xs text-blue-900"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                         >
-                          <div
-                            className="w-2 h-2 mr-2 flex-shrink-0"
+                          <span
+                            className="w-2.5 h-2.5 rounded-full"
                             style={{
                               backgroundColor: getGradeColor(
                                 grades[section.gradeId]?.color || 'blue-900'
                               ),
                             }}
-                          ></div>
+                          ></span>
                           {section.sectionName} • {section.rank}
                         </div>
                       ))}
@@ -688,7 +613,7 @@ export default function TeacherClassesView({
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }

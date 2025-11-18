@@ -680,9 +680,9 @@ export default function TeacherGradesView({
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-            <Calculator size={20} className="text-white" weight="fill" />
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-lg">
+            <Calculator size={22} className="text-white" weight="fill" />
           </div>
           <div>
             <h1 className="text-2xl font-medium text-gray-900">
@@ -697,68 +697,39 @@ export default function TeacherGradesView({
           </div>
         </div>
 
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100 border-b-2 border-gray-300">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-gray-300 rounded-full"></div>
-                      Student
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-gray-300 rounded"></div>
-                      Subject Grades
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-gray-300 rounded"></div>
-                      Actions
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <tr key={index} className="animate-pulse">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full mr-3"></div>
-                        <div className="space-y-1">
-                          <div className="h-3 bg-gray-200 rounded w-32"></div>
-                          <div className="h-2 bg-gray-200 rounded w-24"></div>
-                          <div className="h-2 bg-gray-200 rounded w-28"></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-2">
-                        <div className="h-3 bg-gray-200 rounded w-20"></div>
-                        <div className="h-2 bg-gray-200 rounded w-16"></div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="h-8 bg-gray-200 rounded w-16"></div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="bg-white/90 border border-blue-100 rounded-2xl shadow-sm p-6">
+          <div className="space-y-4 animate-pulse">
+            {[...Array(4)].map((_, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between gap-6"
+              >
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="w-12 h-12 rounded-full bg-blue-100"></div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-blue-100 rounded w-36"></div>
+                    <div className="h-2 bg-blue-100 rounded w-28"></div>
+                    <div className="h-2 bg-blue-50 rounded w-20"></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-16 h-3 bg-blue-50 rounded"></div>
+                  <div className="w-20 h-3 bg-blue-50 rounded"></div>
+                </div>
+                <div className="w-16 h-8 bg-blue-100 rounded"></div>
+              </div>
+            ))}
           </div>
-        </Card>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
-          <Calculator size={20} className="text-white" weight="fill" />
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-lg">
+          <Calculator size={22} className="text-white" weight="fill" />
         </div>
         <div>
           <h1 className="text-2xl font-medium text-gray-900">Student Grades</h1>
@@ -772,19 +743,19 @@ export default function TeacherGradesView({
       </div>
 
       {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col gap-3">
+        <div className="bg-white/80 border border-blue-100 rounded-xl p-4 shadow-sm">
+          <div className="relative">
             <MagnifyingGlass
               size={20}
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-900/60"
             />
             <input
               type="text"
               placeholder="Search students..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-xs"
+              className="w-full pl-12 pr-4 py-2.5 border border-blue-100 rounded-xl bg-white/80 focus:outline-none focus:ring-2 focus:ring-blue-900/30 text-sm"
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
             />
           </div>
@@ -792,7 +763,10 @@ export default function TeacherGradesView({
 
         <div className="flex flex-col gap-3">
           {/* Subject Filter Pills */}
-          <div className="flex items-center gap-1 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs uppercase tracking-wide text-blue-900/70">
+              Subjects:
+            </span>
             <button
               onClick={() =>
                 setSelectedSubjectFilter(
@@ -801,17 +775,14 @@ export default function TeacherGradesView({
                     : availableSubjects
                 )
               }
-              className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
                 selectedSubjectFilter.length === availableSubjects.length
-                  ? 'bg-blue-900 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
+                  : 'bg-white text-blue-900 border-blue-100'
               }`}
               style={{
                 fontFamily: 'Poppins',
-                fontWeight:
-                  selectedSubjectFilter.length === availableSubjects.length
-                    ? 400
-                    : 300,
+                fontWeight: 500,
               }}
             >
               {selectedSubjectFilter.length === availableSubjects.length
@@ -833,10 +804,10 @@ export default function TeacherGradesView({
                       setSelectedSubjectFilter((prev) => [...prev, subjectId])
                     }
                   }}
-                  className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
                     selectedSubjectFilter.includes(subjectId)
-                      ? 'text-white'
-                      : 'text-white hover:opacity-70'
+                      ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
+                      : 'bg-white text-blue-900 border-blue-100'
                   }`}
                   style={{
                     fontFamily: 'Poppins',
@@ -857,7 +828,10 @@ export default function TeacherGradesView({
           </div>
 
           {/* Section Filter Pills */}
-          <div className="flex items-center gap-1 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs uppercase tracking-wide text-blue-900/70">
+              Sections:
+            </span>
             <button
               onClick={() =>
                 setSelectedSectionFilter(
@@ -866,17 +840,14 @@ export default function TeacherGradesView({
                     : availableSections
                 )
               }
-              className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
                 selectedSectionFilter.length === availableSections.length
-                  ? 'bg-blue-900 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
+                  : 'bg-white text-blue-900 border-blue-100'
               }`}
               style={{
                 fontFamily: 'Poppins',
-                fontWeight:
-                  selectedSectionFilter.length === availableSections.length
-                    ? 400
-                    : 300,
+                fontWeight: 500,
               }}
             >
               {selectedSectionFilter.length === availableSections.length
@@ -898,10 +869,10 @@ export default function TeacherGradesView({
                       setSelectedSectionFilter((prev) => [...prev, sectionId])
                     }
                   }}
-                  className={`px-3 py-1 text-xs font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
                     selectedSectionFilter.includes(sectionId)
-                      ? 'bg-blue-900 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
+                      : 'bg-white text-blue-900 border-blue-100'
                   }`}
                   style={{
                     fontFamily: 'Poppins',
@@ -919,24 +890,22 @@ export default function TeacherGradesView({
       </div>
 
       {filteredStudents.length === 0 ? (
-        <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-sm border-blue-900">
-          <Calculator
-            size={48}
-            className="mx-auto text-gray-400 mb-4"
-            weight="duotone"
-          />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="bg-white/95 border border-dashed border-blue-200 rounded-2xl text-center px-8 py-10 shadow-sm">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Calculator size={32} className="text-white" weight="fill" />
+          </div>
+          <h3 className="text-xl font-medium text-gray-900 mb-2">
             {studentsWithGrades.length === 0
               ? 'No Students Assigned'
               : 'No Students Match Your Search'}
           </h3>
           <p
-            className="text-gray-600 mb-4"
+            className="text-sm text-gray-600 mb-6"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
           >
             {studentsWithGrades.length === 0
               ? 'No students are currently enrolled in your classes.'
-              : 'Try adjusting your search or filter criteria.'}
+              : 'Try adjusting your search keywords or clearing the filters.'}
           </p>
           {studentsWithGrades.length > 0 &&
             (searchQuery ||
@@ -948,56 +917,48 @@ export default function TeacherGradesView({
                   setSelectedSubjectFilter([])
                   setSelectedSectionFilter([])
                 }}
-                className="px-4 py-2 bg-blue-900 hover:bg-blue-900 text-white text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-                style={{
-                  fontFamily: 'Poppins',
-                  fontWeight: 300,
-                }}
+                className="px-5 py-2.5 text-sm font-medium rounded-xl bg-gradient-to-r from-blue-800 to-blue-900 text-white shadow-md shadow-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-900/40"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
-                Clear Filters
+                Reset Filters
               </button>
             )}
-        </Card>
+        </div>
       ) : (
         <div className="space-y-6">
           {/* Results Count */}
           {(searchQuery ||
             selectedSubjectFilter.length > 0 ||
             selectedSectionFilter.length > 0) && (
-            <div
-              className="text-xs text-gray-500"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              Showing {filteredStudents.length} of {studentsWithGrades.length}{' '}
-              student{studentsWithGrades.length !== 1 ? 's' : ''}
-              {(searchQuery ||
-                selectedSubjectFilter.length > 0 ||
-                selectedSectionFilter.length > 0) && (
-                <span className="ml-2">
-                  {searchQuery && `• Search: "${searchQuery}"`}
-                  {selectedSubjectFilter.length > 0 &&
-                    (() => {
-                      const selectedSubjectsText = selectedSubjectFilter
-                        .map((id) => subjects[id]?.code)
-                        .filter(Boolean)
-                        .join(', ')
-                      return selectedSubjectsText
-                        ? `• Subjects: ${selectedSubjectsText}`
-                        : ''
-                    })()}
-                  {selectedSectionFilter.length > 0 &&
-                    (() => {
-                      const selectedSectionsText = selectedSectionFilter
-                        .map((id) => {
-                          const section = sections[id] || sectionsMap[id]
-                          return section?.sectionName
-                        })
-                        .filter(Boolean)
-                        .join(', ')
-                      return selectedSectionsText
-                        ? `• Sections: ${selectedSectionsText}`
-                        : ''
-                    })()}
+            <div className="flex items-center flex-wrap gap-2 text-xs text-blue-900/80 bg-white/80 border border-blue-100 rounded-xl px-4 py-2 shadow-sm">
+              <span>
+                Showing {filteredStudents.length} of {studentsWithGrades.length}{' '}
+                students
+              </span>
+              {searchQuery && (
+                <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-100">
+                  Search: "{searchQuery}"
+                </span>
+              )}
+              {selectedSubjectFilter.length > 0 && (
+                <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-100">
+                  Subjects:{' '}
+                  {selectedSubjectFilter
+                    .map((id) => subjects[id]?.code)
+                    .filter(Boolean)
+                    .join(', ')}
+                </span>
+              )}
+              {selectedSectionFilter.length > 0 && (
+                <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-100">
+                  Sections:{' '}
+                  {selectedSectionFilter
+                    .map((id) => {
+                      const section = sections[id] || sectionsMap[id]
+                      return section?.sectionName
+                    })
+                    .filter(Boolean)
+                    .join(', ')}
                 </span>
               )}
             </div>
@@ -1005,24 +966,22 @@ export default function TeacherGradesView({
 
           {/* Grades Table or No Results */}
           {filteredStudents.length === 0 ? (
-            <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-sm border-blue-900">
-              <Calculator
-                size={48}
-                className="mx-auto text-gray-400 mb-4"
-                weight="duotone"
-              />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <div className="bg-white/95 border border-dashed border-blue-200 rounded-2xl text-center px-8 py-10 shadow-sm">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <Calculator size={32} className="text-white" weight="fill" />
+              </div>
+              <h3 className="text-xl font-medium text-gray-900 mb-2">
                 {studentsWithGrades.length === 0
                   ? 'No Students Assigned'
                   : 'No Students Match Your Search'}
               </h3>
               <p
-                className="text-gray-600 mb-4"
+                className="text-sm text-gray-600 mb-6"
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
               >
                 {studentsWithGrades.length === 0
                   ? 'No students are currently enrolled in your classes.'
-                  : 'Try adjusting your search or filter criteria.'}
+                  : 'Try adjusting your search keywords or clearing the filters.'}
               </p>
               {studentsWithGrades.length > 0 &&
                 (searchQuery ||
@@ -1034,74 +993,73 @@ export default function TeacherGradesView({
                       setSelectedSubjectFilter([])
                       setSelectedSectionFilter([])
                     }}
-                    className="px-4 py-2 bg-blue-900 hover:bg-blue-900 text-white text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-                    style={{
-                      fontFamily: 'Poppins',
-                      fontWeight: 300,
-                      borderRadius: '9999px',
-                    }}
+                    className="px-5 py-2.5 text-sm font-medium rounded-xl bg-gradient-to-r from-blue-800 to-blue-900 text-white shadow-md shadow-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-900/40"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
-                    Clear Filters
+                    Reset Filters
                   </button>
                 )}
-            </Card>
+            </div>
           ) : (
-            <Card className="overflow-hidden pb-0 pt-0">
+            <div className="bg-white/95 border border-blue-100 rounded-2xl shadow-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-6 py-4 flex items-center justify-between text-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Users size={18} weight="fill" />
+                  </div>
+                  <div>
+                    <p className="text-sm uppercase tracking-wide text-white/70">
+                      Student Overview
+                    </p>
+                    <p className="text-lg font-medium">
+                      {filteredStudents.length} Student
+                      {filteredStudents.length === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm text-white/80">
+                  {assignments.length} subject assignments
+                </span>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-100 border-b-2 border-gray-300">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                  <thead>
+                    <tr className="bg-blue-50/80 text-blue-900 text-[11px] uppercase tracking-wide">
+                      <th className="px-6 py-3 text-left font-medium">
                         <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-                            <Users
-                              size={12}
-                              weight="bold"
-                              className="text-white"
-                            />
-                          </div>
+                          <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                            <Users size={14} weight="bold" />
+                          </span>
                           Student
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                      <th className="px-6 py-3 text-left font-medium">
                         <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-                            <BookOpen
-                              size={12}
-                              weight="bold"
-                              className="text-white"
-                            />
-                          </div>
+                          <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                            <BookOpen size={14} weight="bold" />
+                          </span>
                           Section
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                      <th className="px-6 py-3 text-left font-medium">
                         <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-                            <Calculator
-                              size={12}
-                              weight="bold"
-                              className="text-white"
-                            />
-                          </div>
+                          <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                            <Calculator size={14} weight="bold" />
+                          </span>
                           Your Subjects
                         </div>
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left font-medium">
                         <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-                            <Pencil
-                              size={12}
-                              weight="bold"
-                              className="text-white"
-                            />
-                          </div>
+                          <span className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                            <Pencil size={14} weight="bold" />
+                          </span>
                           Actions
                         </div>
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-blue-50 bg-white">
                     {filteredStudents.map(
                       ({ enrollment, grades: studentGradesData, section }) => {
                         const studentId = enrollment.userId
@@ -1116,9 +1074,9 @@ export default function TeacherGradesView({
                           .filter(Boolean)
 
                         return (
-                          <tr key={studentId} className="hover:bg-gray-50">
+                          <tr key={studentId} className="hover:bg-blue-50/50 transition-colors">
                             {/* Student Column */}
-                            <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
+                            <td className="px-6 py-5 border-b border-blue-50">
                               <div className="flex items-center">
                                 <div className="flex-shrink-0 h-10 w-10 relative mr-3">
                                   {profile?.photoURL ? (
@@ -1164,7 +1122,7 @@ export default function TeacherGradesView({
                             </td>
 
                             {/* Section Column */}
-                            <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
+                            <td className="px-6 py-5 border-b border-blue-50">
                               <div>
                                 <div className="text-xs font-medium text-gray-900">
                                   <div className="flex items-center gap-2">
@@ -1188,7 +1146,7 @@ export default function TeacherGradesView({
                             </td>
 
                             {/* Subjects Column */}
-                            <td className="px-6 py-4 border-r border-gray-200">
+                            <td className="px-6 py-5 border-b border-blue-50">
                               <div className="text-left">
                                 <div className="text-sm font-medium text-gray-900 font-mono">
                                   {teacherSubjects.length}{' '}
@@ -1209,7 +1167,7 @@ export default function TeacherGradesView({
                             </td>
 
                             {/* Actions Column */}
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-6 py-5 border-b border-blue-50">
                               <Button
                                 onClick={() =>
                                   handleEditGrades(studentId, studentGradesData)
