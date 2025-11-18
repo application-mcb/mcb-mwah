@@ -1281,6 +1281,68 @@ export default function RegistrarAnalytics({
   const hasAnalyticsData = filteredEnrollments.length > 0
   const latestAvailableAY =
     availableAYs.length > 0 ? availableAYs[availableAYs.length - 1] : undefined
+  const normalizedSearch = searchQuery.trim().toLowerCase()
+  const searchActive = normalizedSearch.length > 0
+  const matchesSearch = (text: string) => {
+    if (!normalizedSearch) return true
+    return text.toLowerCase().includes(normalizedSearch)
+  }
+
+  const showJHSCard = matchesSearch('junior high school jhs grade 7 8 9 10')
+  const showSHSCard = matchesSearch('senior high school shs strand grade 11 12')
+  const showCollegeCard = matchesSearch('college department course year level')
+  const showSummaryCards = showJHSCard || showSHSCard || showCollegeCard
+  const showGradeChart =
+    gradeChartData.length > 0 &&
+    matchesSearch('students by grade level distribution grade')
+  const showStrandChart =
+    strandChartData.length > 0 &&
+    matchesSearch('students by strand shs track distribution')
+  const showCourseChart =
+    courseChartData.length > 0 &&
+    matchesSearch('students by course college program year level')
+  const showRegularIrregularChart =
+    regularIrregularData.some((d) => d.value > 0) &&
+    matchesSearch('regular irregular student type')
+  const showGenderChart =
+    genderChartData.length > 0 &&
+    matchesSearch('gender distribution male female')
+  const showReligionChart =
+    Object.keys(analytics.religionDistribution).length > 0 &&
+    matchesSearch('religion faith distribution')
+  const showAgeChart =
+    ageGroupChartData.length > 0 &&
+    matchesSearch('age distribution birthdate demographics')
+  const showProvinceChart =
+    provinceChartData.length > 0 &&
+    matchesSearch('province location distribution geography')
+  const showMunicipalityChart =
+    Object.keys(analytics.locationBreakdown.municipality).length > 0 &&
+    matchesSearch('municipality town city location distribution geography')
+  const showBarangayChart =
+    Object.keys(analytics.locationBreakdown.barangay).length > 0 &&
+    matchesSearch('barangay village location distribution geography')
+  const showSchoolTypeChart =
+    previousSchoolTypeChartData.length > 0 &&
+    matchesSearch('previous school type distribution')
+  const showPreviousSchoolChart =
+    previousSchoolChartData.length > 0 &&
+    matchesSearch('previous school distribution feeder schools')
+
+  const hasSearchMatches =
+    showSummaryCards ||
+    showGradeChart ||
+    showStrandChart ||
+    showCourseChart ||
+    showRegularIrregularChart ||
+    showGenderChart ||
+    showReligionChart ||
+    showAgeChart ||
+    showProvinceChart ||
+    showMunicipalityChart ||
+    showBarangayChart ||
+    showSchoolTypeChart ||
+    showPreviousSchoolChart
 
   if (loading) {
     return <SkeletonLoader />
@@ -1639,103 +1701,119 @@ export default function RegistrarAnalytics({
       ) : (
         <>
           {/* Total Students by Department */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Junior High School */}
-            <Card className="p-6 rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p
-                    className="text-sm text-gray-600 mb-1"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    Junior High School
-                  </p>
-                  <p
-                    className="text-3xl font-medium text-gray-900"
-                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                  >
-                    {jhsCount}
-                  </p>
-                  <p
-                    className="text-xs text-gray-500 mt-1"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    Grades 7-10
-                  </p>
-                </div>
-                <div className="w-14 h-14 rounded-xl bg-blue-800 flex items-center justify-center">
-                  <GraduationCap
-                    size={24}
-                    className="text-white"
-                    weight="fill"
-                  />
-                </div>
-              </div>
-            </Card>
+          {showSummaryCards && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Junior High School */}
+              {showJHSCard && (
+                <Card className="p-6 rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p
+                        className="text-sm text-gray-600 mb-1"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        Junior High School
+                      </p>
+                      <p
+                        className="text-3xl font-medium text-gray-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        {jhsCount}
+                      </p>
+                      <p
+                        className="text-xs text-gray-500 mt-1"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        Grades 7-10
+                      </p>
+                    </div>
+                    <div className="w-14 h-14 rounded-xl bg-blue-800 flex items-center justify-center">
+                      <GraduationCap
+                        size={24}
+                        className="text-white"
+                        weight="fill"
+                      />
+                    </div>
+                  </div>
+                </Card>
+              )}
 
-            {/* Senior High School */}
-            <Card className="p-6 rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p
-                    className="text-sm text-gray-600 mb-1"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    Senior High School
-                  </p>
-                  <p
-                    className="text-3xl font-medium text-gray-900"
-                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                  >
-                    {shsCount}
-                  </p>
-                  <p
-                    className="text-xs text-gray-500 mt-1"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    Grades 11-12
-                  </p>
-                </div>
-                <div className="w-14 h-14 rounded-xl bg-blue-800 flex items-center justify-center">
-                  <BookOpen size={24} className="text-white" weight="fill" />
-                </div>
-              </div>
-            </Card>
+              {/* Senior High School */}
+              {showSHSCard && (
+                <Card className="p-6 rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p
+                        className="text-sm text-gray-600 mb-1"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        Senior High School
+                      </p>
+                      <p
+                        className="text-3xl font-medium text-gray-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        {shsCount}
+                      </p>
+                      <p
+                        className="text-xs text-gray-500 mt-1"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        Grades 11-12
+                      </p>
+                    </div>
+                    <div className="w-14 h-14 rounded-xl bg-blue-800 flex items-center justify-center">
+                      <BookOpen
+                        size={24}
+                        className="text-white"
+                        weight="fill"
+                      />
+                    </div>
+                  </div>
+                </Card>
+              )}
 
-            {/* College Department */}
-            <Card className="p-6 rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p
-                    className="text-sm text-gray-600 mb-1"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    College Department
-                  </p>
-                  <p
-                    className="text-3xl font-medium text-gray-900"
-                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                  >
-                    {collegeCount}
-                  </p>
-                  <p
-                    className="text-xs text-gray-500 mt-1"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    Year 1-4
-                  </p>
-                </div>
-                <div className="w-14 h-14 rounded-xl bg-blue-800 flex items-center justify-center">
-                  <ChartBar size={24} className="text-white" weight="fill" />
-                </div>
-              </div>
-            </Card>
-          </div>
+              {/* College Department */}
+              {showCollegeCard && (
+                <Card className="p-6 rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p
+                        className="text-sm text-gray-600 mb-1"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        College Department
+                      </p>
+                      <p
+                        className="text-3xl font-medium text-gray-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        {collegeCount}
+                      </p>
+                      <p
+                        className="text-xs text-gray-500 mt-1"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        Year 1-4
+                      </p>
+                    </div>
+                    <div className="w-14 h-14 rounded-xl bg-blue-800 flex items-center justify-center">
+                      <ChartBar
+                        size={24}
+                        className="text-white"
+                        weight="fill"
+                      />
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
+          )}
 
           {/* Analytics Grid - Max 2 columns per row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Students by Grade Level - Bar Chart - Full Width */}
-            {gradeChartData.length > 0 && (
+            {showGradeChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Students by Grade Level"
@@ -1796,7 +1874,7 @@ export default function RegistrarAnalytics({
             )}
 
             {/* Students by Strand - Bar Chart - Full Width */}
-            {strandChartData.length > 0 && (
+            {showStrandChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Students by Strand"
@@ -1860,7 +1938,7 @@ export default function RegistrarAnalytics({
             )}
 
             {/* Students by Course - Bar Chart - Full Width */}
-            {courseChartData.length > 0 && (
+            {showCourseChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Students by Course"
@@ -1924,7 +2002,7 @@ export default function RegistrarAnalytics({
             )}
 
             {/* Regular vs Irregular - Bar Chart */}
-            {regularIrregularData.some((d) => d.value > 0) && (
+            {showRegularIrregularChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Regular vs Irregular"
@@ -1985,7 +2063,7 @@ export default function RegistrarAnalytics({
             )}
 
             {/* Gender Distribution - Pie Chart */}
-            {genderChartData.length > 0 && (
+            {showGenderChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Gender Distribution"
@@ -2030,7 +2108,7 @@ export default function RegistrarAnalytics({
             )}
 
             {/* Religion Distribution - Bar Chart - Full Width */}
-            {religionChartData.length > 0 && (
+            {showReligionChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Religion Distribution"
@@ -2105,7 +2183,7 @@ export default function RegistrarAnalytics({
             )}
 
             {/* Age Groups - Bar Chart - Full Width */}
-            {ageGroupChartData.length > 0 && (
+            {showAgeChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Age Distribution"
@@ -2166,7 +2244,7 @@ export default function RegistrarAnalytics({
             )}
 
             {/* Provinces - Bar Chart - Full Width */}
-            {provinceChartData.length > 0 && (
+            {showProvinceChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Students by Province"
@@ -2230,8 +2308,7 @@ export default function RegistrarAnalytics({
             )}
 
             {/* Municipalities - Bar Chart - Full Width */}
-            {Object.keys(analytics.locationBreakdown.municipality).length >
-              0 && (
+            {showMunicipalityChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Students by Municipality"
@@ -2308,7 +2385,7 @@ export default function RegistrarAnalytics({
             )}
 
             {/* Barangays - Bar Chart - Full Width */}
-            {Object.keys(analytics.locationBreakdown.barangay).length > 0 && (
+            {showBarangayChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Students by Barangay"
@@ -2383,7 +2460,7 @@ export default function RegistrarAnalytics({
             )}
 
             {/* Previous School Type Distribution - Bar Chart - Full Width */}
-            {previousSchoolTypeChartData.length > 0 && (
+            {showSchoolTypeChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Previous School Type Distribution"
@@ -2444,7 +2521,7 @@ export default function RegistrarAnalytics({
             )}
 
             {/* Previous School Distribution - Bar Chart - Full Width */}
-            {previousSchoolChartData.length > 0 && (
+            {showPreviousSchoolChart && (
               <div className="col-span-1 lg:col-span-2">
                 <ChartCard
                   title="Previous School Distribution"
@@ -2507,6 +2584,31 @@ export default function RegistrarAnalytics({
               </div>
             )}
           </div>
+
+          {searchActive && !hasSearchMatches && (
+            <Card className="w-full p-8 border border-gray-200 text-center bg-white shadow-sm rounded-xl">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-800 to-blue-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <MagnifyingGlass
+                  size={24}
+                  className="text-white"
+                  weight="bold"
+                />
+              </div>
+              <h3
+                className="text-lg font-medium text-gray-900 mb-2"
+                style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+              >
+                No analytics match your search
+              </h3>
+              <p
+                className="text-sm text-gray-600"
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
+                Try a different keyword or clear the search box to view all
+                analytics again.
+              </p>
+            </Card>
+          )}
         </>
       )}
 

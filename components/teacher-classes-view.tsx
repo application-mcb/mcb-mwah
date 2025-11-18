@@ -494,7 +494,8 @@ export default function TeacherClassesView({
           )}
           {selectedGradeFilter.length > 0 && (
             <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-100">
-              Grades: {selectedGradeFilter.map((grade) => `Grade ${grade}`).join(', ')}
+              Grades:{' '}
+              {selectedGradeFilter.map((grade) => `Grade ${grade}`).join(', ')}
             </span>
           )}
         </div>
@@ -559,7 +560,10 @@ export default function TeacherClassesView({
             </thead>
             <tbody className="divide-y divide-blue-50 bg-white">
               {filteredAssignments.map(([subjectId, { subject, sections }]) => (
-                <tr key={subjectId} className="hover:bg-blue-50/50 transition-colors">
+                <tr
+                  key={subjectId}
+                  className="hover:bg-blue-50/50 transition-colors"
+                >
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-4">
                       <div
@@ -581,8 +585,8 @@ export default function TeacherClassesView({
                           className="text-xs text-gray-500"
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                         >
-                          {subject.lectureUnits + subject.labUnits} units • Grade{' '}
-                          {subject.gradeLevel}
+                          {subject.lectureUnits + subject.labUnits} units •
+                          Grade {subject.gradeLevel}
                         </p>
                       </div>
                     </div>

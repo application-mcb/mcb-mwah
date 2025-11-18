@@ -761,7 +761,7 @@ export default function TeacherGradesView({
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="bg-white/80 border border-blue-100 rounded-xl p-4 shadow-sm space-y-4">
           {/* Subject Filter Pills */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs uppercase tracking-wide text-blue-900/70">
@@ -780,22 +780,20 @@ export default function TeacherGradesView({
                   ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
                   : 'bg-white text-blue-900 border-blue-100'
               }`}
-              style={{
-                fontFamily: 'Poppins',
-                fontWeight: 500,
-              }}
+              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
             >
               {selectedSubjectFilter.length === availableSubjects.length
-                ? 'None'
+                ? 'Clear'
                 : 'All'}
             </button>
             {availableSubjects.map((subjectId) => {
               const subject = subjects[subjectId]
-              return subject ? (
+              if (!subject) return null
+              const isSelected = selectedSubjectFilter.includes(subjectId)
+              return (
                 <button
                   key={subjectId}
                   onClick={() => {
-                    const isSelected = selectedSubjectFilter.includes(subjectId)
                     if (isSelected) {
                       setSelectedSubjectFilter((prev) =>
                         prev.filter((id) => id !== subjectId)
@@ -805,25 +803,26 @@ export default function TeacherGradesView({
                     }
                   }}
                   className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
-                    selectedSubjectFilter.includes(subjectId)
+                    isSelected
                       ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
                       : 'bg-white text-blue-900 border-blue-100'
                   }`}
                   style={{
                     fontFamily: 'Poppins',
-                    fontWeight: selectedSubjectFilter.includes(subjectId)
-                      ? 400
-                      : 300,
-
-                    backgroundColor: getSubjectColor(subject.color),
-                    opacity: selectedSubjectFilter.includes(subjectId)
-                      ? 1
-                      : 0.5,
+                    fontWeight: isSelected ? 400 : 300,
                   }}
                 >
-                  {subject.code}
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{
+                        backgroundColor: getSubjectColor(subject.color),
+                      }}
+                    ></span>
+                    {subject.code}
+                  </span>
                 </button>
-              ) : null
+              )
             })}
           </div>
 
@@ -845,22 +844,20 @@ export default function TeacherGradesView({
                   ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900'
                   : 'bg-white text-blue-900 border-blue-100'
               }`}
-              style={{
-                fontFamily: 'Poppins',
-                fontWeight: 500,
-              }}
+              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
             >
               {selectedSectionFilter.length === availableSections.length
-                ? 'None'
+                ? 'Clear'
                 : 'All'}
             </button>
             {availableSections.map((sectionId) => {
               const section = sections[sectionId] || sectionsMap[sectionId]
-              return section ? (
+              if (!section) return null
+              const isSelected = selectedSectionFilter.includes(sectionId)
+              return (
                 <button
                   key={sectionId}
                   onClick={() => {
-                    const isSelected = selectedSectionFilter.includes(sectionId)
                     if (isSelected) {
                       setSelectedSectionFilter((prev) =>
                         prev.filter((id) => id !== sectionId)
@@ -870,20 +867,26 @@ export default function TeacherGradesView({
                     }
                   }}
                   className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
-                    selectedSectionFilter.includes(sectionId)
+                    isSelected
                       ? 'bg-gradient-to-r from-blue-800 to-blue-900 text-white border-blue-900 shadow shadow-blue-900/30'
                       : 'bg-white text-blue-900 border-blue-100'
                   }`}
                   style={{
                     fontFamily: 'Poppins',
-                    fontWeight: selectedSectionFilter.includes(sectionId)
-                      ? 400
-                      : 300,
+                    fontWeight: isSelected ? 400 : 300,
                   }}
                 >
-                  {section.sectionName}
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{
+                        backgroundColor: getGradeColor(section),
+                      }}
+                    ></span>
+                    {section.sectionName}
+                  </span>
                 </button>
-              ) : null
+              )
             })}
           </div>
         </div>
@@ -1074,7 +1077,10 @@ export default function TeacherGradesView({
                           .filter(Boolean)
 
                         return (
-                          <tr key={studentId} className="hover:bg-blue-50/50 transition-colors">
+                          <tr
+                            key={studentId}
+                            className="hover:bg-blue-50/50 transition-colors"
+                          >
                             {/* Student Column */}
                             <td className="px-6 py-5 border-b border-blue-50">
                               <div className="flex items-center">
@@ -1190,7 +1196,7 @@ export default function TeacherGradesView({
                   </tbody>
                 </table>
               </div>
-            </Card>
+            </div>
           )}
 
           {/* Edit Grades Modal */}

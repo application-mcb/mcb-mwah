@@ -514,7 +514,10 @@ export default function TeacherStudentsView({
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            {[{ label: 'Subjects', list: availableSubjects, type: 'subject' }, { label: 'Sections', list: availableSections, type: 'section' }].map((group) => (
+            {[
+              { label: 'Subjects', list: availableSubjects, type: 'subject' },
+              { label: 'Sections', list: availableSections, type: 'section' },
+            ].map((group) => (
               <div
                 key={group.label}
                 className="flex items-center gap-2 flex-wrap bg-white/80 border border-blue-50 rounded-xl px-3 py-2"
@@ -526,13 +529,15 @@ export default function TeacherStudentsView({
                   onClick={() => {
                     if (group.type === 'subject') {
                       setSelectedSubjectFilter(
-                        selectedSubjectFilter.length === availableSubjects.length
+                        selectedSubjectFilter.length ===
+                          availableSubjects.length
                           ? []
                           : availableSubjects
                       )
                     } else {
                       setSelectedSectionFilter(
-                        selectedSectionFilter.length === availableSections.length
+                        selectedSectionFilter.length ===
+                          availableSections.length
                           ? []
                           : availableSections
                       )
@@ -760,8 +765,8 @@ export default function TeacherStudentsView({
         selectedSectionFilter.length > 0) && (
         <div className="flex items-center flex-wrap gap-2 text-xs text-blue-900/80 bg-white/80 border border-blue-100 rounded-xl px-4 py-2 shadow-sm">
           <span>
-            Showing {filteredStudents.length} of {Object.keys(enrollments).length}{' '}
-            students
+            Showing {filteredStudents.length} of{' '}
+            {Object.keys(enrollments).length} students
           </span>
           {searchQuery && (
             <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-100">
@@ -887,8 +892,8 @@ export default function TeacherStudentsView({
                               </p>
                               <p className="text-xs text-gray-500 font-mono">
                                 ID:{' '}
-                                {studentProfiles[enrollment.userId]?.studentId ||
-                                  'Pending'}
+                                {studentProfiles[enrollment.userId]
+                                  ?.studentId || 'Pending'}
                               </p>
                               <p className="text-xs text-gray-500">
                                 {enrollment.personalInfo.email}
