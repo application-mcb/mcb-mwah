@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Poppins } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -114,6 +115,33 @@ export const metadata: Metadata = {
   },
 }
 
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollegeOrUniversity',
+  name: 'Marian College of Baliuag, Inc.',
+  url: siteUrl,
+  logo: `${siteUrl}/og.jpg`,
+  sameAs: [
+    'https://www.facebook.com/MarianCollegeBaliuag',
+    'https://www.linkedin.com/company/marian-college-baliuag',
+  ],
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: '908 Gil Carlos St. San Jose',
+    addressLocality: 'Baliuag',
+    addressRegion: 'Bulacan',
+    postalCode: '3006',
+    addressCountry: 'PH',
+  },
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'Registrar',
+    email: 'registrar@marian.college',
+    telephone: '+63-44-766-1234',
+  },
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -121,6 +149,34 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <Script
+          id="org-structured-data"
+          type="application/ld+json"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationSchema),
+          }}
+        />
+        {GA_MEASUREMENT_ID ? (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+              strategy="beforeInteractive"
+            />
+            <Script id="gtag-init" strategy="beforeInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}', { anonymize_ip: true });
+              `}
+            </Script>
+          </>
+        ) : null}
+      </head>
       <body
         className={`${poppins.variable} font-poppins antialiased bg-white text-black`}
       >

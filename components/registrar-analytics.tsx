@@ -5,7 +5,6 @@ import { toast } from 'react-toastify'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import Print from '@/components/print'
 import { ExtendedEnrollmentData } from './enrollment-management/types'
 import {
   ChartBar,
@@ -15,7 +14,6 @@ import {
   Calendar,
   GenderIntersex,
   BookOpen,
-  Printer,
   TrendUp,
   TrendDown,
   Lightbulb,
@@ -239,7 +237,6 @@ export default function RegistrarAnalytics({
   const [selectedAY, setSelectedAY] = useState('')
   const [selectedSemester, setSelectedSemester] = useState('1')
   const [availableAYs, setAvailableAYs] = useState<string[]>([])
-  const [showPrintModal, setShowPrintModal] = useState(false)
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStudentType, setSelectedStudentType] = useState<
@@ -1367,14 +1364,6 @@ export default function RegistrarAnalytics({
               Student enrollment insights and statistics
             </p>
           </div>
-          <Button
-            onClick={() => setShowPrintModal(true)}
-            className="rounded-lg bg-blue-900 text-white hover:bg-blue-900 flex items-center gap-2"
-            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-          >
-            <Printer size={18} weight="fill" />
-            Print Dashboard
-          </Button>
         </div>
 
         {/* Search and Filter Controls */}
@@ -2611,126 +2600,6 @@ export default function RegistrarAnalytics({
           )}
         </>
       )}
-
-      {/* Print Modal */}
-      {showPrintModal && (
-        <Print
-          title="Analytics Dashboard"
-          onClose={() => setShowPrintModal(false)}
-        >
-          {/* Print Header */}
-          <div className="print-header mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <Image
-                  src="/logo.png"
-                  alt="School Logo"
-                  width={64}
-                  height={64}
-                  className="object-contain"
-                />
-                <div>
-                  <h1
-                    className="text-xl font-medium text-gray-900"
-                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                  >
-                    Analytics & Reports
-                  </h1>
-                  <p
-                    className="text-sm text-gray-600"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    {selectedAY}
-                    {selectedSemester && ` - Semester ${selectedSemester}`}
-                  </p>
-                  <p
-                    className="text-xs text-gray-500"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    Generated: {new Date().toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Print Content */}
-          <div className="space-y-6">
-            <div className="print-section">
-              <h3
-                className="text-lg font-medium text-gray-900 mb-4"
-                style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-              >
-                Total Students: {totalStudents}
-              </h3>
-            </div>
-
-            {/* Print all analytics sections */}
-            <PrintSection
-              title="Students by Grade Level"
-              data={analytics.studentsByGrade}
-              formatKey={(key) => `Grade ${key}`}
-            />
-
-            <PrintSection
-              title="Students by Strand"
-              data={analytics.studentsByStrand}
-              formatKey={(key) => key}
-            />
-
-            <PrintSection
-              title="Students by Course"
-              data={analytics.studentsByCourse}
-              formatKey={(key) => key}
-            />
-
-            <div className="print-section">
-              <h3
-                className="text-base font-medium text-gray-900 mb-3"
-                style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-              >
-                Regular vs Irregular
-              </h3>
-              <table className="print-table">
-                <tbody>
-                  <tr>
-                    <td>Regular</td>
-                    <td>{analytics.regularVsIrregular.regular}</td>
-                  </tr>
-                  <tr>
-                    <td>Irregular</td>
-                    <td>{analytics.regularVsIrregular.irregular}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <PrintSection
-              title="Religion Distribution"
-              data={analytics.religionDistribution}
-              formatKey={(key) => key}
-            />
-
-            <PrintSection
-              title="Gender Distribution"
-              data={analytics.genderDistribution}
-              formatKey={(key) => key}
-            />
-
-            <PrintSection
-              title="Previous School Type Distribution"
-              data={analytics.previousSchoolType}
-              formatKey={(key) => key}
-            />
-
-            <PrintSection
-              title="Previous School Distribution"
-              data={analytics.previousSchoolDistribution}
-              formatKey={(key) => key}
-            />
-          </div>
-        </Print>
-      )}
     </div>
   )
 }
@@ -2796,48 +2665,5 @@ const ChartCard: React.FC<ChartCardProps> = ({
         </div>
       </div>
     </Card>
-  )
-}
-
-interface PrintSectionProps {
-  title: string
-  data: Record<string, number>
-  formatKey: (key: string) => string
-}
-
-const PrintSection: React.FC<PrintSectionProps> = ({
-  title,
-  data,
-  formatKey,
-}) => {
-  const sortedEntries = Object.entries(data).sort((a, b) => b[1] - a[1])
-
-  if (sortedEntries.length === 0) return null
-
-  return (
-    <div className="print-section">
-      <h3
-        className="text-base font-medium text-gray-900 mb-3"
-        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-      >
-        {title}
-      </h3>
-      <table className="print-table">
-        <thead>
-          <tr>
-            <th>Category</th>
-            <th>Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedEntries.map(([key, value]) => (
-            <tr key={key}>
-              <td>{formatKey(key)}</td>
-              <td>{value}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   )
 }

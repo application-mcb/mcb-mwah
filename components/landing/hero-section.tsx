@@ -79,13 +79,19 @@ export const HeroSection = () => {
                 </span>
               </div>
 
-              <div className="h-[7rem] mb-6 relative">
+              <div className="space-y-4 mb-6">
                 <h1
-                  className="text-5xl lg:text-6xl font-medium text-blue-900 leading-tight absolute top-0 left-0 w-full"
+                  className="text-5xl lg:text-6xl font-medium text-blue-900 leading-tight"
                   style={{
                     fontFamily: 'Poppins',
                     fontWeight: 500,
                   }}
+                >
+                  Marian College of Baliuag Student Portal
+                </h1>
+                <p
+                  className="text-xl text-blue-900/80 font-mono"
+                  style={{ fontWeight: 300 }}
                 >
                   <Typewriter
                     text={[
@@ -97,7 +103,7 @@ export const HeroSection = () => {
                     loop={true}
                     className="block"
                   />
-                </h1>
+                </p>
               </div>
 
               <p className="text-xl text-blue-800/80 leading-relaxed mt-8 font-mono">
