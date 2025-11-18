@@ -11,6 +11,7 @@ import {
 import QRCode from 'qrcode'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase-server'
+import { SCHOOL_NAME_FORMAL } from '@/lib/constants'
 
 // Extended interface to handle college enrollment fields
 interface ExtendedEnrollmentData
@@ -488,7 +489,7 @@ const EnrollmentPrintModal: React.FC<EnrollmentPrintModalProps> = ({
                   className="text-md font-medium text-gray-900"
                   style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                 >
-                  Marian College of Baliuag, Inc.
+                  {SCHOOL_NAME_FORMAL}
                 </h1>
                 <p
                   className="text-xs text-gray-600 font-mono"

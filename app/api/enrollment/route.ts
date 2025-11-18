@@ -149,46 +149,52 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare enrollment data
+    // For high school, fetch strand if SHS
+    let strand: string | undefined = undefined
+    if (level === 'high-school' && department === 'SHS' && gradeId) {
+      try {
+        const grade = await GradeDatabase.getGrade(gradeId)
+        strand = grade?.strand || ''
+      } catch (e) {
+        // strand remains undefined
+      }
+    }
+
+    const enrollmentInfo: any = {
+      schoolYear: ayCode,
+      enrollmentDate: new Date().toISOString(),
+      status: 'pending',
+      studentType: studentType || 'regular', // Use provided studentType or default to regular
+    }
+
+    if (level === 'college') {
+      enrollmentInfo.courseId = courseId
+      enrollmentInfo.courseCode = courseCode
+      enrollmentInfo.courseName = courseName
+      enrollmentInfo.yearLevel = yearLevel
+      enrollmentInfo.semester = semester
+      enrollmentInfo.level = 'college'
+    } else {
+      enrollmentInfo.gradeLevel = String(gradeLevel)
+      enrollmentInfo.department = department
+      // Only include strand if it has a value (for SHS) - Firestore doesn't allow undefined
+      if (strand !== undefined && strand !== '') {
+        enrollmentInfo.strand = strand
+      }
+      // Only include semester for SHS
+      if (department === 'SHS' && semester) {
+        enrollmentInfo.semester = semester
+      }
+      enrollmentInfo.level = 'high-school'
+    }
+
     const enrollmentData = {
       userId,
       personalInfo: {
         ...personalInfo,
         email: studentResult.data?.email || personalInfo.email,
       },
-      enrollmentInfo: {
-        ...(level === 'college'
-          ? {
-              courseId,
-              courseCode,
-              courseName,
-              yearLevel,
-              semester,
-              level: 'college' as const,
-            }
-          : {
-              gradeLevel: String(gradeLevel),
-              department,
-              strand:
-                department === 'SHS'
-                  ? gradeId
-                    ? await (async () => {
-                        try {
-                          const grade = await GradeDatabase.getGrade(gradeId)
-                          return grade?.strand || ''
-                        } catch (e) {
-                          return ''
-                        }
-                      })()
-                    : undefined
-                  : undefined,
-              semester: department === 'SHS' ? semester : undefined,
-              level: 'high-school' as const,
-            }),
-        schoolYear: ayCode,
-        enrollmentDate: new Date().toISOString(),
-        status: 'pending',
-        studentType: studentType || 'regular', // Use provided studentType or default to regular
-      },
+      enrollmentInfo,
       documents: processedDocuments,
     }
 

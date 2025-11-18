@@ -6,6 +6,7 @@ import { RegistrationForm } from '@/components/registration-form'
 import { ContinueWithUser } from '@/components/continue-with-user'
 import { AuthHero } from '@/components/auth-hero'
 import { useAuth } from '@/lib/auth-context'
+import { SCHOOL_NAME } from '@/lib/constants'
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -46,7 +47,7 @@ export default function LoginPage() {
             />
             <div className="flex flex-col">
               <p className="text-sm font-bold text-white">
-                MARIAN COLLEGE OF BALIUAG, INC.
+                {SCHOOL_NAME}
               </p>
               <p className="text-sm font-light text-white">#TATAKMARIAN</p>
             </div>

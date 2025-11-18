@@ -28,6 +28,7 @@ interface Props {
   currentPage: number
   setCurrentPage: (updater: (prev: number) => number) => void
   itemsPerPage: number
+  onItemsPerPageChange: (itemsPerPage: number) => void
   totalItems: number
 }
 
@@ -60,6 +61,7 @@ const EnrollmentsListSection: React.FC<Props> = (props) => {
         currentPage={props.currentPage}
         setCurrentPage={props.setCurrentPage}
         itemsPerPage={props.itemsPerPage}
+        onItemsPerPageChange={props.onItemsPerPageChange}
         totalItems={props.totalItems}
       />
     </>

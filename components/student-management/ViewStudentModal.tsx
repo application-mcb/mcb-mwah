@@ -37,6 +37,8 @@ interface ViewStudentModalProps {
   onUnenrollStudent: () => void
   unenrollingStudent: boolean
   onOpenAIChat: () => void
+  registrarUid: string
+  onDocumentStatusChange?: () => void
 }
 
 export default function ViewStudentModal({
@@ -58,6 +60,8 @@ export default function ViewStudentModal({
   onUnenrollStudent,
   unenrollingStudent,
   onOpenAIChat,
+  registrarUid,
+  onDocumentStatusChange,
 }: ViewStudentModalProps) {
   const [activeTab, setActiveTab] = useState<string>('student-info')
 
@@ -96,6 +100,8 @@ export default function ViewStudentModal({
           viewingEnrollment={viewingEnrollment}
           studentDocuments={studentDocuments}
           onViewDocument={onViewDocument}
+          registrarUid={registrarUid}
+          onDocumentStatusChange={onDocumentStatusChange}
         />
       ),
     },

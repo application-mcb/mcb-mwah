@@ -107,11 +107,13 @@ const EnrollmentTable: React.FC<Props> = ({
                   </td>
                 </tr>
               ) : (
-                paginatedEnrollments.map((enrollment) => (
+                paginatedEnrollments.map((enrollment, index) => (
                   <EnrollmentTableRow
-                    key={enrollment.userId}
+                    key={enrollment?.userId || `empty-${index}`}
                     enrollment={enrollment}
-                    studentProfile={studentProfiles[enrollment.userId]}
+                    studentProfile={
+                      enrollment ? studentProfiles[enrollment.userId] : null
+                    }
                     onView={onView}
                     onQuickEnroll={onQuickEnroll}
                     onDelete={onDelete}

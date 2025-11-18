@@ -96,6 +96,8 @@ export default function SubjectColorPicker({
           const isSelected = selectedColor === color
           const colorInfo = colorMap[color]
 
+          if (!colorInfo) return null
+
           return (
             <button
               key={color}
@@ -139,7 +141,7 @@ export default function SubjectColorPicker({
       >
         Selected:{' '}
         <span className="font-medium text-gray-700">
-          {colorMap[selectedColor].name}
+          {colorMap[selectedColor]?.name || 'Not selected'}
         </span>
       </p>
     </div>

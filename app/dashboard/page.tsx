@@ -18,9 +18,10 @@ import DocumentsManager from '@/components/documents-manager'
 import MySubjectsView from '../../components/my-subjects-view'
 import AcademicRecords from '@/components/academic-records'
 import AccountSetupProgress from '@/components/account-setup-progress'
+import EventsSidebar from '@/components/events-sidebar'
+import EventsOverview from '@/components/events-overview'
 import {
   User,
-  Calendar,
   BookOpen,
   GraduationCap,
   Gear,
@@ -56,7 +57,6 @@ type ViewType =
   | 'enrollment'
   | 'documents'
   | 'subjects'
-  | 'schedule'
   | 'performance'
   | 'records'
 
@@ -83,6 +83,7 @@ export default function Dashboard() {
   const [studentMainId, setStudentMainId] = useState<string | null>(null)
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
   const [isArrangeView, setIsArrangeView] = useState(false)
+  const [isRightCollapsed, setIsRightCollapsed] = useState(false)
   const router = useRouter()
 
   // Helper: robust enrollment fetch with fallbacks (handles API success:false and semester mismatches)
@@ -572,6 +573,59 @@ export default function Dashboard() {
     }
   }, [isLeftCollapsed])
 
+  const rightSidebarLayout = useMemo(() => {
+    // Only apply margin if sidebar is rendered
+    const isSidebarRendered =
+      enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled'
+
+    if (!isSidebarRendered) {
+      return {
+        widthClass: '',
+        marginClass: '',
+      }
+    }
+
+    if (isRightCollapsed) {
+      return {
+        widthClass: 'w-16 sm:w-20',
+        marginClass: 'mr-16 sm:mr-20',
+      }
+    }
+
+    return {
+      widthClass: 'w-full sm:w-80 md:w-96',
+      marginClass: 'mr-0 sm:mr-80 md:mr-96',
+    }
+  }, [isRightCollapsed, enrollmentData])
+
+  const mainContentSpacing = useMemo(() => {
+    return `${leftSidebarLayout.marginClass} ${rightSidebarLayout.marginClass}`
+  }, [leftSidebarLayout.marginClass, rightSidebarLayout.marginClass])
+
+  // Get student level for events filtering
+  const getStudentLevel = (): string | null => {
+    if (
+      !enrollmentData ||
+      enrollmentData.enrollmentInfo?.status !== 'enrolled'
+    ) {
+      return null
+    }
+
+    const info = enrollmentData.enrollmentInfo || {}
+    if (info.level === 'college') {
+      return 'college'
+    }
+    if (info.level === 'high-school') {
+      // Check if SHS (department === 'SHS') or JHS (department !== 'SHS' or undefined)
+      if (info.department === 'SHS') {
+        return 'senior-high-school'
+      } else {
+        return 'junior-high-school'
+      }
+    }
+    return null
+  }
+
   const isArrangeViewActive = isArrangeView && !isLeftCollapsed
 
   const navigationItems = useMemo(
@@ -599,13 +653,6 @@ export default function Dashboard() {
         label: 'Subjects',
         description: 'Courses',
         icon: BookOpen,
-        requiresEnrollment: true,
-      },
-      {
-        view: 'schedule' as ViewType,
-        label: 'Schedule',
-        description: 'Class times',
-        icon: Calendar,
         requiresEnrollment: true,
       },
       {
@@ -913,15 +960,6 @@ export default function Dashboard() {
           : 'bg-red-800',
     },
     {
-      id: 'schedule',
-      label: 'Schedule',
-      icon: Calendar,
-      color:
-        enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled'
-          ? 'bg-blue-900'
-          : 'bg-red-800',
-    },
-    {
       id: 'performance',
       label: 'Performance',
       icon: ChartBar,
@@ -1118,7 +1156,6 @@ export default function Dashboard() {
   const handleNavigationClick = (item: any) => {
     if (
       item.id === 'subjects' ||
-      item.id === 'schedule' ||
       item.id === 'performance' ||
       item.id === 'records'
     ) {
@@ -1162,7 +1199,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-blue-100 flex min-w-[1200px]">
+    <div className="min-h-screen bg-gradient-to-br from-white to-blue-100 flex">
       {/* Account Setup Progress Bar */}
       {user && (
         <div className="fixed top-0 left-0 right-0 z-50">
@@ -1560,11 +1597,11 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${leftSidebarLayout.marginClass}`}
+        className={`flex-1 flex flex-col min-w-0 transition-all w-full duration-300 ${mainContentSpacing}`}
       >
         <div className="p-6">
           {currentView === 'dashboard' && (
-            <div className="space-y-8">
+            <div className="space-y-8 w-full">
               {/* Welcome Section */}
               <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
                 <div className="flex items-center space-x-4">
@@ -1589,7 +1626,7 @@ export default function Dashboard() {
               </div>
 
               {/* Quick Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Card className="p-6 border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
@@ -1679,32 +1716,6 @@ export default function Dashboard() {
                             </div>
                           )}
                       </div>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-6 border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
-                      <Calendar
-                        size={24}
-                        className="text-white"
-                        weight="fill"
-                      />
-                    </div>
-                    <div>
-                      <p
-                        className="text-sm text-gray-600"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
-                        Schedule
-                      </p>
-                      <p
-                        className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent font-mono"
-                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                      >
-                        Not Set
-                      </p>
                     </div>
                   </div>
                 </Card>
@@ -2011,6 +2022,15 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )}
+
+              {/* Events & Announcements Overview */}
+              {enrollmentData &&
+                enrollmentData.enrollmentInfo?.status === 'enrolled' && (
+                  <EventsOverview
+                    level={getStudentLevel()}
+                    userId={user?.uid || ''}
+                  />
+                )}
             </div>
           )}
 
@@ -2035,51 +2055,6 @@ export default function Dashboard() {
               userId={user.uid}
               onNavigateToEnrollment={() => setCurrentView('enrollment')}
             />
-          )}
-
-          {currentView === 'schedule' && (
-            <div className="space-y-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
-                  <Calendar size={20} className="text-white" weight="fill" />
-                </div>
-                <div>
-                  <h1
-                    className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
-                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                  >
-                    Class Schedule
-                  </h1>
-                  <p
-                    className="text-sm text-gray-600"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    View your weekly class schedule
-                  </p>
-                </div>
-              </div>
-
-              <Card className="p-12 text-center border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
-                <Calendar
-                  size={48}
-                  className="mx-auto text-gray-400 mb-4"
-                  weight="duotone"
-                />
-                <h3
-                  className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent mb-2"
-                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                >
-                  Schedule not available
-                </h3>
-                <p
-                  className="text-gray-600 text-justify rounded-xl border border-blue-100 shadow-sm p-3 bg-blue-50"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                >
-                  Your class schedule will be available once you're enrolled and
-                  your subjects are assigned.
-                </p>
-              </Card>
-            </div>
           )}
 
           {currentView === 'performance' && (
@@ -2136,6 +2111,17 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Right Sidebar - Events & Announcements */}
+      {enrollmentData &&
+        enrollmentData.enrollmentInfo?.status === 'enrolled' && (
+          <EventsSidebar
+            level={getStudentLevel()}
+            userId={user?.uid || ''}
+            isCollapsed={isRightCollapsed}
+            onToggleCollapse={() => setIsRightCollapsed((prev) => !prev)}
+          />
+        )}
 
       {/* Edit Profile Modal */}
       <Modal

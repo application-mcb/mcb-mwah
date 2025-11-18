@@ -696,7 +696,8 @@ export default function AIMessageFormatter({
               </div>
 
               {/* Transcript Table */}
-              {transcript.transcriptData.length > 0 ? (
+              {transcript.transcriptData &&
+              transcript.transcriptData.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="min-w-full border-collapse">
                     <thead>
@@ -1123,7 +1124,8 @@ export default function AIMessageFormatter({
               </div>
 
               {/* Transcript Table */}
-              {transcript.transcriptData.length > 0 ? (
+              {transcript.transcriptData &&
+              transcript.transcriptData.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="min-w-full border-collapse">
                     <thead>

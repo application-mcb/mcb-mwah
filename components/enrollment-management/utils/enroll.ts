@@ -44,6 +44,7 @@ export async function confirmQuickEnrollUtil({
         orNumber: quickEnrollOrNumber,
         scholarship: quickEnrollScholarship,
         studentId: finalStudentId,
+        studentType: quickEnrollData.enrollment.enrollmentInfo?.studentType || 'regular',
         level: quickEnrollData.enrollment.enrollmentInfo?.level,
         semester: quickEnrollData.enrollment.enrollmentInfo?.semester,
       }),
@@ -127,6 +128,7 @@ export async function handleConfirmEnrollUtil({
         orNumber: enrollOrNumber,
         scholarship: enrollScholarship,
         studentId: finalStudentId,
+        studentType: viewingEnrollment.enrollmentInfo?.studentType || 'regular',
         level: viewingEnrollment.enrollmentInfo?.level,
         semester: viewingEnrollment.enrollmentInfo?.semester,
       }),
@@ -171,6 +173,7 @@ export async function enrollSubjectsOnlyUtil({
       body: JSON.stringify({
         userId: viewingEnrollment.userId,
         selectedSubjects,
+        studentType: viewingEnrollment.enrollmentInfo?.studentType || 'regular',
         level: viewingEnrollment.enrollmentInfo?.level,
         semester: viewingEnrollment.enrollmentInfo?.semester,
       }),

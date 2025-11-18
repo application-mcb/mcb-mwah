@@ -60,6 +60,11 @@ export async function POST(request: NextRequest) {
 
     const existing = (snap.data() as Record<string, any>).documents || {};
     const nowIso = new Date().toISOString();
+    
+    // Preserve rejectionReason if document was previously rejected (for reupload scenario)
+    const existingDoc = existing[type];
+    const preservedRejectionReason = existingDoc?.rejectionReason;
+    
     const docInfo = {
       fileType: type,
       fileUrl: downloadURL,
@@ -67,13 +72,33 @@ export async function POST(request: NextRequest) {
       fileFormat: fileName.toLowerCase().endsWith('.pdf') ? 'pdf' : 'img',
       uploadDate: nowIso,
       uploadedAt: nowIso,
-      fileSize: size || 0
+      fileSize: size || 0,
+      status: 'pending',
+      ...(preservedRejectionReason ? { rejectionReason: preservedRejectionReason } : {})
     };
 
     await updateDoc(userRef, {
       documents: { ...existing, [type]: docInfo },
       updatedAt: serverTimestamp()
     });
+
+    // Trigger auto-scan in background (don't block response)
+    // Fire and forget - scan will update document metadata when complete
+    // Use absolute URL for internal API call
+    const baseUrl = request.nextUrl.origin
+    const scanUrl = `${baseUrl}/api/documents/${type}/scan?userId=${userId}`
+    
+    // Trigger scan asynchronously (don't await) - use void to explicitly ignore promise
+    void fetch(scanUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}),
+    }).catch((error) => {
+      // Log error but don't fail the upload
+      console.error('Auto-scan failed for document:', type, error)
+    })
 
     return NextResponse.json({ success: true, message: 'Saved', documentType: type });
   } catch (e) {

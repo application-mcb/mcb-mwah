@@ -13,6 +13,20 @@ import EnrollmentManagement from '@/components/enrollment-management'
 import StudentManagement from '@/components/student-management'
 import TeacherManagement from '@/components/teacher-management'
 import RegistrarOverview from '@/components/registrar-overview'
+import EventsManagement from '@/components/events-management'
+import ChatInterface from '@/components/chat/chat-interface'
+import TaskManager from '@/components/task-manager'
+import EventsSidebar from '@/components/events-sidebar'
+import { ContactData } from '@/lib/chat-database'
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  orderBy,
+  limit,
+} from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import {
   User,
   Users,
@@ -38,6 +52,9 @@ import {
   CaretRight,
   MagnifyingGlass,
   List,
+  Users as UsersIcon,
+  PaperPlaneTilt,
+  ListChecks,
 } from '@phosphor-icons/react'
 
 interface RegistrarData {
@@ -56,6 +73,7 @@ type ViewType =
   | 'grade-section-management'
   | 'subject-management'
   | 'teacher-management'
+  | 'events-management'
 
 interface ChatMessage {
   id: string
@@ -78,6 +96,16 @@ export default function RegistrarPage() {
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
   const [isRightCollapsed, setIsRightCollapsed] = useState(false)
   const [isArrangeView, setIsArrangeView] = useState(false)
+  const [sidebarView, setSidebarView] = useState<
+    'ai' | 'chat' | 'tasks' | 'events'
+  >('ai')
+  const [contacts, setContacts] = useState<ContactData[]>([])
+  const [selectedContact, setSelectedContact] = useState<ContactData | null>(
+    null
+  )
+  const [contactsLoading, setContactsLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const previousContacts = useRef<ContactData[]>([])
   const chatInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -135,12 +163,86 @@ export default function RegistrarPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatMessages, isAiTyping, typingMessageId])
 
+  useEffect(() => {
+    if (sidebarView === 'chat' && user?.uid) {
+      const fetchContacts = async () => {
+        try {
+          setContactsLoading(true)
+          const response = await fetch(
+            `/api/chat/contacts?userId=${user.uid}&role=registrar`
+          )
+          const data = await response.json()
+
+          if (data.success) {
+            // Update previous contacts before setting new ones
+            setContacts((prevContacts) => {
+              previousContacts.current = [...prevContacts]
+              return data.contacts
+            })
+          }
+        } catch (error) {
+          console.error('Error fetching contacts:', error)
+        } finally {
+          setContactsLoading(false)
+        }
+      }
+
+      fetchContacts()
+
+      const chatsQuery = query(
+        collection(db, 'chats'),
+        where('participants', 'array-contains', user.uid),
+        orderBy('lastMessageAt', 'desc'),
+        limit(5)
+      )
+
+      const unsubscribe = onSnapshot(chatsQuery, async () => {
+        await fetchContacts()
+      })
+
+      return () => unsubscribe()
+    }
+  }, [sidebarView, user?.uid])
+
+  const handleContactClick = async (contact: ContactData) => {
+    if (!contact.chatId) {
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            studentId: contact.uid,
+            registrarId: user?.uid,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (data.success && data.chatId) {
+          setSelectedContact({
+            ...contact,
+            chatId: data.chatId,
+          })
+        } else {
+          toast.error(data.error || 'Failed to create chat')
+        }
+      } catch (error) {
+        console.error('Error creating chat:', error)
+        toast.error('Failed to create chat')
+      }
+    } else {
+      setSelectedContact(contact)
+    }
+  }
+
   // Trigger typewriter effect for welcome message on component mount
   useEffect(() => {
     const welcomeMessage: ChatMessage = {
       id: 'welcome',
       content:
-        "Hello! I'm your AI assistant. I can help you with registrar tasks, provide insights, and answer questions about student data.",
+        "Hello! I'm your assistant. I can help you with enrollment statistics, student searches, teacher information, and more. You can ask in English or Filipino!",
       isUser: false,
       timestamp: new Date(),
       displayContent: '',
@@ -209,6 +311,10 @@ export default function RegistrarPage() {
     setIsAiTyping(true)
 
     try {
+      // Get last AI message for context (to handle follow-up responses)
+      const lastAIMessage =
+        chatMessages.filter((msg) => !msg.isUser).slice(-1)[0]?.content || null
+
       // Get context based on current view
       const context = `Current view: ${currentView}. User role: Registrar. User: ${registrar?.firstName} ${registrar?.lastName}`
 
@@ -220,48 +326,31 @@ export default function RegistrarPage() {
         body: JSON.stringify({
           message: message.trim(),
           context,
+          lastAIMessage,
         }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        // Check if there are tool results
-        if (data.toolResults && data.toolResults.length > 0) {
-          // Add AI response with tool results context
-          const toolContext = ``
-          const fullResponse = data.response + toolContext
-
-          const aiMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            content: fullResponse,
-            isUser: false,
-            timestamp: new Date(),
-          }
-          setChatMessages((prev) => [...prev, aiMessage])
-          setTypingMessageId(aiMessage.id)
-
-          // Start typewriter effect
-          typeWriterEffect(aiMessage.id, fullResponse)
-        } else {
-          // Regular AI response without tools
-          const aiMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            content: data.response,
-            isUser: false,
-            timestamp: new Date(),
-          }
-          setChatMessages((prev) => [...prev, aiMessage])
-          setTypingMessageId(aiMessage.id)
-
-          // Start typewriter effect
-          typeWriterEffect(aiMessage.id, data.response)
+        // Regular chatbot response
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          content: data.response,
+          isUser: false,
+          timestamp: new Date(),
         }
+        setChatMessages((prev) => [...prev, aiMessage])
+        setTypingMessageId(aiMessage.id)
+
+        // Start typewriter effect
+        typeWriterEffect(aiMessage.id, data.response)
       } else {
         // Add error message
         const errorMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
-          content: 'Sorry, I encountered an error. Please try again.',
+          content:
+            data.error || 'Sorry, I encountered an error. Please try again.',
           isUser: false,
           timestamp: new Date(),
         }
@@ -269,13 +358,10 @@ export default function RegistrarPage() {
         setTypingMessageId(errorMessage.id)
 
         // Start typewriter effect for error message
-        typeWriterEffect(
-          errorMessage.id,
-          'Sorry, I encountered an error. Please try again.'
-        )
+        typeWriterEffect(errorMessage.id, errorMessage.content)
       }
     } catch (error) {
-      console.error('Failed to send message to AI:', error)
+      console.error('Failed to send message to chatbot:', error)
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         content: "Sorry, I'm having trouble connecting. Please try again.",
@@ -454,6 +540,12 @@ export default function RegistrarPage() {
         label: 'Grades & Sections',
         description: 'Section builder',
         icon: MemberOfIcon,
+      },
+      {
+        view: 'events-management' as ViewType,
+        label: 'Events & Announcements',
+        description: 'Content management',
+        icon: Bell,
       },
     ],
     []
@@ -876,345 +968,749 @@ export default function RegistrarPage() {
         {currentView === 'teacher-management' && registrar && (
           <TeacherManagement registrarUid={registrar.uid} />
         )}
+
+        {currentView === 'events-management' && registrar && (
+          <EventsManagement registrarUid={registrar.uid} />
+        )}
       </div>
 
-      {/* Right Sidebar - AI Chatbot */}
-      <aside
-        className={`${rightSidebarLayout.widthClass} bg-white/60 shadow-lg flex flex-col transition-all duration-300 h-screen fixed right-0 top-0 z-10 border-l border-blue-100`}
-      >
-        <div
-          className={`px-4 py-4 border-b border-blue-900 bg-gradient-to-br from-blue-800 to-blue-900 text-white flex ${
-            isRightCollapsed
-              ? 'flex-col items-center gap-3'
-              : 'items-center justify-between'
-          }`}
+      {/* Right Sidebar - AI Chatbot / Chat */}
+      {selectedContact && sidebarView === 'chat' ? (
+        <aside
+          className={`${rightSidebarLayout.widthClass} bg-white/60 shadow-lg flex flex-col transition-all duration-300 h-screen fixed right-0 top-0 z-10 border-l border-blue-100`}
+        >
+          <ChatInterface
+            chatId={selectedContact.chatId!}
+            userId={user?.uid || ''}
+            contact={selectedContact}
+            onBack={() => setSelectedContact(null)}
+            onToggleCollapse={handleToggleRightSidebar}
+          />
+        </aside>
+      ) : (
+        <aside
+          className={`${rightSidebarLayout.widthClass} bg-white/60 shadow-lg flex flex-col transition-all duration-300 h-screen fixed right-0 top-0 z-10 border-l border-blue-100`}
         >
           <div
-            className={`flex ${
+            className={`px-4 py-4 border-b border-blue-900 bg-gradient-to-br from-blue-800 to-blue-900 text-white flex ${
               isRightCollapsed
-                ? 'flex-col items-center gap-2'
-                : 'items-center gap-3'
+                ? 'flex-col items-center gap-3'
+                : 'items-center justify-between'
             }`}
           >
-            <div className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-lg">
-              <Robot size={20} weight="fill" />
-            </div>
             {isRightCollapsed ? (
-              <div className="text-[10px] uppercase tracking-wide leading-tight text-center">
-                <span className="block">AI</span>
-                <span className="block">Assistant</span>
-              </div>
+              <>
+                <div className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-xl">
+                  {sidebarView === 'ai' ? (
+                    <Robot size={20} weight="fill" />
+                  ) : sidebarView === 'chat' ? (
+                    <ChatCircleDots size={20} weight="fill" />
+                  ) : sidebarView === 'tasks' ? (
+                    <ListChecks size={20} weight="fill" />
+                  ) : (
+                    <Bell size={20} weight="fill" />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarView('ai')
+                    handleToggleRightSidebar()
+                  }}
+                  onKeyDown={(event) =>
+                    handleToggleKeyDown(event, () => {
+                      setSidebarView('ai')
+                      handleToggleRightSidebar()
+                    })
+                  }
+                  aria-label="AI Chat"
+                  className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-xl transition-all duration-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white"
+                  tabIndex={0}
+                >
+                  <Robot size={20} weight="fill" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarView('chat')
+                    handleToggleRightSidebar()
+                  }}
+                  onKeyDown={(event) =>
+                    handleToggleKeyDown(event, () => {
+                      setSidebarView('chat')
+                      handleToggleRightSidebar()
+                    })
+                  }
+                  aria-label="Chat Student"
+                  className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-xl transition-all duration-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white"
+                  tabIndex={0}
+                >
+                  <ChatCircleDots size={20} weight="fill" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarView('tasks')
+                    handleToggleRightSidebar()
+                  }}
+                  onKeyDown={(event) =>
+                    handleToggleKeyDown(event, () => {
+                      setSidebarView('tasks')
+                      handleToggleRightSidebar()
+                    })
+                  }
+                  aria-label="Task Manager"
+                  className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-xl transition-all duration-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white"
+                  tabIndex={0}
+                >
+                  <ListChecks size={20} weight="fill" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarView('events')
+                    handleToggleRightSidebar()
+                  }}
+                  onKeyDown={(event) =>
+                    handleToggleKeyDown(event, () => {
+                      setSidebarView('events')
+                      handleToggleRightSidebar()
+                    })
+                  }
+                  aria-label="Events & Announcements"
+                  className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-xl transition-all duration-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white"
+                  tabIndex={0}
+                >
+                  <Bell size={20} weight="fill" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleRightSidebar}
+                  onKeyDown={(event) =>
+                    handleToggleKeyDown(event, handleToggleRightSidebar)
+                  }
+                  aria-label="Expand sidebar"
+                  className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-xl transition-all duration-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white"
+                  tabIndex={0}
+                >
+                  <CaretRight size={20} weight="bold" />
+                </button>
+              </>
             ) : (
-              <div className="flex flex-col">
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-lg">
+                    {sidebarView === 'ai' ? (
+                      <Robot size={20} weight="fill" />
+                    ) : sidebarView === 'chat' ? (
+                      <ChatCircleDots size={20} weight="fill" />
+                    ) : sidebarView === 'tasks' ? (
+                      <ListChecks size={20} weight="fill" />
+                    ) : (
+                      <Bell size={20} weight="fill" />
+                    )}
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-light">AI Assistant</h2>
-                  <Brain size={14} className="text-blue-200" weight="duotone" />
+                  <button
+                    type="button"
+                    onClick={() => setSidebarView('ai')}
+                    onKeyDown={(event) =>
+                      handleToggleKeyDown(event, () => setSidebarView('ai'))
+                    }
+                    aria-label="AI Chat"
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white ${
+                      sidebarView === 'ai'
+                        ? 'border-white/40 text-white hover:bg-white/20 bg-white/20'
+                        : 'border-white/20 text-white/60 hover:bg-white/10'
+                    }`}
+                    tabIndex={0}
+                  >
+                    <Robot size={18} weight="fill" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarView('chat')}
+                    onKeyDown={(event) =>
+                      handleToggleKeyDown(event, () => setSidebarView('chat'))
+                    }
+                    aria-label="Chat Student"
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white ${
+                      sidebarView === 'chat'
+                        ? 'border-white/40 text-white hover:bg-white/20 bg-white/20'
+                        : 'border-white/20 text-white/60 hover:bg-white/10'
+                    }`}
+                    tabIndex={0}
+                  >
+                    <ChatCircleDots size={18} weight="fill" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarView('tasks')}
+                    onKeyDown={(event) =>
+                      handleToggleKeyDown(event, () => setSidebarView('tasks'))
+                    }
+                    aria-label="Task Manager"
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white ${
+                      sidebarView === 'tasks'
+                        ? 'border-white/40 text-white hover:bg-white/20 bg-white/20'
+                        : 'border-white/20 text-white/60 hover:bg-white/10'
+                    }`}
+                    tabIndex={0}
+                  >
+                    <ListChecks size={18} weight="fill" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarView('events')}
+                    onKeyDown={(event) =>
+                      handleToggleKeyDown(event, () => setSidebarView('events'))
+                    }
+                    aria-label="Events & Announcements"
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white ${
+                      sidebarView === 'events'
+                        ? 'border-white/40 text-white hover:bg-white/20 bg-white/20'
+                        : 'border-white/20 text-white/60 hover:bg-white/10'
+                    }`}
+                    tabIndex={0}
+                  >
+                    <Bell size={18} weight="fill" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleToggleRightSidebar}
+                    onKeyDown={(event) =>
+                      handleToggleKeyDown(event, handleToggleRightSidebar)
+                    }
+                    aria-label="Collapse sidebar"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl border border-white/40 text-white transition-all duration-200 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white"
+                    tabIndex={0}
+                  >
+                    <CaretRight size={18} weight="bold" />
+                  </button>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <Sparkle size={12} className="text-blue-200" weight="fill" />
-                  <p className="text-xs opacity-90">Powered by Gemini AI</p>
-                </div>
-              </div>
+              </>
             )}
           </div>
-          <button
-            type="button"
-            onClick={handleToggleRightSidebar}
-            onKeyDown={(event) =>
-              handleToggleKeyDown(event, handleToggleRightSidebar)
-            }
-            aria-label={
-              isRightCollapsed
-                ? 'Expand AI assistant panel'
-                : 'Collapse AI assistant panel'
-            }
-            className="w-10 h-10 flex items-center justify-center rounded-full border border-white/40 text-white transition-all duration-200 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white"
-            tabIndex={0}
-          >
-            {isRightCollapsed ? (
-              <CaretLeft size={18} weight="bold" />
-            ) : (
-              <CaretRight size={18} weight="bold" />
-            )}
-          </button>
-        </div>
 
-        {isRightCollapsed ? (
-          <div className="flex-1 flex flex-col items-center justify-between py-6 px-3 text-blue-900">
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center text-white">
-                  <ChatCircleDots size={24} weight="fill" />
-                </div>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-center">
-                  Quick Prompts
-                </p>
-                <p className="text-[10px] text-blue-900/70 text-center">
-                  Tap and we will expand the assistant.
-                </p>
+          {isRightCollapsed ? (
+            <div className="flex-1 flex flex-col items-center justify-center py-6 px-3">
+              {(sidebarView === 'chat' ||
+                sidebarView === 'tasks' ||
+                sidebarView === 'events') && (
+                <button
+                  type="button"
+                  onClick={handleToggleRightSidebar}
+                  className="w-12 h-12 bg-white text-blue-900 flex items-center justify-center rounded-xl transition-all duration-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white shadow-lg"
+                  aria-label={
+                    sidebarView === 'chat'
+                      ? 'Expand chat'
+                      : sidebarView === 'tasks'
+                      ? 'Expand tasks'
+                      : 'Expand events'
+                  }
+                  tabIndex={0}
+                >
+                  {sidebarView === 'chat' ? (
+                    <ChatCircleDots size={24} weight="fill" />
+                  ) : sidebarView === 'tasks' ? (
+                    <ListChecks size={24} weight="fill" />
+                  ) : (
+                    <Bell size={24} weight="fill" />
+                  )}
+                </button>
+              )}
+            </div>
+          ) : sidebarView === 'tasks' ? (
+            registrar && <TaskManager registrarUid={registrar.uid} />
+          ) : sidebarView === 'events' ? (
+            registrar && (
+              <EventsSidebar
+                level={null}
+                userId={registrar.uid}
+                isCollapsed={isRightCollapsed}
+                onToggleCollapse={handleToggleRightSidebar}
+                hideHeader={true}
+              />
+            )
+          ) : sidebarView === 'chat' ? (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Search Bar */}
+              <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3">
+                <input
+                  type="text"
+                  placeholder="Search students..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm"
+                  style={{
+                    fontFamily: 'monospace',
+                    fontWeight: 300,
+                  }}
+                />
               </div>
-              <div className="flex flex-col gap-3 w-full">
-                {[
-                  {
-                    label: 'Enrollment stats',
-                    action: () =>
+              <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
+                {contactsLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(5)].map((_, index) => (
+                      <div
+                        key={index}
+                        className="bg-white rounded-xl p-4 border border-blue-100 shadow-sm animate-pulse"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="relative flex-shrink-0">
+                            <div className="w-12 h-12 rounded-full bg-blue-100"></div>
+                            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-blue-100 border-2 border-white"></div>
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="h-4 bg-blue-100 rounded w-32"></div>
+                              <div className="h-5 w-5 bg-blue-100 rounded-lg"></div>
+                            </div>
+                            <div className="h-3 bg-blue-50 rounded w-3/4"></div>
+                            <div className="h-3 bg-blue-50 rounded w-2/3"></div>
+                            <div className="h-2 bg-blue-50 rounded w-20"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  (() => {
+                    // Filter contacts based on search query
+                    const filteredContacts = contacts.filter((contact) => {
+                      if (!searchQuery.trim()) return true
+
+                      const query = searchQuery.toLowerCase().trim()
+                      const name = contact.name.toLowerCase()
+                      const email = contact.email.toLowerCase()
+                      const gradeLevel = contact.gradeLevel?.toString() || ''
+                      const courseCode = contact.courseCode?.toLowerCase() || ''
+                      const courseName = contact.courseName?.toLowerCase() || ''
+                      const strand = contact.strand?.toLowerCase() || ''
+                      const department = contact.department?.toLowerCase() || ''
+
+                      return (
+                        name.includes(query) ||
+                        email.includes(query) ||
+                        gradeLevel.includes(query) ||
+                        courseCode.includes(query) ||
+                        courseName.includes(query) ||
+                        strand.includes(query) ||
+                        department.includes(query) ||
+                        (contact.gradeLevel &&
+                          `grade ${contact.gradeLevel}`.includes(query)) ||
+                        (contact.courseCode &&
+                          contact.courseCode.toLowerCase().includes(query))
+                      )
+                    })
+
+                    if (filteredContacts.length === 0) {
+                      return (
+                        <div className="text-center py-8">
+                          <div className="w-16 h-16 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center mx-auto mb-4">
+                            <UsersIcon
+                              size={32}
+                              className="text-white"
+                              weight="duotone"
+                            />
+                          </div>
+                          <p
+                            className="text-sm text-black"
+                            style={{ fontFamily: 'monospace', fontWeight: 300 }}
+                          >
+                            {searchQuery.trim()
+                              ? 'No students found'
+                              : 'No enrolled students'}
+                          </p>
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <div className="space-y-3">
+                        {filteredContacts.map((contact, index) => {
+                          const isNew =
+                            previousContacts.current.length > 0 &&
+                            !previousContacts.current.find(
+                              (c) => c.uid === contact.uid
+                            )
+                          const animationDelay = isNew ? 0 : index * 50
+
+                          return (
+                            <div
+                              key={contact.uid}
+                              className={`bg-white rounded-xl p-4 border border-blue-100 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer ${
+                                isNew ? 'animate-slide-up' : ''
+                              }`}
+                              style={{
+                                animationDelay: `${animationDelay}ms`,
+                                fontFamily: 'Poppins',
+                              }}
+                              onClick={() => handleContactClick(contact)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  handleContactClick(contact)
+                                }
+                              }}
+                              tabIndex={0}
+                              role="button"
+                              aria-label={`Chat with ${contact.name}`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="relative flex-shrink-0">
+                                  {(() => {
+                                    const getColorClass = (color?: string) => {
+                                      const colorMap: Record<string, string> = {
+                                        'blue-900': 'bg-blue-900',
+                                        'red-800': 'bg-red-800',
+                                        'emerald-800': 'bg-emerald-800',
+                                        'yellow-800': 'bg-yellow-800',
+                                        'orange-800': 'bg-orange-800',
+                                        'violet-800': 'bg-violet-800',
+                                        'purple-800': 'bg-purple-800',
+                                      }
+                                      return color && colorMap[color]
+                                        ? colorMap[color]
+                                        : 'bg-gradient-to-br from-blue-800 to-blue-900'
+                                    }
+                                    return (
+                                      <>
+                                        <div
+                                          className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden ${getColorClass(
+                                            contact.color
+                                          )}`}
+                                        >
+                                          {contact.photoURL ? (
+                                            <img
+                                              src={contact.photoURL}
+                                              alt={contact.name}
+                                              className="w-12 h-12 rounded-full object-cover"
+                                            />
+                                          ) : (
+                                            <span className="text-white text-lg font-medium">
+                                              {contact.name
+                                                .charAt(0)
+                                                .toUpperCase()}
+                                            </span>
+                                          )}
+                                        </div>
+                                        {contact.color && (
+                                          <div
+                                            className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${getColorClass(
+                                              contact.color
+                                            )}`}
+                                          />
+                                        )}
+                                      </>
+                                    )
+                                  })()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2 mb-1">
+                                    <h3
+                                      className="text-sm font-medium text-black truncate"
+                                      style={{
+                                        fontFamily: 'monospace',
+                                        fontWeight: 500,
+                                      }}
+                                    >
+                                      {contact.name}
+                                    </h3>
+                                    {contact.unreadCount > 0 && (
+                                      <span
+                                        className="bg-blue-900 text-white text-xs font-medium px-2 py-0.5 rounded-lg flex-shrink-0"
+                                        style={{ fontFamily: 'monospace' }}
+                                      >
+                                        {contact.unreadCount}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p
+                                    className="text-xs text-black truncate mb-1"
+                                    style={{
+                                      fontFamily: 'monospace',
+                                      fontWeight: 300,
+                                    }}
+                                  >
+                                    {contact.department === 'college' &&
+                                    contact.courseCode
+                                      ? contact.courseCode
+                                      : contact.gradeLevel
+                                      ? `Grade ${contact.gradeLevel}${
+                                          contact.department === 'SHS' &&
+                                          contact.strand
+                                            ? ` - ${contact.strand}`
+                                            : ''
+                                        }`
+                                      : 'Not enrolled'}
+                                  </p>
+                                  {contact.lastMessage && (
+                                    <p
+                                      className="text-xs text-black truncate mb-1"
+                                      style={{
+                                        fontFamily: 'monospace',
+                                        fontWeight: 300,
+                                      }}
+                                    >
+                                      {contact.lastMessage}
+                                    </p>
+                                  )}
+                                  {contact.lastMessageAt && (
+                                    <p
+                                      className="text-[10px] text-black"
+                                      style={{
+                                        fontFamily: 'monospace',
+                                        fontWeight: 300,
+                                      }}
+                                    >
+                                      {(() => {
+                                        try {
+                                          const date = new Date(
+                                            contact.lastMessageAt
+                                          )
+                                          if (isNaN(date.getTime())) {
+                                            return ''
+                                          }
+                                          return date.toLocaleDateString(
+                                            'en-US',
+                                            {
+                                              month: 'short',
+                                              day: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                            }
+                                          )
+                                        } catch {
+                                          return ''
+                                        }
+                                      })()}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex-shrink-0 flex items-center">
+                                  <PaperPlaneTilt
+                                    size={18}
+                                    className="text-blue-900"
+                                    weight="fill"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })()
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col p-5 min-h-0">
+              <div className="flex-1 space-y-4 mb-4 overflow-y-auto pr-1">
+                {chatMessages
+                  .filter((message) => !message.isTyping)
+                  .map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex items-start gap-3 ${
+                        message.isUser ? 'justify-end' : ''
+                      }`}
+                    >
+                      {!message.isUser && (
+                        <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
+                          <Brain
+                            size={16}
+                            className="text-white"
+                            weight="fill"
+                          />
+                        </div>
+                      )}
+                      <div
+                        className={`flex-1 rounded-xl p-3 shadow-sm border ${
+                          message.isUser
+                            ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-800'
+                            : 'bg-white text-gray-800 border-blue-100'
+                        } max-w-[85%] min-w-0 break-words transition-colors duration-200`}
+                      >
+                        <p className="text-xs leading-relaxed font-mono">
+                          {message.content}
+                        </p>
+                        <p
+                          className={`text-[10px] mt-2 font-mono ${
+                            message.isUser
+                              ? 'text-blue-200'
+                              : 'text-blue-900/60'
+                          }`}
+                        >
+                          {message.timestamp.toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
+                      </div>
+                      {message.isUser && (
+                        <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
+                          <span className="text-white text-xs font-medium">
+                            {getInitials()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                {isAiTyping && !typingMessageId && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
+                      <Brain size={16} className="text-white" weight="fill" />
+                    </div>
+                    <div className="flex-1 bg-white border border-blue-100 rounded-xl p-3 shadow-sm">
+                      <div className="flex gap-1">
+                        <div className="w-2 h-2 bg-blue-200 rounded-full animate-bounce"></div>
+                        <div
+                          className="w-2 h-2 bg-blue-200 rounded-full animate-bounce"
+                          style={{ animationDelay: '0.1s' }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 bg-blue-200 rounded-full animate-bounce"
+                          style={{ animationDelay: '0.2s' }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {typingMessageId && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
+                      <Brain size={16} className="text-white" weight="fill" />
+                    </div>
+                    <div className="flex-1 bg-white border border-blue-100 rounded-xl p-3 shadow-sm min-h-[3rem]">
+                      <p className="text-xs text-gray-800 leading-relaxed font-mono">
+                        {(() => {
+                          const typingMessage = chatMessages.find(
+                            (msg) => msg.id === typingMessageId
+                          )
+                          return typingMessage?.displayContent || ''
+                        })()}
+                        <span className="animate-pulse">|</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+
+              <div className="border-t border-blue-100 pt-4 mb-4">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950 rounded-lg flex items-center justify-center gap-2"
+                    onClick={() =>
                       handleQuickPrompt(
                         'How many students are enrolled this year?'
-                      ),
-                    icon: ChartBar,
-                  },
-                  {
-                    label: 'Student reports',
-                    action: () =>
+                      )
+                    }
+                    disabled={isAiTyping}
+                  >
+                    <ChartBar size={14} weight="fill" />
+                    Enrollment stats
+                  </Button>
+                  <Button
+                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950 rounded-lg flex items-center justify-center gap-2"
+                    onClick={() =>
                       handleQuickPrompt(
                         'Show me all enrolled students with their details'
-                      ),
-                    icon: Users,
-                  },
-                  {
-                    label: 'Find student',
-                    action: () =>
+                      )
+                    }
+                    disabled={isAiTyping}
+                  >
+                    <UserList size={14} weight="fill" />
+                    Student reports
+                  </Button>
+                  <Button
+                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950 rounded-lg flex items-center justify-center gap-2"
+                    onClick={() =>
                       handleQuickPrompt(
                         'Is there a student named Nasche enrolled?'
-                      ),
-                    icon: MagnifyingGlass,
-                  },
-                  {
-                    label: 'Course availability',
-                    action: () =>
+                      )
+                    }
+                    disabled={isAiTyping}
+                  >
+                    <MagnifyingGlass size={14} weight="fill" />
+                    Find student
+                  </Button>
+                  <Button
+                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950 rounded-lg flex items-center justify-center gap-2"
+                    onClick={() =>
                       handleQuickPrompt(
                         'What subjects are available for each grade level?'
-                      ),
-                    icon: BookOpen,
-                  },
-                  {
-                    label: 'Teacher info',
-                    action: () =>
+                      )
+                    }
+                    disabled={isAiTyping}
+                  >
+                    <BookOpen size={14} weight="fill" />
+                    Course availability
+                  </Button>
+                  <Button
+                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950 rounded-lg flex items-center justify-center gap-2"
+                    onClick={() =>
                       handleQuickPrompt(
                         'Show me all teachers and their assignments'
-                      ),
-                    icon: GraduationCap,
-                  },
-                ].map((item) => {
-                  const IconComponent = item.icon
-                  return (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={() => {
-                        if (isRightCollapsed) {
-                          handleToggleRightSidebar()
-                        }
-                        item.action()
-                      }}
-                      onKeyDown={(event) =>
-                        handleToggleKeyDown(event, () => {
-                          if (isRightCollapsed) {
-                            handleToggleRightSidebar()
-                          }
-                          item.action()
-                        })
-                      }
-                      aria-label={item.label}
-                      className="w-full flex flex-col items-center justify-center gap-2 px-3 py-2 rounded-xl border border-blue-200 bg-white/80 text-[10px] font-medium uppercase tracking-wide hover:border-blue-400 hover:shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-900"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center text-white">
-                        <IconComponent size={18} weight="fill" />
-                      </div>
-                      <span className="text-center text-blue-900">
-                        {item.label}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-            <Button
-              onClick={handleToggleRightSidebar}
-              onKeyDown={(event) =>
-                handleToggleKeyDown(event, handleToggleRightSidebar)
-              }
-              className="bg-gradient-to-br from-blue-800 to-blue-900 text-white px-4 py-3 rounded-xl hover:from-blue-900 hover:to-blue-950 focus:outline-none focus:ring-2 focus:ring-blue-900"
-              aria-label="Expand AI assistant"
-            >
-              Expand Assistant
-            </Button>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col p-5 min-h-0">
-            <div className="flex-1 space-y-4 mb-4 overflow-y-auto pr-1">
-              {chatMessages
-                .filter((message) => !message.isTyping)
-                .map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex items-start gap-3 ${
-                      message.isUser ? 'justify-end' : ''
-                    }`}
+                      )
+                    }
+                    disabled={isAiTyping}
                   >
-                    {!message.isUser && (
-                      <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
-                        <Brain size={16} className="text-white" weight="fill" />
-                      </div>
-                    )}
-                    <div
-                      className={`flex-1 rounded-xl p-3 shadow-sm border ${
-                        message.isUser
-                          ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-800'
-                          : 'bg-white text-gray-800 border-blue-100'
-                      } max-w-[85%] min-w-0 break-words transition-colors duration-200`}
-                    >
-                      <p className="text-xs leading-relaxed font-mono">
-                        {message.content}
-                      </p>
-                      <p
-                        className={`text-[10px] mt-2 font-mono ${
-                          message.isUser ? 'text-blue-200' : 'text-blue-900/60'
-                        }`}
-                      >
-                        {message.timestamp.toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
-                    {message.isUser && (
-                      <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
-                        <span className="text-white text-xs font-medium">
-                          {getInitials()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-              {isAiTyping && !typingMessageId && (
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
-                    <Brain size={16} className="text-white" weight="fill" />
-                  </div>
-                  <div className="flex-1 bg-white border border-blue-100 rounded-xl p-3 shadow-sm">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-blue-200 rounded-full animate-bounce"></div>
-                      <div
-                        className="w-2 h-2 bg-blue-200 rounded-full animate-bounce"
-                        style={{ animationDelay: '0.1s' }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-blue-200 rounded-full animate-bounce"
-                        style={{ animationDelay: '0.2s' }}
-                      ></div>
-                    </div>
-                  </div>
+                    <GraduationCap size={14} weight="fill" />
+                    Teacher info
+                  </Button>
                 </div>
-              )}
+              </div>
 
-              {typingMessageId && (
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
-                    <Brain size={16} className="text-white" weight="fill" />
-                  </div>
-                  <div className="flex-1 bg-white border border-blue-100 rounded-xl p-3 shadow-sm min-h-[3rem]">
-                    <p className="text-xs text-gray-800 leading-relaxed font-mono">
-                      {(() => {
-                        const typingMessage = chatMessages.find(
-                          (msg) => msg.id === typingMessageId
-                        )
-                        return typingMessage?.displayContent || ''
-                      })()}
-                      <span className="animate-pulse">|</span>
-                    </p>
-                  </div>
+              <div className="border-t border-blue-100 pt-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={chatInputRef}
+                    type="text"
+                    placeholder="Ask the assistant..."
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    disabled={isAiTyping}
+                    className="flex-1 px-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 disabled:bg-blue-50 disabled:cursor-not-allowed"
+                  />
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!chatInput.trim() || isAiTyping}
+                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white px-4 py-2 rounded-lg hover:from-blue-900 hover:to-blue-950 disabled:bg-gray-300 disabled:text-gray-500 flex items-center gap-2"
+                  >
+                    <PaperPlaneTilt size={14} weight="fill" />
+                    Send
+                  </Button>
                 </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="border-t border-blue-100 pt-4 mb-4">
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950"
-                  onClick={() =>
-                    handleQuickPrompt(
-                      'How many students are enrolled this year?'
-                    )
-                  }
-                  disabled={isAiTyping}
-                >
-                  Enrollment stats
-                </Button>
-                <Button
-                  className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950"
-                  onClick={() =>
-                    handleQuickPrompt(
-                      'Show me all enrolled students with their details'
-                    )
-                  }
-                  disabled={isAiTyping}
-                >
-                  Student reports
-                </Button>
-                <Button
-                  className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950"
-                  onClick={() =>
-                    handleQuickPrompt(
-                      'Is there a student named Nasche enrolled?'
-                    )
-                  }
-                  disabled={isAiTyping}
-                >
-                  Find student
-                </Button>
-                <Button
-                  className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950"
-                  onClick={() =>
-                    handleQuickPrompt(
-                      'What subjects are available for each grade level?'
-                    )
-                  }
-                  disabled={isAiTyping}
-                >
-                  Course availability
-                </Button>
-                <Button
-                  className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950"
-                  onClick={() =>
-                    handleQuickPrompt(
-                      'Show me all teachers and their assignments'
-                    )
-                  }
-                  disabled={isAiTyping}
-                >
-                  Teacher info
-                </Button>
               </div>
             </div>
+          )}
+        </aside>
+      )}
 
-            <div className="border-t border-blue-100 pt-4">
-              <div className="flex items-center gap-2">
-                <input
-                  ref={chatInputRef}
-                  type="text"
-                  placeholder="Ask the assistant..."
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  disabled={isAiTyping}
-                  className="flex-1 px-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 disabled:bg-blue-50 disabled:cursor-not-allowed"
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!chatInput.trim() || isAiTyping}
-                  className="bg-gradient-to-br from-blue-800 to-blue-900 text-white px-4 py-2 rounded-lg hover:from-blue-900 hover:to-blue-950 disabled:bg-gray-300 disabled:text-gray-500"
-                >
-                  Send
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-      </aside>
+      <style jsx>{`
+        @keyframes slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
+      `}</style>
     </div>
   )
 }

@@ -9,6 +9,7 @@ interface PaginationControlsProps {
   totalItems: number
   itemsPerPage: number
   onPageChange: (page: number) => void
+  onItemsPerPageChange: (itemsPerPage: number) => void
 }
 
 export default function PaginationControls({
@@ -17,11 +18,13 @@ export default function PaginationControls({
   totalItems,
   itemsPerPage,
   onPageChange,
+  onItemsPerPageChange,
 }: PaginationControlsProps) {
   if (totalItems === 0) return null
 
   return (
     <div className="flex items-center mt-3 shadow-lg justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl">
+      <div className="flex items-center gap-4">
       <div
         className="text-xs text-gray-600 flex items-center gap-2"
         style={{ fontFamily: 'Poppins', fontWeight: 400 }}
@@ -30,6 +33,26 @@ export default function PaginationControls({
         Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
         {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}{' '}
         students
+        </div>
+        <div className="flex items-center gap-2">
+          <label
+            className="text-xs text-gray-600"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
+            Show:
+          </label>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+            className="px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={20}>20</option>
+          </select>
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <button

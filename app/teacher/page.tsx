@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card'
 import TeacherClassesView from '@/components/teacher-classes-view'
 import TeacherStudentsView from '@/components/teacher-students-view'
 import TeacherGradesView from '@/components/teacher-grades-view'
-import TeacherScheduleView from '@/components/teacher-schedule-view'
+import { SCHOOL_NAME_FORMAL } from '@/lib/constants'
 import {
   User,
   Users,
@@ -17,7 +17,6 @@ import {
   SignOut,
   House,
   GraduationCap,
-  Calendar,
   Bell,
   Shield,
   BookOpen,
@@ -37,7 +36,7 @@ interface TeacherData {
   status?: 'active' | 'inactive'
 }
 
-type ViewType = 'overview' | 'my-classes' | 'students' | 'grades' | 'schedule'
+type ViewType = 'overview' | 'my-classes' | 'students' | 'grades'
 
 export default function TeacherPage() {
   const [teacher, setTeacher] = useState<TeacherData | null>(null)
@@ -225,7 +224,7 @@ export default function TeacherPage() {
                   Teacher Portal
                 </h1>
                 <p className="text-xs text-gray-600 font-bold uppercase font-mono">
-                  Marian College of Baliuag, Inc.
+                  {SCHOOL_NAME_FORMAL}
                 </p>
               </div>
             </div>
@@ -347,21 +346,6 @@ export default function TeacherPage() {
               </div>
               Student Grades
             </Button>
-
-            <Button
-              variant="ghost"
-              className={`rounded-none font-light w-full justify-start h-12 text-left transition-all duration-200 hover:bg-blue-50 hover:text-blue-900 hover:scale-[1.02] transform hover:border-blue-900 border-1 shadow-sm ${
-                currentView === 'schedule'
-                  ? 'bg-blue-50 text-blue-900 border-blue-900'
-                  : ''
-              }`}
-              onClick={() => handleNavigation('schedule')}
-            >
-              <div className="flex items-center justify-center bg-blue-900 aspect-square w-6 h-6">
-                <Calendar className="text-white" weight="fill" />
-              </div>
-              Schedule
-            </Button>
           </div>
         </nav>
 
@@ -423,14 +407,6 @@ export default function TeacherPage() {
                   <ClipboardText size={32} className="mb-2" />
                   Student Grades
                 </Button>
-                <Button
-                  onClick={() => handleNavigation('schedule')}
-                  className="h-24 flex flex-col items-center justify-center bg-blue-900 hover:bg-blue-900 text-white rounded-lg"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                >
-                  <Calendar size={32} className="mb-2" />
-                  Schedule
-                </Button>
               </div>
             </Card>
           </div>
@@ -452,12 +428,6 @@ export default function TeacherPage() {
         {currentView === 'grades' && teacher && (
           <div className="p-6">
             <TeacherGradesView teacherId={teacher.id} />
-          </div>
-        )}
-
-        {currentView === 'schedule' && teacher && (
-          <div className="p-6">
-            <TeacherScheduleView teacherId={teacher.id} />
           </div>
         )}
       </div>

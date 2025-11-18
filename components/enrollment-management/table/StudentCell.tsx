@@ -12,6 +12,7 @@ interface Props {
     nameExtension?: string
   ) => string
   getInitials: (firstName?: string, lastName?: string) => string
+  cellBgClass?: string
 }
 
 const StudentCell: React.FC<Props> = ({
@@ -19,9 +20,10 @@ const StudentCell: React.FC<Props> = ({
   studentProfile,
   formatFullName,
   getInitials,
+  cellBgClass = 'bg-white',
 }) => {
   return (
-    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
+    <td className={`px-6 py-4 whitespace-nowrap border-r border-gray-200 ${cellBgClass}`}>
       <div className="flex items-center">
         <div className="flex-shrink-0 h-10 w-10 relative">
           {studentProfile?.photoURL ? (

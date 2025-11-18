@@ -15,7 +15,7 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: "Marian College Student Portal",
-  description: "Student Portal for Marian College of Baliuag, Inc.",
+  description: "Student Portal for MARIAN COLLEGE OF BALIUAG, INC.",
 };
 
 export default function RootLayout({

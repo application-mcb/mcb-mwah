@@ -6,17 +6,19 @@ interface Props {
   submittedAt: any
   formatDate: (d: any) => string
   getTimeAgoInfo: (d: any) => { text: string; color: string }
+  cellBgClass?: string
 }
 
 const SubmittedAtCell: React.FC<Props> = ({
   submittedAt,
   formatDate,
   getTimeAgoInfo,
+  cellBgClass = 'bg-white',
 }) => {
   const info = getTimeAgoInfo(submittedAt)
   return (
     <td
-      className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 border-r border-gray-200 font-mono hidden lg:table-cell"
+      className={`px-6 py-4 whitespace-nowrap text-xs text-gray-500 border-r border-gray-200 font-mono hidden lg:table-cell ${cellBgClass}`}
       style={{ fontWeight: 400 }}
     >
       <div className="space-y-1">

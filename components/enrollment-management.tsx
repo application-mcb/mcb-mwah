@@ -144,7 +144,7 @@ export default function EnrollmentManagement({
     useState<ExtendedEnrollmentData | null>(null)
   const [sortOption, setSortOption] = useState<string>('latest')
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 8
+  const [itemsPerPage, setItemsPerPage] = useState(5)
   const [activeTab, setActiveTab] = useState<string>('student-info')
   const [showPrintModal, setShowPrintModal] = useState(false)
   const [showRevokeModal, setShowRevokeModal] = useState(false)
@@ -198,8 +198,58 @@ export default function EnrollmentManagement({
 
   // Scholarships filtered for enroll modal context
   const filteredEnrollScholarships = React.useMemo(() => {
+    // If no scholarships loaded yet, return empty array
+    if (!scholarships || scholarships.length === 0) {
+      console.warn('No scholarships loaded yet')
+      return []
+    }
+
     const totalUnits = getTotalUnits(selectedSubjects)
-    return scholarships.filter((s) => (s.minUnit || 0) <= totalUnits)
+    console.log(
+      'Scholarship filtering - Selected subjects:',
+      selectedSubjects.length,
+      'Subject IDs:',
+      selectedSubjects,
+      'Total units:',
+      totalUnits,
+      'Available scholarships:',
+      scholarships.length
+    )
+
+    // If totalUnits is 0, it might mean subjects aren't loaded yet or don't have unit info
+    // In that case, show all scholarships to allow enrollment
+    if (totalUnits === 0 && selectedSubjects.length > 0) {
+      console.warn(
+        'Total units is 0 but subjects are selected - showing all scholarships as fallback'
+      )
+      return scholarships
+    }
+
+    // If no subjects selected, show all scholarships (or none if that's the requirement)
+    if (selectedSubjects.length === 0) {
+      console.warn('No subjects selected - showing all scholarships')
+      return scholarships
+    }
+
+    const filtered = scholarships.filter((s) => (s.minUnit || 0) <= totalUnits)
+    console.log(
+      'Filtered scholarships:',
+      filtered.length,
+      'Min units required:',
+      scholarships.map((s) => s.minUnit || 0),
+      'Filtered:',
+      filtered.map((s) => ({ id: s.id, name: s.name, minUnit: s.minUnit || 0 }))
+    )
+
+    // If filtering resulted in empty array but we have scholarships, show all as fallback
+    if (filtered.length === 0 && scholarships.length > 0) {
+      console.warn(
+        'Filtering resulted in no scholarships - showing all as fallback'
+      )
+      return scholarships
+    }
+
+    return filtered
   }, [selectedSubjects, subjects, scholarships])
 
   // Subject Assignments
@@ -251,20 +301,29 @@ export default function EnrollmentManagement({
     setActiveTab(tabId)
 
     // Auto-select assigned subjects when switching to Subject Assignment tab
+    // Only auto-select if no subjects are currently selected (preserve custom selections)
     if (tabId === 'subjects' && viewingEnrollment) {
       setTimeout(() => {
-        const { subjectIds, subjectSetId } = resolveAssignedSubjects(
-          viewingEnrollment.enrollmentInfo,
-          subjectAssignments,
-          allSubjectSets
-        )
-        if (subjectIds.length > 0) {
-          setSelectedSubjectSets(subjectSetId ? [subjectSetId] : [])
-          setSelectedSubjects(subjectIds)
-        } else {
-          setSelectedSubjectSets([])
-          setSelectedSubjects([])
-        }
+        // Use functional update to ensure we're working with the latest state
+        setSelectedSubjects((currentSelected) => {
+          // Only auto-select if selectedSubjects is empty to preserve user's custom selections
+          if (currentSelected.length === 0) {
+            const { subjectIds, subjectSetId } = resolveAssignedSubjects(
+              viewingEnrollment.enrollmentInfo,
+              subjectAssignments,
+              allSubjectSets
+            )
+            if (subjectIds.length > 0) {
+              setSelectedSubjectSets(subjectSetId ? [subjectSetId] : [])
+              return subjectIds
+            } else {
+              setSelectedSubjectSets([])
+              return []
+            }
+          }
+          // Return current selection if not empty (preserve custom selections)
+          return currentSelected
+        })
       }, 100)
     }
   }
@@ -383,6 +442,11 @@ export default function EnrollmentManagement({
     setCurrentPage(1)
   }, [sortOption])
 
+  // Reset to first page when items per page changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
   // Countdown timers (shared hook)
   useModalCountdown(showRevokeModal, revokeCountdown, setRevokeCountdown)
   useModalCountdown(showDeleteModal, deleteCountdown, setDeleteCountdown)
@@ -400,6 +464,13 @@ export default function EnrollmentManagement({
       loadScholarships()
     }
   }, [showQuickEnrollModal])
+
+  // Ensure scholarships are loaded when enroll modal opens
+  useEffect(() => {
+    if (showEnrollModal) {
+      loadScholarships()
+    }
+  }, [showEnrollModal])
 
   // Load current settings when Settings modal opens
   useEffect(() => {
@@ -501,19 +572,32 @@ export default function EnrollmentManagement({
   }
 
   const handleViewEnrollment = (enrollment: ExtendedEnrollmentData) => {
+    // If viewing a different enrollment, clear previous selections
+    const isDifferentEnrollment =
+      viewingEnrollment?.userId !== enrollment.userId
+    if (isDifferentEnrollment) {
+      setSelectedSubjects([])
+      setSelectedSubjectSets([])
+    }
+
     setViewingEnrollment(enrollment)
     setShowViewModal(true)
 
     // Auto-select assigned subjects when opening the modal
+    // Only auto-select if no subjects are currently selected (preserve custom selections)
     setTimeout(() => {
-      const { subjectIds, subjectSetId } = resolveAssignedSubjects(
-        enrollment.enrollmentInfo,
-        subjectAssignments,
-        allSubjectSets
-      )
-      if (subjectIds.length > 0) {
-        if (subjectSetId) setSelectedSubjectSets([subjectSetId])
-        setSelectedSubjects(subjectIds)
+      // Only auto-select if selectedSubjects is empty to preserve user's custom selections
+      // This ensures custom selections aren't overwritten when viewing the same enrollment
+      if (selectedSubjects.length === 0) {
+        const { subjectIds, subjectSetId } = resolveAssignedSubjects(
+          enrollment.enrollmentInfo,
+          subjectAssignments,
+          allSubjectSets
+        )
+        if (subjectIds.length > 0) {
+          if (subjectSetId) setSelectedSubjectSets([subjectSetId])
+          setSelectedSubjects(subjectIds)
+        }
       }
     }, 100)
   }
@@ -699,6 +783,13 @@ export default function EnrollmentManagement({
     })
 
   const handleOpenEnrollModal = async () => {
+    // Debug: Log selected subjects to help diagnose issues
+    console.log(
+      'Opening enroll modal - Selected subjects:',
+      selectedSubjects.length,
+      selectedSubjects
+    )
+
     if (!viewingEnrollment || selectedSubjects.length === 0) {
       toast.warning(
         'Please select at least one subject before enrolling the student.',
@@ -1169,6 +1260,14 @@ export default function EnrollmentManagement({
             handleOpenAIChat(viewingEnrollment)
           }
         },
+        handleSubjectSetToggle,
+        handleSubjectToggle,
+        registrarUid,
+        onDocumentStatusChange: async () => {
+          if (viewingEnrollment) {
+            await loadStudentDocuments([viewingEnrollment])
+          }
+        },
       }),
     [
       viewingEnrollment,
@@ -1190,6 +1289,8 @@ export default function EnrollmentManagement({
       getTimeAgoInfo,
       revokingEnrollment,
       enrollingStudent,
+      handleSubjectSetToggle,
+      handleSubjectToggle,
     ]
   )
 
@@ -1267,6 +1368,7 @@ export default function EnrollmentManagement({
         currentPage={currentPage}
         setCurrentPage={(updater) => setCurrentPage((prev) => updater(prev))}
         itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={setItemsPerPage}
         totalItems={filteredAndSortedEnrollments.length}
       />
 

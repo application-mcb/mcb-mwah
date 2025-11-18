@@ -4,9 +4,11 @@ import { useEffect } from 'react'
 import { NavigationBar } from '@/components/landing/navigation-bar'
 import { HeroSection } from '@/components/landing/hero-section'
 import { FeaturesSection } from '@/components/landing/features-section'
-import { StatisticsSection } from '@/components/landing/statistics-section'
+import { EventsCarouselSection } from '@/components/landing/events-carousel-section'
+import { LandingEventsCalendar } from '@/components/landing/landing-events-calendar'
 import { ProgramsCarousel } from '@/components/landing/programs-carousel'
 import { CTASection } from '@/components/landing/cta-section'
+import { SCHOOL_NAME_FORMAL } from '@/lib/constants'
 
 export default function LandingPage() {
   useEffect(() => {
@@ -24,7 +26,8 @@ export default function LandingPage() {
       <main>
         <HeroSection />
         <FeaturesSection />
-        <StatisticsSection />
+        <EventsCarouselSection />
+        <LandingEventsCalendar />
         <ProgramsCarousel />
         <CTASection />
       </main>
@@ -38,7 +41,7 @@ export default function LandingPage() {
                 className="text-lg font-medium mb-4"
                 style={{ fontFamily: 'Poppins', fontWeight: 500 }}
               >
-                Marian College of Baliuag, Inc.
+                {SCHOOL_NAME_FORMAL}
               </h3>
               <p
                 className="text-white/80 text-sm leading-relaxed font-mono"
@@ -67,11 +70,11 @@ export default function LandingPage() {
                 </li>
                 <li>
                   <a
-                    href="#statistics"
+                    href="#events"
                     className="text-white/80 hover:text-white text-sm transition-colors"
                     style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   >
-                    Statistics
+                    Events
                   </a>
                 </li>
                 <li>
@@ -106,7 +109,7 @@ export default function LandingPage() {
               className="text-white/60 text-sm"
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
             >
-              © {new Date().getFullYear()} Marian College of Baliuag, Inc. All
+              © {new Date().getFullYear()} {SCHOOL_NAME_FORMAL} All
               rights reserved.
             </p>
           </div>

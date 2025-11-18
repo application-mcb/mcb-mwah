@@ -65,7 +65,17 @@ export async function PUT(
     if (subjects !== undefined) updateData.subjects = subjects;
     if (color !== undefined) updateData.color = color;
 
-    if (gradeLevels !== undefined) updateData.gradeLevels = gradeLevels;
+    // Handle gradeLevels - allow empty arrays to clear grade levels
+    if (gradeLevels !== undefined) {
+      if (!Array.isArray(gradeLevels)) {
+        return NextResponse.json(
+          { error: 'gradeLevels must be an array' },
+          { status: 400 }
+        );
+      }
+      // Deduplicate and sort grade levels
+      updateData.gradeLevels = Array.from(new Set(gradeLevels)).sort((a, b) => a - b);
+    }
     
     // Handle courseCodes (new) or courseSelections (old) for backward compatibility
     if (courseCodes !== undefined && Array.isArray(courseCodes) && courseCodes.length > 0) {
@@ -82,12 +92,6 @@ export async function PUT(
     } else if (courseSelections !== undefined) {
       // Use provided courseSelections (backward compatibility)
       updateData.courseSelections = courseSelections;
-    }
-
-    // For backward compatibility, use the first grade level if available
-    // Otherwise, keep the existing grade level
-    if (gradeLevels !== undefined && gradeLevels.length > 0) {
-      updateData.gradeLevel = gradeLevels[0];
     }
 
     const updatedSubjectSet = await SubjectSetDatabase.updateSubjectSet(id, updateData);

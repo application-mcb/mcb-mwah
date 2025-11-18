@@ -288,6 +288,35 @@ export class EnrollmentDatabase {
     }
   }
 
+  // Helper function to remove undefined values from objects (Firestore doesn't allow undefined)
+  // Preserves Firebase FieldValue objects (like serverTimestamp()) and other special objects
+  private static removeUndefinedValues(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj
+    }
+    // Preserve Firebase FieldValue objects and other special objects (they have special constructors)
+    if (
+      typeof obj === 'object' &&
+      obj.constructor !== Object &&
+      obj.constructor !== Array
+    ) {
+      return obj
+    }
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.removeUndefinedValues(item))
+    }
+    if (typeof obj === 'object' && obj.constructor === Object) {
+      const cleaned: any = {}
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          cleaned[key] = this.removeUndefinedValues(value)
+        }
+      }
+      return cleaned
+    }
+    return obj
+  }
+
   // Submit enrollment data
   static async submitEnrollment(
     userId: string,
@@ -323,7 +352,12 @@ export class EnrollmentDatabase {
         updatedAt: serverTimestamp(),
       }
 
-      await setDoc(enrollmentRef, completeEnrollmentData)
+      // Remove undefined values before saving (Firestore doesn't allow undefined)
+      const cleanedEnrollmentData = this.removeUndefinedValues(
+        completeEnrollmentData
+      )
+
+      await setDoc(enrollmentRef, cleanedEnrollmentData)
 
       // Also save to top-level enrollments collection
       const topLevelEnrollmentRef = doc(db, 'enrollments', docId)
@@ -335,14 +369,16 @@ export class EnrollmentDatabase {
       const topLevelPayload: any = {
         userId,
         ayCode,
-        enrollmentData: completeEnrollmentData,
+        enrollmentData: cleanedEnrollmentData,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }
       if ((isCollege || isSHS) && semester) {
         topLevelPayload.semester = semester
       }
-      await setDoc(topLevelEnrollmentRef, topLevelPayload)
+      // Remove undefined values before saving
+      const cleanedTopLevelPayload = this.removeUndefinedValues(topLevelPayload)
+      await setDoc(topLevelEnrollmentRef, cleanedTopLevelPayload)
 
       console.log(
         `  Enrollment submitted successfully for user ${userId} in ${ayCode}${
@@ -948,6 +984,7 @@ export class EnrollmentDatabase {
             orNumber: orNumber || '',
             scholarship: scholarship || '',
             studentId: studentId || '',
+            studentType: studentType || 'regular', // Preserve studentType
           },
           selectedSubjects,
           documents: {},
@@ -966,6 +1003,10 @@ export class EnrollmentDatabase {
               topLevelData.enrollmentData.personalInfo || {}
             enrollmentData.enrollmentInfo.gradeLevel =
               topLevelData.enrollmentData.enrollmentInfo?.gradeLevel || ''
+            enrollmentData.enrollmentInfo.studentType =
+              topLevelData.enrollmentData.enrollmentInfo?.studentType ||
+              studentType ||
+              'regular'
             enrollmentData.documents =
               topLevelData.enrollmentData.documents || {}
             enrollmentData.submittedAt =
@@ -973,7 +1014,10 @@ export class EnrollmentDatabase {
           }
         }
 
-        await setDoc(enrollmentRef, enrollmentData)
+        // Remove undefined values before saving (Firestore doesn't allow undefined)
+        const cleanedEnrollmentDataForEnroll =
+          this.removeUndefinedValues(enrollmentData)
+        await setDoc(enrollmentRef, cleanedEnrollmentDataForEnroll)
       } else {
         // Update existing enrollment status
         const enrollmentUpdate = {
@@ -1177,7 +1221,10 @@ export class EnrollmentDatabase {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         }
-        await setDoc(topLevelEnrollmentRef, enrollmentData)
+        // Remove undefined values before saving (Firestore doesn't allow undefined)
+        const cleanedTopLevelEnrollmentData =
+          this.removeUndefinedValues(enrollmentData)
+        await setDoc(topLevelEnrollmentRef, cleanedTopLevelEnrollmentData)
       }
 
       console.log(
@@ -1266,19 +1313,31 @@ export class EnrollmentDatabase {
       const systemConfig = await this.getSystemConfig()
       const ayCode = systemConfig.ayCode
 
-      // Determine document ID based on level
-      let docId: string
-      let subCollectionDocId: string
+      // First, get the enrollment to retrieve the full enrollment info
+      // This is necessary to generate the correct document IDs
+      const enrollmentResult = await this.getEnrollment(
+        userId,
+        ayCode,
+        semester
+      )
 
-      if (level === 'college' && semester) {
-        // College: include semester in document ID
-        docId = `${userId}_${ayCode}_${semester}`
-        subCollectionDocId = `${ayCode}_${semester}`
-      } else {
-        // High school or default: just AY
-        docId = `${userId}_${ayCode}`
-        subCollectionDocId = ayCode
+      if (!enrollmentResult.success || !enrollmentResult.data) {
+        return {
+          success: false,
+          error: 'Enrollment not found',
+        }
       }
+
+      const enrollmentData = enrollmentResult.data
+      const enrollmentInfo = enrollmentData.enrollmentInfo || {}
+
+      // Generate document IDs using the same logic as submitEnrollment
+      const subCollectionDocId = this.generateDocumentId(ayCode, enrollmentInfo)
+      const docId = this.generateEnrollmentDocumentId(
+        userId,
+        ayCode,
+        enrollmentInfo
+      )
 
       // Delete the enrollment document from students subcollection
       const enrollmentRef = doc(
@@ -1290,6 +1349,9 @@ export class EnrollmentDatabase {
       )
       try {
         await deleteDoc(enrollmentRef)
+        console.log(
+          `  Deleted enrollment document from students subcollection: ${subCollectionDocId}`
+        )
       } catch (error) {
         console.warn(
           `Could not delete enrollment document from students subcollection (might not exist):`,
@@ -1301,6 +1363,9 @@ export class EnrollmentDatabase {
       const topLevelEnrollmentRef = doc(db, 'enrollments', docId)
       try {
         await deleteDoc(topLevelEnrollmentRef)
+        console.log(
+          `  Deleted enrollment document from top-level collection: ${docId}`
+        )
       } catch (error) {
         console.warn(
           `Could not delete top-level enrollment document (might not exist):`,

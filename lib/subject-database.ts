@@ -802,12 +802,28 @@ export class SubjectSetDatabase {
         )
       }
 
-      // Validate grade level if provided
+      // Validate grade level if provided (backward compatibility)
       if (
         updateData.gradeLevel !== undefined &&
         (updateData.gradeLevel < 1 || updateData.gradeLevel > 12)
       ) {
         throw new Error('Grade level must be between 1 and 12')
+      }
+
+      // Validate grade levels if provided
+      if (updateData.gradeLevels !== undefined) {
+        if (!Array.isArray(updateData.gradeLevels)) {
+          throw new Error('Grade levels must be an array')
+        }
+        for (const gradeLevel of updateData.gradeLevels) {
+          if (gradeLevel < 1 || gradeLevel > 12) {
+            throw new Error('All grade levels must be between 1 and 12')
+          }
+        }
+        // Deduplicate grade levels
+        updateData.gradeLevels = Array.from(new Set(updateData.gradeLevels)).sort(
+          (a, b) => a - b
+        )
       }
 
       // Validate subjects exist if provided
@@ -827,9 +843,20 @@ export class SubjectSetDatabase {
 
       const subjectSetRef = doc(db, this.collectionName, id)
 
-      const updatePayload = {
+      const updatePayload: any = {
         ...updateData,
         updatedAt: serverTimestamp(),
+      }
+
+      // If updating gradeLevels, handle backward compatibility with gradeLevel field
+      if (updateData.gradeLevels !== undefined) {
+        if (updateData.gradeLevels.length > 0) {
+          // Set gradeLevel to first grade level for backward compatibility
+          updatePayload.gradeLevel = updateData.gradeLevels[0]
+        } else {
+          // If gradeLevels is empty, remove the old gradeLevel field
+          updatePayload.gradeLevel = deleteField()
+        }
       }
 
       await updateDoc(subjectSetRef, updatePayload)

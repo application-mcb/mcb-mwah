@@ -241,7 +241,7 @@ export default function StudentManagement({
     useState<ExtendedEnrollmentData | null>(null)
   const [sortOption, setSortOption] = useState<string>('latest')
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 8
+  const [itemsPerPage, setItemsPerPage] = useState(5)
   const [activeTab, setActiveTab] = useState<string>('student-info')
   const [showPrintModal, setShowPrintModal] = useState(false)
   const [showUnenrollModal, setShowUnenrollModal] = useState(false)
@@ -305,6 +305,11 @@ export default function StudentManagement({
   useEffect(() => {
     setCurrentPage(1)
   }, [sortOption])
+
+  // Reset to first page when items per page changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
 
   // Countdown timer for unenroll modal
   useEffect(() => {
@@ -1145,12 +1150,12 @@ export default function StudentManagement({
     currentStudentTypeFilter,
   ])
 
-  // Paginated enrollments - always show up to 8 rows
+  // Paginated enrollments - pad to itemsPerPage rows
   const paginatedEnrollments = React.useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     const sliced = filteredAndSortedEnrollments.slice(startIndex, endIndex)
-    // Pad with null to always have 8 rows
+    // Pad with null to always have itemsPerPage rows
     const padded = [...sliced]
     while (padded.length < itemsPerPage) {
       padded.push(null as any)
@@ -1534,6 +1539,7 @@ export default function StudentManagement({
         totalItems={filteredAndSortedEnrollments.length}
         itemsPerPage={itemsPerPage}
         onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
       />
 
       <ModalsSection
@@ -1566,6 +1572,12 @@ export default function StudentManagement({
         onOpenAIChat={() => {
           if (viewingEnrollment) {
             handleOpenAIChat(viewingEnrollment)
+          }
+        }}
+        registrarUid={registrarUid}
+        onDocumentStatusChange={async () => {
+          if (viewingEnrollment) {
+            await loadStudentDocuments([viewingEnrollment])
           }
         }}
         // Document Viewer Modal props

@@ -36,6 +36,7 @@ import {
   Pencil,
   ArrowRight,
   ArrowLeft,
+  UploadSimple,
 } from '@phosphor-icons/react'
 import { toast } from 'react-toastify'
 
@@ -71,6 +72,8 @@ interface DocumentInfo {
   verificationDate?: string | null
   expiryDate?: string | null
   notes?: string
+  status?: 'approved' | 'rejected' | 'pending'
+  rejectionReason?: string
 }
 
 interface DocumentsManagerProps {
@@ -309,11 +312,22 @@ export default function DocumentsManager({
     try {
       // Delete from Firebase Storage
       const storage = getStorage()
-      const storageRef = ref(
-        storage,
-        documentToDelete.fileUrl.split('/o/')[1].split('?')[0]
-      )
-      await deleteObject(storageRef)
+      // Extract and decode the path from the URL
+      const encodedPath = documentToDelete.fileUrl.split('/o/')[1]?.split('?')[0]
+      if (encodedPath) {
+        const decodedPath = decodeURIComponent(encodedPath)
+        const storageRef = ref(storage, decodedPath)
+        
+        try {
+          await deleteObject(storageRef)
+        } catch (storageError: any) {
+          // If the file doesn't exist in storage, log but continue to delete from database
+          if (storageError?.code !== 'storage/object-not-found') {
+            throw storageError
+          }
+          console.warn('File not found in storage, proceeding with database deletion')
+        }
+      }
 
       // Delete from database
       const response = await fetch(
@@ -326,6 +340,11 @@ export default function DocumentsManager({
       if (response.ok) {
         toast.success('Document deleted successfully')
         loadDocuments()
+
+        // Trigger progress update callback
+        if (onProgressUpdate) {
+          onProgressUpdate()
+        }
       } else {
         throw new Error('Failed to delete document')
       }
@@ -591,19 +610,66 @@ export default function DocumentsManager({
                 </div>
 
                 <div className="flex-1 flex flex-col space-y-4">
-                  {hasDoc ? (
-                    <div className="flex items-center gap-2 text-xs bg-white text-blue-900 w-fit px-3 py-1.5 rounded-lg shadow-sm">
-                      <Check size={12} className="text-blue-900" />
-                      <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                        Uploaded
-                      </span>
-                    </div>
-                  ) : (
+                  {hasDoc ? (() => {
+                    const docStatus = existingDoc?.status || 'pending'
+                    const getStatusBadge = () => {
+                      switch (docStatus) {
+                        case 'approved':
+                          return (
+                            <div className="flex items-center gap-2 text-xs bg-emerald-800 text-white w-fit px-3 py-1.5 rounded-lg shadow-sm">
+                              <Check size={12} className="text-white" weight="bold" />
+                              <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                                Approved
+                              </span>
+                            </div>
+                          )
+                        case 'rejected':
+                          return (
+                            <div className="flex items-center gap-2 text-xs bg-red-800 text-white w-fit px-3 py-1.5 rounded-lg shadow-sm">
+                              <X size={12} className="text-white" weight="bold" />
+                              <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                                Rejected
+                              </span>
+                            </div>
+                          )
+                        case 'pending':
+                        default:
+                          return (
+                            <div className="flex items-center gap-2 text-xs bg-yellow-600 text-white w-fit px-3 py-1.5 rounded-lg shadow-sm">
+                              <Warning size={12} className="text-white" weight="bold" />
+                              <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                                Pending Review
+                              </span>
+                            </div>
+                          )
+                      }
+                    }
+                    return getStatusBadge()
+                  })() : (
                     <div className="flex items-center gap-2 text-xs text-white bg-white/20 px-3 py-1.5 w-fit rounded-lg border border-white/30">
                       <Warning size={12} />
                       <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                         Not uploaded
                       </span>
+                    </div>
+                  )}
+
+                  {hasDoc && existingDoc?.status === 'rejected' && existingDoc?.rejectionReason && (
+                    <div className="bg-red-900/30 border border-red-800/50 rounded-lg p-3 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <Warning size={16} className="text-red-200 flex-shrink-0 mt-0.5" weight="bold" />
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-red-100 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                            Document Rejected
+                          </p>
+                          <p className="text-xs text-red-100/90 leading-relaxed" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                            {existingDoc.rejectionReason}
+                          </p>
+                          <p className="text-xs text-red-200/80 mt-2 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                            Please upload a new document below to resubmit.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -678,6 +744,70 @@ export default function DocumentsManager({
                           </span>
                         </Button>
                       </div>
+                      {existingDoc?.status === 'rejected' && (
+                        <div className="mt-2">
+                          <input
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (
+                                file &&
+                                !filePreviewModalOpen &&
+                                !isProcessingFile
+                              ) {
+                                setIsProcessingFile(true)
+                                setSelectedFile(file)
+                                setSelectedDocumentKey(docType.key)
+                                setFilePreviewModalOpen(true)
+                                setUploadingDocKey(null)
+                                setUploadProgress(0)
+                              }
+                            }}
+                            className="hidden"
+                            id={`reupload-${docType.key}`}
+                            disabled={
+                              uploadingDocKey === docType.key ||
+                              filePreviewModalOpen ||
+                              isProcessingFile
+                            }
+                          />
+                          <label
+                            htmlFor={`reupload-${docType.key}`}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Reupload ${docType.name}`}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                const fileInput = document.getElementById(
+                                  `reupload-${docType.key}`
+                                ) as HTMLInputElement
+                                if (fileInput) fileInput.click()
+                              }
+                            }}
+                            className={`inline-flex items-center justify-center px-4 py-2 text-xs text-white hover:bg-white/40 rounded-lg transition-all duration-200 w-full ${
+                              uploadingDocKey === docType.key ||
+                              filePreviewModalOpen ||
+                              isProcessingFile
+                                ? 'opacity-60 cursor-not-allowed bg-white/20'
+                                : 'cursor-pointer bg-white/20 hover:scale-105 active:scale-95'
+                            }`}
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
+                            {uploadingDocKey === docType.key ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                                {Math.round(uploadProgress)}%
+                              </>
+                            ) : (
+                              <>
+                                <UploadSimple size={14} className="mr-2" />
+                                Reupload Document
+                              </>
+                            )}
+                          </label>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="mt-auto space-y-2">

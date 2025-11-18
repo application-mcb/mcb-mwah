@@ -30,6 +30,7 @@ const PrerequisiteWarningModal: React.FC<Props> = ({
       onClose={onClose}
       title="Prerequisite Warning"
       size="lg"
+      zIndex={60}
     >
       <div className="p-6">
         <div className="flex items-center gap-3 mb-4">

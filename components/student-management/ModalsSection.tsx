@@ -31,6 +31,8 @@ interface ModalsSectionProps {
   onUnenrollStudent: () => void
   unenrollingStudent: boolean
   onOpenAIChat: () => void
+  registrarUid: string
+  onDocumentStatusChange?: () => void
 
   // Document Viewer Modal props
   showDocumentModal: boolean
@@ -80,6 +82,8 @@ export default function ModalsSection({
   onUnenrollStudent,
   unenrollingStudent,
   onOpenAIChat,
+  registrarUid,
+  onDocumentStatusChange,
 
   // Document Viewer Modal props
   showDocumentModal,
@@ -125,6 +129,8 @@ export default function ModalsSection({
         onUnenrollStudent={onUnenrollStudent}
         unenrollingStudent={unenrollingStudent}
         onOpenAIChat={onOpenAIChat}
+        registrarUid={registrarUid}
+        onDocumentStatusChange={onDocumentStatusChange}
       />
 
       {/* Document Viewer Modal */}

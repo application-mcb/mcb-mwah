@@ -1,15 +1,15 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 :root {
-  --font-poppins: "Poppins";
+  --font-poppins: 'Poppins';
 }
 
-input placeholder{
+input placeholder {
   font-family: var(--font-poppins);
   font-weight: light !important;
 }
-input{
+input {
   font-family: var(--font-poppins);
   font-weight: light !important;
 }
@@ -27,18 +27,18 @@ input{
 
 /* Global Safari Glass Morphism Removal */
 /* Force native form controls across all browsers */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="tel"],
-input[type="url"],
-input[type="search"],
-input[type="date"],
-input[type="time"],
-input[type="datetime-local"],
-input[type="month"],
-input[type="week"],
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'],
+input[type='tel'],
+input[type='url'],
+input[type='search'],
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'],
+input[type='month'],
+input[type='week'],
 textarea,
 select {
   -webkit-appearance: none !important;
@@ -80,26 +80,27 @@ input::-webkit-inner-spin-button {
   margin: 0 !important;
 }
 
-input[type="number"] {
+input[type='number'] {
   -moz-appearance: textfield !important;
 }
 
 /* Remove Safari search input styling */
-input[type="search"]::-webkit-search-decoration,
-input[type="search"]::-webkit-search-cancel-button,
-input[type="search"]::-webkit-search-results-button,
-input[type="search"]::-webkit-search-results-decoration {
+input[type='search']::-webkit-search-decoration,
+input[type='search']::-webkit-search-cancel-button,
+input[type='search']::-webkit-search-results-button,
+input[type='search']::-webkit-search-results-decoration {
   -webkit-appearance: none !important;
 }
 
 /* Remove Safari date/time input styling */
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="time"]::-webkit-calendar-picker-indicator,
-input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-input[type="month"]::-webkit-calendar-picker-indicator,
-input[type="week"]::-webkit-calendar-picker-indicator {
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator,
+input[type='datetime-local']::-webkit-calendar-picker-indicator,
+input[type='month']::-webkit-calendar-picker-indicator,
+input[type='week']::-webkit-calendar-picker-indicator {
   -webkit-appearance: none !important;
-  background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E") no-repeat center !important;
+  background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/%3E%3C/svg%3E")
+    no-repeat center !important;
   background-size: 16px !important;
   width: 20px !important;
   height: 20px !important;
@@ -107,27 +108,27 @@ input[type="week"]::-webkit-calendar-picker-indicator {
 }
 
 /* Remove Safari file input styling */
-input[type="file"] {
+input[type='file'] {
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
   appearance: none !important;
 }
 
 /* Remove Safari range input styling */
-input[type="range"] {
+input[type='range'] {
   -webkit-appearance: none !important;
   appearance: none !important;
   background: transparent !important;
   cursor: pointer !important;
 }
 
-input[type="range"]::-webkit-slider-track {
+input[type='range']::-webkit-slider-track {
   background: #e5e7eb !important;
   height: 4px !important;
   border-radius: 2px !important;
 }
 
-input[type="range"]::-webkit-slider-thumb {
+input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none !important;
   appearance: none !important;
   background: #3b82f6 !important;
@@ -137,14 +138,14 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer !important;
 }
 
-input[type="range"]::-moz-range-track {
+input[type='range']::-moz-range-track {
   background: #e5e7eb !important;
   height: 4px !important;
   border-radius: 2px !important;
   border: none !important;
 }
 
-input[type="range"]::-moz-range-thumb {
+input[type='range']::-moz-range-thumb {
   background: #3b82f6 !important;
   height: 16px !important;
   width: 16px !important;
@@ -154,8 +155,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* Remove Safari checkbox and radio styling */
-input[type="checkbox"],
-input[type="radio"] {
+input[type='checkbox'],
+input[type='radio'] {
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
   appearance: none !important;
@@ -167,22 +168,22 @@ input[type="radio"] {
   cursor: pointer !important;
 }
 
-input[type="checkbox"] {
+input[type='checkbox'] {
   border-radius: 3px !important;
 }
 
-input[type="radio"] {
+input[type='radio'] {
   border-radius: 50% !important;
 }
 
-input[type="checkbox"]:checked,
-input[type="radio"]:checked {
+input[type='checkbox']:checked,
+input[type='radio']:checked {
   background-color: #3b82f6 !important;
   border-color: #3b82f6 !important;
 }
 
-input[type="checkbox"]:checked::after {
-  content: "✓" !important;
+input[type='checkbox']:checked::after {
+  content: '✓' !important;
   color: white !important;
   font-size: 12px !important;
   font-weight: bold !important;
@@ -192,8 +193,8 @@ input[type="checkbox"]:checked::after {
   height: 100% !important;
 }
 
-input[type="radio"]:checked::after {
-  content: "" !important;
+input[type='radio']:checked::after {
+  content: '' !important;
   background-color: white !important;
   border-radius: 50% !important;
   width: 6px !important;
@@ -315,7 +316,7 @@ meter::-webkit-meter-even-less-good-value {
   background: #3b82f6 !important;
   height: 2px !important;
 }
-button{
+button {
   cursor: pointer !important;
 }
 .Toastify__toast-icon {
@@ -323,3 +324,13 @@ button{
   color: #3b82f6 !important;
 }
 
+/* Calendar current date pulse glow animation */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(30, 64, 175, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(30, 64, 175, 0.8);
+  }
+}

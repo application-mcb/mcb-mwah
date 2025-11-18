@@ -1,13 +1,25 @@
 'use client'
 
 import React from 'react'
-import { Tab, ExtendedEnrollmentData, StudentProfile, StudentDocuments, SubjectSetData } from './types'
+import {
+  Tab,
+  ExtendedEnrollmentData,
+  StudentProfile,
+  StudentDocuments,
+  SubjectSetData,
+} from './types'
 import StudentInfoTab from './tabs/StudentInfoTab'
 import DocumentsTab from './tabs/DocumentsTab'
 import SubjectAssignmentTab from './tabs/SubjectAssignmentTab'
 import ProcessTab from './tabs/ProcessTab'
 import RegistrarGradesTab from '../grades/RegistrarGradesTab'
-import { User as UserIcon, FileText as FileTextIcon, GraduationCap as GraduationCapIcon, Gear, Calculator } from '@phosphor-icons/react'
+import {
+  User as UserIcon,
+  FileText as FileTextIcon,
+  GraduationCap as GraduationCapIcon,
+  Gear,
+  Calculator,
+} from '@phosphor-icons/react'
 
 interface Args {
   viewingEnrollment: ExtendedEnrollmentData | null
@@ -43,6 +55,10 @@ interface Args {
   onOpenEnroll: () => void
   enrollingStudent: boolean
   onOpenAIChat: () => void
+  handleSubjectSetToggle: (subjectSetId: string, subjectIds: string[]) => void
+  handleSubjectToggle: (subjectId: string) => void
+  registrarUid: string
+  onDocumentStatusChange?: () => void
 }
 
 export function buildEnrollmentTabs(args: Args): Tab[] {
@@ -75,6 +91,10 @@ export function buildEnrollmentTabs(args: Args): Tab[] {
     onOpenEnroll,
     enrollingStudent,
     onOpenAIChat,
+    handleSubjectSetToggle,
+    handleSubjectToggle,
+    registrarUid,
+    onDocumentStatusChange,
   } = args
 
   return [
@@ -123,6 +143,8 @@ export function buildEnrollmentTabs(args: Args): Tab[] {
             studentDocuments={studentDocuments as any}
             formatDate={formatDate}
             onViewDocument={onViewDocument}
+            registrarUid={registrarUid}
+            onDocumentStatusChange={onDocumentStatusChange}
           />
         </div>
       ),
@@ -148,8 +170,8 @@ export function buildEnrollmentTabs(args: Args): Tab[] {
           setSelectedSubjects={setSelectedSubjects}
           showOtherSets={showOtherSets}
           setShowOtherSets={setShowOtherSets}
-          handleSubjectSetToggle={() => {}}
-          handleSubjectToggle={() => {}}
+          handleSubjectSetToggle={handleSubjectSetToggle}
+          handleSubjectToggle={handleSubjectToggle}
         />
       ),
     },
@@ -183,7 +205,10 @@ export function buildEnrollmentTabs(args: Args): Tab[] {
           />
         </div>
       ) : (
-        <div className="px-6 py-10 text-center text-xs text-gray-500" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+        <div
+          className="px-6 py-10 text-center text-xs text-gray-500"
+          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+        >
           Select a student to view grades.
         </div>
       ),
@@ -219,5 +244,3 @@ export function buildEnrollmentTabs(args: Args): Tab[] {
 }
 
 export default buildEnrollmentTabs
-
-

@@ -234,30 +234,73 @@ export const createEnrollmentHandlers = (
           }
         }
       } else {
-        // Same strand - check if continuing progression
+        // Same strand - check previous studentType first
+        const prevStudentType = prevInfo?.studentType
         const prevGradeLevel = parseInt(prevInfo?.gradeLevel || '0')
         const currentGradeLevel = state.selectedGrade?.gradeLevel || 0
         const prevSemester = prevInfo?.semester
 
-        // If continuing from previous semester/grade, it's regular
-        if (
-          prevSemester === 'first-sem' &&
-          semester === 'second-sem' &&
-          prevGradeLevel === currentGradeLevel
-        ) {
-          state.setStudentType('regular')
-        } else if (
-          prevSemester === 'second-sem' &&
-          semester === 'first-sem' &&
-          currentGradeLevel === prevGradeLevel + 1
-        ) {
-          state.setStudentType('regular')
-        } else if (currentGradeLevel === 11 && semester === 'first-sem') {
-          // Starting Grade 11 First Semester is regular
-          state.setStudentType('regular')
+        // If previous was irregular, check if moving to starting point
+        if (prevStudentType === 'irregular') {
+          // Check if moving from Grade 8-10 to Grade 11
+          if (
+            prevGradeLevel >= 8 &&
+            prevGradeLevel <= 10 &&
+            currentGradeLevel === 11 &&
+            semester === 'first-sem'
+          ) {
+            // Moving to starting point → becomes regular
+            state.setStudentType('regular')
+          } else {
+            // Otherwise, remain irregular
+            state.setStudentType('irregular')
+          }
+        } else if (prevStudentType === 'regular') {
+          // If previous was regular, check if continuing progression with same grade/strand
+          if (
+            prevSemester === 'first-sem' &&
+            semester === 'second-sem' &&
+            prevGradeLevel === currentGradeLevel
+          ) {
+            // Same grade, continuing to second semester → remain regular
+            state.setStudentType('regular')
+          } else if (
+            prevSemester === 'second-sem' &&
+            semester === 'first-sem' &&
+            currentGradeLevel === prevGradeLevel + 1
+          ) {
+            // Progressing to next grade → remain regular
+            state.setStudentType('regular')
+          } else if (currentGradeLevel === 11 && semester === 'first-sem') {
+            // Starting Grade 11 First Semester is regular
+            state.setStudentType('regular')
+          } else {
+            // Otherwise, check if moving to non-starting point
+            if (currentGradeLevel !== 7 && currentGradeLevel !== 11) {
+              state.setStudentType('irregular')
+            } else {
+              state.setStudentType('regular')
+            }
+          }
         } else {
-          // Otherwise, irregular
-          state.setStudentType('irregular')
+          // No previous studentType, use default logic
+          if (
+            prevSemester === 'first-sem' &&
+            semester === 'second-sem' &&
+            prevGradeLevel === currentGradeLevel
+          ) {
+            state.setStudentType('regular')
+          } else if (
+            prevSemester === 'second-sem' &&
+            semester === 'first-sem' &&
+            currentGradeLevel === prevGradeLevel + 1
+          ) {
+            state.setStudentType('regular')
+          } else if (currentGradeLevel === 11 && semester === 'first-sem') {
+            state.setStudentType('regular')
+          } else {
+            state.setStudentType('irregular')
+          }
         }
       }
     }
@@ -266,24 +309,77 @@ export const createEnrollmentHandlers = (
     if (
       state.selectedLevel === 'college' &&
       state.selectedYear &&
-      !state.isReEnrolling
+      state.selectedSemester
     ) {
-      const isRegular = isRegularYearSemester(state.selectedYear, semester)
-      if (!isRegular) {
-        // This is an irregular year/semester combination - set student as irregular
-        console.log('🔴 IRREGULAR YEAR/SEMESTER: Non-starting point detected', {
-          year: state.selectedYear,
-          semester,
-        })
-        state.setStudentType('irregular')
-      } else {
-        // Regular starting point - ensure regular
-        console.log('  REGULAR YEAR/SEMESTER: Starting point', {
-          year: state.selectedYear,
-          semester,
-        })
-        // Don't set to regular here because course change might override it
-        // state.studentType will be determined in handleFinalSubmit
+      // Check if re-enrolling and has previous enrollment
+      if (state.isReEnrolling && state.previousEnrollment) {
+        const prevStudentType =
+          state.previousEnrollment.enrollmentInfo?.studentType
+        const prevInfo = state.previousEnrollment.enrollmentInfo
+
+        // If previous was irregular, check if moving to starting point
+        if (prevStudentType === 'irregular') {
+          const prevGradeLevel = parseInt(prevInfo?.gradeLevel || '0')
+
+          // Check if moving from Grade 12 to Year 1 First Semester
+          if (
+            prevGradeLevel === 12 &&
+            state.selectedYear === 1 &&
+            semester === 'first-sem'
+          ) {
+            // Moving to starting point → becomes regular
+            state.setStudentType('regular')
+          } else {
+            // Otherwise, remain irregular
+            state.setStudentType('irregular')
+          }
+        } else if (prevStudentType === 'regular') {
+          // If previous was regular, check if same course
+          const prevCourseCode = prevInfo?.courseCode
+          if (prevCourseCode && state.selectedCourse?.code === prevCourseCode) {
+            // Same course → remain regular
+            state.setStudentType('regular')
+          } else {
+            // Different course → check if moving to non-starting point
+            const isRegular = isRegularYearSemester(
+              state.selectedYear,
+              semester
+            )
+            if (!isRegular) {
+              state.setStudentType('irregular')
+            } else {
+              state.setStudentType('regular')
+            }
+          }
+        } else {
+          // No previous studentType, use default logic
+          const isRegular = isRegularYearSemester(state.selectedYear, semester)
+          if (!isRegular) {
+            state.setStudentType('irregular')
+          }
+        }
+      } else if (!state.isReEnrolling) {
+        // New enrollment (not re-enrolling)
+        const isRegular = isRegularYearSemester(state.selectedYear, semester)
+        if (!isRegular) {
+          // This is an irregular year/semester combination - set student as irregular
+          console.log(
+            '🔴 IRREGULAR YEAR/SEMESTER: Non-starting point detected',
+            {
+              year: state.selectedYear,
+              semester,
+            }
+          )
+          state.setStudentType('irregular')
+        } else {
+          // Regular starting point - ensure regular
+          console.log('  REGULAR YEAR/SEMESTER: Starting point', {
+            year: state.selectedYear,
+            semester,
+          })
+          // Don't set to regular here because course change might override it
+          // state.studentType will be determined in handleFinalSubmit
+        }
       }
     }
 
@@ -465,7 +561,7 @@ export const createEnrollmentHandlers = (
         // - If previous was First Semester → continue to Second Semester (same grade)
         // - If previous was Second Semester → continue to First Semester of next grade
         const prevSemester = prevInfo.semester
-        
+
         if (prevSemester === 'first-sem') {
           // Continue to second semester of same grade level
           state.setReEnrollSemester('second-sem')
@@ -482,7 +578,7 @@ export const createEnrollmentHandlers = (
           const prev = numStr ? parseInt(numStr, 10) : NaN
           if (!Number.isNaN(prev)) {
             let targetGradeLevel = prev
-            
+
             // If previous was second semester, move to next grade level
             if (prevSemester === 'second-sem') {
               targetGradeLevel = prev + 1
@@ -492,7 +588,7 @@ export const createEnrollmentHandlers = (
               }
             }
             // If previous was first semester, stay at same grade level
-            
+
             // Find grade matching target grade level and strand
             const targetGrade = state.grades.find(
               (g: GradeData) =>
@@ -500,7 +596,7 @@ export const createEnrollmentHandlers = (
                 g.department === 'SHS' &&
                 g.strand === prevStrand
             )
-            
+
             if (targetGrade) {
               state.setSelectedGrade(targetGrade)
               // Proceed to re-enroll step if semester is already set
@@ -566,8 +662,104 @@ export const createEnrollmentHandlers = (
       }
     }
 
-    // Re-enrollment (same course/grade, different semester) is always regular
-    state.setStudentType('regular')
+    // Preserve previous studentType, but check if moving to starting point
+    const prevStudentType = prevInfo?.studentType
+    if (prevStudentType) {
+      // If previous was irregular, check if moving to starting point
+      if (prevStudentType === 'irregular') {
+        // Check if moving to a starting point
+        if (prevInfo?.level === 'high-school' && state.selectedGrade) {
+          const currentGradeLevel = state.selectedGrade.gradeLevel
+          const prevGradeLevel = parseInt(prevInfo?.gradeLevel || '0')
+
+          // Check if moving from Grade 8-10 to Grade 11
+          if (
+            prevGradeLevel >= 8 &&
+            prevGradeLevel <= 10 &&
+            currentGradeLevel === 11
+          ) {
+            // Moving to starting point → becomes regular
+            state.setStudentType('regular')
+          } else {
+            // Otherwise, remain irregular
+            state.setStudentType('irregular')
+          }
+        } else if (
+          prevInfo?.level === 'college' &&
+          state.selectedYear &&
+          state.selectedSemester
+        ) {
+          const prevGradeLevel = parseInt(prevInfo?.gradeLevel || '0')
+
+          // Check if moving from Grade 12 to Year 1 First Semester
+          if (
+            prevGradeLevel === 12 &&
+            state.selectedYear === 1 &&
+            state.selectedSemester === 'first-sem'
+          ) {
+            // Moving to starting point → becomes regular
+            state.setStudentType('regular')
+          } else {
+            // Otherwise, remain irregular
+            state.setStudentType('irregular')
+          }
+        } else {
+          // Default: preserve irregular status
+          state.setStudentType('irregular')
+        }
+      } else if (prevStudentType === 'regular') {
+        // If previous was regular, check if same course/strand/grade
+        if (prevInfo?.level === 'college' && state.selectedCourse) {
+          const prevCourseCode = prevInfo?.courseCode
+          // Same course → remain regular
+          if (prevCourseCode && state.selectedCourse.code === prevCourseCode) {
+            state.setStudentType('regular')
+          } else {
+            // Different course → check if moving to non-starting point
+            if (state.selectedYear && state.selectedSemester) {
+              if (
+                !(
+                  state.selectedYear === 1 &&
+                  state.selectedSemester === 'first-sem'
+                )
+              ) {
+                state.setStudentType('irregular')
+              } else {
+                state.setStudentType('regular')
+              }
+            } else {
+              state.setStudentType('regular')
+            }
+          }
+        } else if (prevInfo?.level === 'high-school' && state.selectedGrade) {
+          const prevGradeLevel = parseInt(prevInfo?.gradeLevel || '0')
+          const currentGradeLevel = state.selectedGrade.gradeLevel
+          const prevStrand = prevInfo?.strand || ''
+          const currentStrand = state.selectedGrade.strand || ''
+
+          // Same grade and strand → remain regular
+          if (
+            prevGradeLevel === currentGradeLevel &&
+            prevStrand === currentStrand
+          ) {
+            state.setStudentType('regular')
+          } else {
+            // Different grade/strand → check if moving to non-starting point
+            if (currentGradeLevel !== 7 && currentGradeLevel !== 11) {
+              state.setStudentType('irregular')
+            } else {
+              state.setStudentType('regular')
+            }
+          }
+        } else {
+          // Default: preserve regular status
+          state.setStudentType('regular')
+        }
+      }
+    } else {
+      // No previous studentType, use default logic (will be determined later)
+      state.setStudentType(null)
+    }
 
     // Pre-fill personal info
     if (prevPersonal) {
@@ -722,9 +914,28 @@ export const createEnrollmentHandlers = (
         toastId: 'enrollment-submit',
       })
 
-      // CRITICAL: Final check for course changes - detect if student is shifting courses
-      let finalStudentType = state.studentType
+      // CRITICAL: Final determination of studentType using determineStudentType function
+      let finalStudentType = determineStudentType(
+        state.selectedLevel,
+        state.selectedCourse,
+        state.selectedYear,
+        state.selectedSemester,
+        state.previousEnrollment,
+        state.existingEnrollment,
+        state.pendingCourse,
+        state.studentType || '',
+        state.selectedGrade
+      )
 
+      // If user explicitly confirmed irregular via modal, it takes precedence
+      if (state.studentType === 'irregular') {
+        finalStudentType = 'irregular'
+        console.log(
+          '  FINAL CHECK: studentType is irregular (user confirmed) - FORCING irregular'
+        )
+      }
+
+      // Additional check for course changes (if not already handled)
       if (state.selectedLevel === 'college' && state.selectedCourse) {
         const newCourseCode = state.selectedCourse.code
 
@@ -750,174 +961,52 @@ export const createEnrollmentHandlers = (
             finalStudentType = 'irregular'
           }
         }
+      }
 
-        // Check existingEnrollment ONLY if it's for a different semester (not current enrollment)
-        // existingEnrollment is set when student has current AY + current semester enrollment
-        if (
-          finalStudentType !== 'irregular' &&
-          state.existingEnrollment &&
-          state.existingEnrollment.enrollmentInfo?.level === 'college'
-        ) {
-          const existingSemester =
-            state.existingEnrollment.enrollmentInfo?.semester
-          const existingCourseCode =
-            state.existingEnrollment.enrollmentInfo?.courseCode
+      // If studentType is still null/undefined, use the determined type
+      if (!finalStudentType) {
+        finalStudentType = state.studentType || 'regular'
+      }
 
-          // Only mark as irregular if enrolled in different semester AND different course
-          // But at this point we don't have selectedSemester yet, so skip this check
-          // It will be caught in handleFinalSubmit instead
-          // This check should only trigger if we somehow have conflicting data
-        }
+      console.log(
+        '📋 FINAL studentType being submitted:',
+        finalStudentType,
+        '| state.studentType:',
+        state.studentType,
+        '| previous studentType:',
+        state.previousEnrollment?.enrollmentInfo?.studentType
+      )
 
-        // FINAL SAFEGUARD: If studentType is 'irregular', it takes precedence (user confirmed via modal)
-        // This ensures that if the user clicked "Yes, Continue with Course Change", it's always respected
-        if (state.studentType === 'irregular') {
-          finalStudentType = 'irregular'
-          console.log(
-            '  FINAL CHECK: studentType is irregular - FORCING irregular'
-          )
-        }
+      // Submit enrollment without documents (they'll be referenced from the Documents section)
+      const enrollmentData = {
+        userId: state.userId,
+        personalInfo: state.personalInfo,
+        studentType: finalStudentType,
+        documents: {}, // Empty documents object - documents will be referenced separately
+      }
 
-        // If studentType is still null/undefined and we're in college, default to regular
-        // But ONLY if we haven't detected a course change
-        if (!finalStudentType) {
-          finalStudentType =
-            state.selectedLevel === 'college' ? 'regular' : 'regular'
-        }
-
-        console.log(
-          '📋 FINAL studentType being submitted:',
-          finalStudentType,
-          '| state.studentType:',
-          state.studentType
-        )
-
-        // Submit enrollment without documents (they'll be referenced from the Documents section)
-        const enrollmentData = {
-          userId: state.userId,
-          personalInfo: state.personalInfo,
-          studentType: finalStudentType,
-          documents: {}, // Empty documents object - documents will be referenced separately
-        }
-
-        if (
-          state.selectedLevel === 'college' &&
-          state.selectedCourse &&
-          state.selectedYear &&
-          state.selectedSemester
-        ) {
-          // College enrollment
-          Object.assign(enrollmentData, {
-            courseId: state.selectedCourse.code, // Use code as the identifier since courses don't have id field
-            courseCode: state.selectedCourse.code,
-            courseName: state.selectedCourse.name,
-            yearLevel: state.selectedYear,
-            semester: state.selectedSemester,
-            level: 'college',
-          })
-        } else if (
-          state.selectedLevel === 'high-school' &&
-          state.selectedGrade
-        ) {
-          // High school enrollment
-          const enrollmentInfo: any = {
-            gradeId: state.selectedGrade.id,
-            gradeLevel: state.selectedGrade.gradeLevel,
-            department: state.selectedGrade.department,
-            level: 'high-school',
-          }
-
-          // Add semester for SHS students
-          if (
-            state.selectedGrade.department === 'SHS' &&
-            state.selectedSemester
-          ) {
-            enrollmentInfo.semester = state.selectedSemester
-            enrollmentInfo.strand = state.selectedGrade.strand || ''
-          }
-
-          Object.assign(enrollmentData, enrollmentInfo)
-        }
-
-        const response = await fetch('/api/enrollment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(enrollmentData),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to submit enrollment')
-        }
-
-        // Close modal
-        state.setSubmitModalOpen(false)
-        state.setCountdown(5)
-
-        toast.dismiss('enrollment-submit')
-        toast.success('Enrollment submitted successfully!')
-
-        // Dispatch custom event to notify enrollment-management of new enrollment
-        if (typeof window !== 'undefined') {
-          try {
-            window.dispatchEvent(
-              new CustomEvent('enrollmentSubmitted', {
-                detail: {
-                  userId: state.userId,
-                  status: 'submitted',
-                  timestamp: Date.now(),
-                },
-              })
-            )
-          } catch (error) {
-            // Silently fail - Firestore realtime listener will catch changes
-            console.warn('Failed to dispatch enrollmentSubmitted event:', error)
-          }
-        }
-
-        // Refresh enrollment data by re-checking existing enrollment
-        // This ensures we get the actual data from the database
-        await state.checkExistingEnrollment()
-
-        // Clear submittedEnrollment so we use the fetched existingEnrollment
-        state.setSubmittedEnrollment(null)
-
-        // Reset form after successful submission
-        state.setSelectedGrade(null)
-        state.setSelectedCourse(null)
-        state.setSelectedLevel(null)
-        state.setSelectedYear(null)
-        state.setSelectedSemester(null)
-        state.setStudentType(null)
-        state.setPersonalInfo({
-          firstName: '',
-          middleName: '',
-          lastName: '',
-          nameExtension: '',
-          email: '',
-          phone: '',
-          birthMonth: '',
-          birthDay: '',
-          birthYear: '',
-          placeOfBirth: '',
-          gender: '',
-          citizenship: '',
-          religion: '',
-          civilStatus: '',
+      if (
+        state.selectedLevel === 'college' &&
+        state.selectedCourse &&
+        state.selectedYear &&
+        state.selectedSemester
+      ) {
+        // College enrollment
+        Object.assign(enrollmentData, {
+          courseId: state.selectedCourse.code, // Use code as the identifier since courses don't have id field
+          courseCode: state.selectedCourse.code,
+          courseName: state.selectedCourse.name,
+          yearLevel: state.selectedYear,
+          semester: state.selectedSemester,
+          level: 'college',
         })
       } else if (state.selectedLevel === 'high-school' && state.selectedGrade) {
         // High school enrollment
-        const enrollmentData: any = {
-          userId: state.userId,
+        const enrollmentInfo: any = {
           gradeId: state.selectedGrade.id,
           gradeLevel: state.selectedGrade.gradeLevel,
           department: state.selectedGrade.department,
-          personalInfo: state.personalInfo,
-          studentType: state.studentType || 'regular',
-          documents: {}, // Empty documents object - documents will be referenced separately
+          level: 'high-school',
         }
 
         // Add semester for SHS students
@@ -925,83 +1014,89 @@ export const createEnrollmentHandlers = (
           state.selectedGrade.department === 'SHS' &&
           state.selectedSemester
         ) {
-          enrollmentData.semester = state.selectedSemester
+          enrollmentInfo.semester = state.selectedSemester
+          enrollmentInfo.strand = state.selectedGrade.strand || ''
         }
 
-        const response = await fetch('/api/enrollment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(enrollmentData),
-        })
+        Object.assign(enrollmentData, enrollmentInfo)
+      }
 
-        const data = await response.json()
+      // Update studentType in enrollmentData to use finalStudentType
+      enrollmentData.studentType = finalStudentType
 
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to submit enrollment')
+      const response = await fetch('/api/enrollment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(enrollmentData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit enrollment')
+      }
+
+      // Close modal
+      state.setSubmitModalOpen(false)
+      state.setCountdown(5)
+
+      toast.dismiss('enrollment-submit')
+      toast.success('Enrollment submitted successfully!')
+
+      // Dispatch custom event to notify enrollment-management of new enrollment
+      if (typeof window !== 'undefined') {
+        try {
+          window.dispatchEvent(
+            new CustomEvent('enrollmentSubmitted', {
+              detail: {
+                userId: state.userId,
+                status: 'submitted',
+                timestamp: Date.now(),
+              },
+            })
+          )
+        } catch (error) {
+          // Silently fail - Firestore realtime listener will catch changes
+          console.warn('Failed to dispatch enrollmentSubmitted event:', error)
         }
+      }
 
-        // Close modal
-        state.setSubmitModalOpen(false)
-        state.setCountdown(5)
+      // Refresh enrollment data by re-checking existing enrollment
+      // This ensures we get the actual data from the database
+      await state.checkExistingEnrollment()
 
-        toast.dismiss('enrollment-submit')
-        toast.success('Enrollment submitted successfully!')
+      // Clear submittedEnrollment so we use the fetched existingEnrollment
+      state.setSubmittedEnrollment(null)
 
-        // Dispatch custom event to notify enrollment-management of new enrollment
-        if (typeof window !== 'undefined') {
-          try {
-            window.dispatchEvent(
-              new CustomEvent('enrollmentSubmitted', {
-                detail: {
-                  userId: state.userId,
-                  status: 'submitted',
-                  timestamp: Date.now(),
-                },
-              })
-            )
-          } catch (error) {
-            // Silently fail - Firestore realtime listener will catch changes
-            console.warn('Failed to dispatch enrollmentSubmitted event:', error)
-          }
-        }
+      // Reset form after successful submission
+      state.setSelectedGrade(null)
+      state.setSelectedCourse(null)
+      state.setSelectedLevel(null)
+      state.setSelectedYear(null)
+      state.setSelectedSemester(null)
+      state.setStudentType(null)
+      state.setPersonalInfo({
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        nameExtension: '',
+        email: '',
+        phone: '',
+        birthMonth: '',
+        birthDay: '',
+        birthYear: '',
+        placeOfBirth: '',
+        gender: '',
+        citizenship: '',
+        religion: '',
+        civilStatus: '',
+      })
 
-        // Refresh enrollment data by re-checking existing enrollment
-        // This ensures we get the actual data from the database
-        await state.checkExistingEnrollment()
-
-        // Clear submittedEnrollment so we use the fetched existingEnrollment
-        state.setSubmittedEnrollment(null)
-
-        // Reset form after successful submission
-        state.setSelectedGrade(null)
-        state.setSelectedCourse(null)
-        state.setSelectedLevel(null)
-        state.setSelectedYear(null)
-        state.setSelectedSemester(null)
-        state.setStudentType(null)
-        state.setPersonalInfo({
-          firstName: '',
-          middleName: '',
-          lastName: '',
-          nameExtension: '',
-          email: '',
-          phone: '',
-          birthMonth: '',
-          birthDay: '',
-          birthYear: '',
-          placeOfBirth: '',
-          gender: '',
-          citizenship: '',
-          religion: '',
-          civilStatus: '',
-        })
-
-        // Trigger progress update callback
-        if (state.onProgressUpdate) {
-          state.onProgressUpdate()
-        }
+      // Trigger progress update callback
+      if (state.onProgressUpdate) {
+        state.onProgressUpdate()
       }
     } catch (error: any) {
       toast.dismiss('enrollment-submit')

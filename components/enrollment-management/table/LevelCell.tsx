@@ -6,12 +6,13 @@ interface Props {
   enrollment: any
   getEnrollmentDisplayInfo: (e: any) => { displayText: string; color: string }
   getBgColor: (color: string) => string
+  cellBgClass?: string
 }
 
-const LevelCell: React.FC<Props> = ({ enrollment, getEnrollmentDisplayInfo, getBgColor }) => {
+const LevelCell: React.FC<Props> = ({ enrollment, getEnrollmentDisplayInfo, getBgColor, cellBgClass = 'bg-white' }) => {
   const displayInfo = getEnrollmentDisplayInfo(enrollment)
   return (
-    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
+    <td className={`px-6 py-4 whitespace-nowrap border-r border-gray-200 ${cellBgClass}`}>
       <div className="flex items-center gap-2 mb-1">
         <div className="w-3 h-3 flex-shrink-0" style={{ backgroundColor: getBgColor(displayInfo.color) }}></div>
         <div className="text-xs text-gray-900" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>

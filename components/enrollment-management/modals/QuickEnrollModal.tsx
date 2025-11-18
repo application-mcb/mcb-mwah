@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { Modal } from '@/components/ui/modal'
 import { Check, Eye, Pencil } from '@phosphor-icons/react'
+import { getBgColor } from '../utils/color'
 
 interface StudentProfile {
   userId: string
@@ -86,6 +87,7 @@ const QuickEnrollModal: React.FC<Props> = ({
       onClose={onClose}
       title="Quick Enroll Preview"
       size="lg"
+      zIndex={60}
     >
       <div className="p-6">
         {quickEnrollData && (
@@ -174,7 +176,10 @@ const QuickEnrollModal: React.FC<Props> = ({
                       key={subjectId}
                       className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded"
                     >
-                      <div className={`w-3 h-3 bg-${subject.color}`}></div>
+                      <div
+                        className="w-3 h-3"
+                        style={{ backgroundColor: getBgColor(subject.color) }}
+                      ></div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-medium text-gray-900 truncate">
                           {subject.code || 'N/A'} - {subject.name}

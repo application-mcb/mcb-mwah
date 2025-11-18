@@ -88,7 +88,7 @@ export default function ViewHandler({
   }, [isOpen])
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="" size="2xl">
+    <Modal isOpen={isOpen} onClose={onClose} title="" size="2xl" zIndex={60}>
       <div className="h-[80vh] w-full">
         {isLoading && (
           <div className="flex items-center justify-center h-full">

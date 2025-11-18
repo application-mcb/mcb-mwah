@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'react-toastify'
-import { Sparkle, PaperPlaneTilt, Robot } from '@phosphor-icons/react'
+import { PaperPlaneTilt, Robot } from '@phosphor-icons/react'
 import {
   ExtendedEnrollmentData,
   StudentProfile,
@@ -50,34 +50,6 @@ const QUICK_CHAT_TEMPLATES = [
   'Are there any missing documents for this student?',
 ]
 
-const AI_MODELS = [
-  {
-    id: 'gemini-2.0-flash-lite',
-    name: 'Gemini 2.0 Flash-Lite',
-    multiplier: '1x',
-  },
-  {
-    id: 'gemini-2.5-flash-lite',
-    name: 'Gemini 2.5 Flash-Lite',
-    multiplier: '1.5x',
-  },
-  {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
-    multiplier: '2x',
-  },
-  {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
-    multiplier: '2.5x',
-  },
-  {
-    id: 'gemini-2.5-pro',
-    name: 'Gemini 2.5 Pro',
-    multiplier: '3x',
-  },
-] as const
-
 export default function AIChatModal({
   isOpen,
   onClose,
@@ -93,10 +65,6 @@ export default function AIChatModal({
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<string>(
-    AI_MODELS[2].id // Default to Gemini 2.0 Flash (2x)
-  )
-  const [pendingModel, setPendingModel] = useState<string | null>(null)
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null)
   const [displayedContent, setDisplayedContent] = useState<
     Record<string, string>
@@ -224,12 +192,12 @@ export default function AIChatModal({
         throw new Error('Failed to build student context')
       }
 
-      // Get last AI message for context
+      // Get last AI message for context (to handle follow-up responses)
       const lastAIMessage =
         messages.filter((msg) => msg.type === 'ai').slice(-1)[0]?.content ||
         null
 
-      // Call AI API
+      // Call chatbot API
       const response = await fetch('/api/ai/student-chat', {
         method: 'POST',
         headers: {
@@ -238,36 +206,21 @@ export default function AIChatModal({
         body: JSON.stringify({
           message: userMessage.content,
           studentContext,
-          lastAIMessage,
           userId: enrollment.userId,
-          model: selectedModel,
+          lastAIMessage,
         }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        const errorMsg = data.error || 'Failed to get AI response'
+        const errorMsg = data.error || 'Failed to get chatbot response'
         const details = data.details ? `: ${data.details}` : ''
-
-        // Handle rate limit errors specifically
-        if (
-          response.status === 429 ||
-          errorMsg.includes('429') ||
-          errorMsg.includes('rate limit') ||
-          errorMsg.includes('quota') ||
-          errorMsg.includes('Resource exhausted')
-        ) {
-          throw new Error(
-            'AI service is currently experiencing high demand. Please wait a moment and try again in a few seconds.'
-          )
-        }
-
         throw new Error(`${errorMsg}${details}`)
       }
 
       if (!data.response) {
-        throw new Error(data.error || 'No response from AI')
+        throw new Error(data.error || 'No response from chatbot')
       }
 
       const aiMessageId = (Date.now() + 1).toString()
@@ -315,115 +268,16 @@ export default function AIChatModal({
     }
   }
 
-  const handleModelSelect = (modelId: string) => {
-    const model = AI_MODELS.find((m) => m.id === modelId)
-    if (!model) return
-
-    // Check if multiplier is 1.5x or higher
-    const multiplier = parseFloat(model.multiplier.replace('x', ''))
-    if (multiplier >= 1.5) {
-      setPendingModel(modelId)
-    } else {
-      setSelectedModel(modelId)
-    }
-  }
-
-  const handleConfirmModelChange = () => {
-    if (pendingModel) {
-      setSelectedModel(pendingModel)
-      setPendingModel(null)
-    }
-  }
-
-  const handleCancelModelChange = () => {
-    setPendingModel(null)
-  }
-
   if (!enrollment) return null
 
   return (
-    <>
-      {/* Cost Warning Modal */}
-      <Modal
-        isOpen={pendingModel !== null}
-        onClose={handleCancelModelChange}
-        title="Cost Warning"
-        size="sm"
-        zIndex={60}
-      >
-        <div className="p-6">
-          <div className="mb-4">
-            <p
-              className="text-sm text-gray-700 mb-4"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-            >
-              This AI model may incur costs depending on usage. Higher
-              performance models consume more API credits.
-            </p>
-            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-              <p
-                className="text-xs text-yellow-800"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                <strong>Note:</strong> Usage costs are based on the number of
-                tokens processed. More powerful models may have higher per-token
-                costs.
-              </p>
-            </div>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button
-              onClick={handleCancelModelChange}
-              variant="outline"
-              className="rounded-lg"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirmModelChange}
-              className="bg-blue-900 hover:bg-blue-950 text-white rounded-lg"
-            >
-              Continue
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={isOpen}
-        onClose={onClose}
-        title="AI Student Analysis"
-        size="xl"
-      >
-        <div className="flex flex-col h-[600px] relative">
-          {/* Model Selector */}
-          <div className="px-6 pt-4 pb-3 border-b border-gray-200 bg-white">
-            <div className="flex items-center gap-2">
-              <span
-                className="text-xs text-gray-500 font-medium"
-                style={{ fontFamily: 'Poppins' }}
-              >
-                AI Model:
-              </span>
-              <div className="flex gap-2">
-                {AI_MODELS.map((model) => (
-                  <button
-                    key={model.id}
-                    onClick={() => handleModelSelect(model.id)}
-                    disabled={loading}
-                    className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                      selectedModel === model.id
-                        ? 'bg-blue-900 text-white shadow-sm'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                    style={{ fontFamily: 'Poppins' }}
-                  >
-                    {model.multiplier}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Student Assistant"
+      size="xl"
+    >
+      <div className="flex flex-col h-[600px] relative">
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white pb-24">
@@ -439,9 +293,7 @@ export default function AIChatModal({
                   className="text-sm text-gray-600 max-w-md mb-6"
                   style={{ fontFamily: 'Poppins' }}
                 >
-                  I can answer questions about their information, identify
-                  missing documents, suggest actions, and provide insights about
-                  their academic status.
+                  I can help you find information about transcripts, guardian details, subjects, enrollment status, documents, and more. You can ask in English or Filipino.
                 </p>
 
                 {/* Quick Chat Templates */}
@@ -683,6 +535,5 @@ export default function AIChatModal({
           </div>
         </div>
       </Modal>
-    </>
   )
 }

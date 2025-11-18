@@ -59,7 +59,7 @@ const EnrollModal: React.FC<Props> = ({
   getEnrollmentDisplayInfo,
 }) => {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Enroll Student" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Enroll Student" size="md" zIndex={60}>
       <div className="p-6">
         {viewingEnrollment && (
           <>
@@ -100,10 +100,21 @@ const EnrollModal: React.FC<Props> = ({
                     {(() => getEnrollmentDisplayInfo(viewingEnrollment).displayText)()}
                   </span>
                 </div>
-                <div>
-                  <span className="font-medium text-gray-600">Subjects:</span>
-                  <span className="ml-2 text-gray-900">{selectedSubjectsCount} selected</span>
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-gray-600">Selected Subjects:</span>
+                  <span className={`text-sm font-medium ${selectedSubjectsCount === 0 ? 'text-red-600' : 'text-blue-900'}`} style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                    {selectedSubjectsCount} {selectedSubjectsCount === 1 ? 'subject' : 'subjects'}
+                  </span>
                 </div>
+                {selectedSubjectsCount === 0 && (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-xs text-red-700" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                      No subjects selected. Please go back to the Subject Assignment tab and select at least one subject before enrolling.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -135,8 +146,13 @@ const EnrollModal: React.FC<Props> = ({
                       onChange={(e) => setEnrollScholarship(e.target.value)}
                       className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono appearance-none bg-white"
                       style={{ fontWeight: 400 }}
+                      disabled={filteredEnrollScholarships.length === 0}
                     >
-                      <option value="">Select Scholarship</option>
+                      <option value="">
+                        {filteredEnrollScholarships.length === 0
+                          ? 'No scholarships available'
+                          : 'Select Scholarship'}
+                      </option>
                       {filteredEnrollScholarships.map((scholarship) => (
                         <option key={scholarship.id} value={scholarship.value}>
                           {scholarship.code} - {scholarship.name} ({scholarship.value}%)

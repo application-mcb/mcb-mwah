@@ -43,6 +43,19 @@ export interface StudentDocument {
   fileUrl: string
   uploadDate: string
   uploadedAt: string
+  status?: 'approved' | 'rejected' | 'pending'
+  rejectionReason?: string
+  // Validation fields
+  extractedText?: string
+  validationSummary?: string
+  validationStatus?: 'valid' | 'warning' | 'invalid' | 'pending'
+  validationDetails?: any
+  confidenceScore?: number
+  keyFindings?: string[]
+  scannedAt?: string
+  scannedBy?: string | null
+  scanVersion?: number
+  ocrMethod?: 'gemini' | 'tesseract' | 'hybrid'
 }
 
 export interface StudentDocuments {

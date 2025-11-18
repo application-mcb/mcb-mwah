@@ -341,7 +341,11 @@ export default function SubjectList({
       filtered = filtered.filter((subject) => {
         // Only show subjects that have the selected gradeId in their gradeIds array
         // Subjects with only gradeLevels (no gradeIds) should NOT appear when a specific strand is selected
-        if (subject.gradeIds && Array.isArray(subject.gradeIds) && subject.gradeIds.includes(selectedGradeId)) {
+        if (
+          subject.gradeIds &&
+          Array.isArray(subject.gradeIds) &&
+          subject.gradeIds.includes(selectedGradeId)
+        ) {
           return true
         }
 
@@ -391,7 +395,11 @@ export default function SubjectList({
       } else {
         // No course filter - group by grade IDs when available
         // Only group by gradeIds - subjects without gradeIds should not appear in specific strand groups
-        if (subject.gradeIds && Array.isArray(subject.gradeIds) && subject.gradeIds.length > 0) {
+        if (
+          subject.gradeIds &&
+          Array.isArray(subject.gradeIds) &&
+          subject.gradeIds.length > 0
+        ) {
           const uniqueGradeIds = Array.from(new Set(subject.gradeIds))
           uniqueGradeIds.forEach((gradeId: string) => {
             const key = `grade-${gradeId}`
@@ -407,7 +415,6 @@ export default function SubjectList({
           Array.isArray(subject.gradeLevels) &&
           subject.gradeLevels.length > 0
         ) {
-          // Subject has gradeLevels but no gradeIds - group under "Grade N (All Tracks)"
           // This prevents subjects from appearing in specific strand groups when they weren't assigned to those strands
           const uniqueGradeLevels = Array.from(new Set(subject.gradeLevels))
           uniqueGradeLevels.forEach((gradeLevel: number) => {
@@ -602,9 +609,7 @@ export default function SubjectList({
           </div>
 
           <div className="flex items-center space-x-3">
-            {(searchQuery ||
-              selectedGradeId ||
-              selectedCourses.length > 0) && (
+            {(searchQuery || selectedGradeId || selectedCourses.length > 0) && (
               <Button
                 variant="ghost"
                 onClick={clearFilters}
@@ -649,7 +654,10 @@ export default function SubjectList({
               const isSelected = selectedGradeId === grade.id
               // Format display text with strand: "G11 ABM" or "G11 STEM"
               let displayText = ''
-              if (grade.strand && (grade.gradeLevel === 11 || grade.gradeLevel === 12)) {
+              if (
+                grade.strand &&
+                (grade.gradeLevel === 11 || grade.gradeLevel === 12)
+              ) {
                 displayText = `G${grade.gradeLevel} ${grade.strand}`
               } else if (grade.gradeLevel >= 7 && grade.gradeLevel <= 12) {
                 displayText = `G${grade.gradeLevel}`
@@ -777,12 +785,13 @@ export default function SubjectList({
             let gradeInfoForDescription: GradeData | undefined
 
             if (isGradeLevelOnly) {
-              // Subject has gradeLevels but no gradeIds - show as "Grade N (All Tracks)"
               const gradeLevel = Number(key.replace('grade-level-', ''))
               if (!Number.isNaN(gradeLevel)) {
-                displayName = `Grade ${gradeLevel} (All Tracks)`
+                displayName = `G${gradeLevel}`
                 // Try to find a grade with this level to get color, otherwise use default
-                const gradeWithLevel = grades.find((g) => g.gradeLevel === gradeLevel)
+                const gradeWithLevel = grades.find(
+                  (g) => g.gradeLevel === gradeLevel
+                )
                 gradeColor = gradeWithLevel?.color || 'blue-900'
               } else {
                 displayName = key.replace('grade-level-', '')

@@ -1,12 +1,21 @@
 export const getBgColor = (color: string): string => {
   const colorMap: { [key: string]: string } = {
     'blue-900': '#1e40af',
+    'blue-800': '#1e3a8a',
+    'red-700': '#b91c1c',
     'red-800': '#991b1b',
-    'emerald-800': '#064e3b',
+    'emerald-700': '#047857',
+    'emerald-800': '#065f46',
+    'yellow-700': '#a16207',
     'yellow-800': '#92400e',
+    'orange-700': '#c2410c',
     'orange-800': '#9a3412',
+    'violet-700': '#7c3aed',
     'violet-800': '#5b21b6',
-    'purple-800': '#581c87',
+    'purple-700': '#8b5cf6',
+    'purple-800': '#6b21a8',
+    'indigo-700': '#4338ca',
+    'indigo-800': '#312e81',
   }
   return colorMap[color] || '#1e40af'
 }

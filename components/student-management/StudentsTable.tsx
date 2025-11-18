@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -48,6 +48,90 @@ interface StudentsTableProps {
   onViewStudent: (enrollment: ExtendedEnrollmentData) => void
   onPrintStudent: (enrollment: ExtendedEnrollmentData) => void
   onOpenAIChat: (enrollment: ExtendedEnrollmentData) => void
+}
+
+const ActionMenu = ({
+  enrollment,
+  loading,
+  onViewStudent,
+  onOpenAIChat,
+  onPrintStudent,
+}: {
+  enrollment: ExtendedEnrollmentData
+  loading: boolean
+  onViewStudent: (enrollment: ExtendedEnrollmentData) => void
+  onOpenAIChat: (enrollment: ExtendedEnrollmentData) => void
+  onPrintStudent: (enrollment: ExtendedEnrollmentData) => void
+}) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMenuOpen])
+
+  const handleMenuAction = (action: () => void) => {
+    action()
+    setIsMenuOpen(false)
+  }
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <Button
+        onClick={() => setIsMenuOpen(!isMenuOpen)}
+        size="sm"
+        variant="ghost"
+        className="rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center gap-2"
+        disabled={loading}
+        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+      >
+        <Gear size={16} weight="fill" className="text-blue-900" />
+        <span className="text-xs text-blue-900">Settings</span>
+      </Button>
+      {isMenuOpen && (
+        <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 shadow-lg rounded-lg z-50">
+          <div className="py-1">
+            <button
+              onClick={() => handleMenuAction(() => onViewStudent(enrollment))}
+              className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <Eye size={14} />
+              View
+            </button>
+            <button
+              onClick={() => handleMenuAction(() => onOpenAIChat(enrollment))}
+              className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <Sparkle size={14} />
+              Ask AI
+            </button>
+            <button
+              onClick={() => handleMenuAction(() => onPrintStudent(enrollment))}
+              className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <Printer size={14} />
+              Print
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function StudentsTable({
@@ -148,7 +232,7 @@ export default function StudentsTable({
                     </td>
                   </tr>
                   {/* Add empty rows to fill up to 8 */}
-                  {Array.from({ length: 7 }).map((_, i) => (
+                  {Array.from({ length: Math.max(0, paginatedEnrollments.length - 1) }).map((_, i) => (
                     <tr key={`empty-after-message-${i}`} className="h-16">
                       <td className="px-6 py-4 border-r border-gray-200"></td>
                       <td className="px-6 py-4 border-r border-gray-200"></td>
@@ -394,34 +478,13 @@ export default function StudentsTable({
                         })()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => onViewStudent(enrollment)}
-                            size="sm"
-                            className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg hover:from-blue-900 hover:to-blue-950 text-white border"
-                            disabled={loading}
-                          >
-                            <Eye size={14} className="mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            onClick={() => onOpenAIChat(enrollment)}
-                            size="sm"
-                            className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg hover:from-blue-900 hover:to-blue-950 text-white border"
-                            disabled={loading}
-                          >
-                            <Sparkle size={14} className="mr-1" />
-                            AI
-                          </Button>
-                          <Button
-                            onClick={() => onPrintStudent(enrollment)}
-                            size="sm"
-                            className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg hover:from-blue-900 hover:to-blue-950 text-white border"
-                          >
-                            <Printer size={14} className="mr-1" />
-                            Print
-                          </Button>
-                        </div>
+                        <ActionMenu
+                          enrollment={enrollment}
+                          loading={loading}
+                          onViewStudent={onViewStudent}
+                          onOpenAIChat={onOpenAIChat}
+                          onPrintStudent={onPrintStudent}
+                        />
                       </td>
                     </tr>
                   )
