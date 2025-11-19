@@ -59,14 +59,14 @@ export default function UnenrollModal({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-gray-500 text-white text-xs font-medium hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 bg-gray-500 text-white text-xs font-medium hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 rounded-lg"
           >
             Cancel
           </button>
           <button
             onClick={onConfirmUnenroll}
             disabled={unenrollCountdown > 0 || unenrollingStudent}
-            className={`flex-1 px-4 py-2 text-white text-xs font-medium transition-colors flex items-center justify-center gap-2 ${
+            className={`flex-1 px-4 py-2 text-white text-xs font-medium transition-colors flex items-center justify-center gap-2 rounded-lg ${
               unenrollCountdown > 0 || unenrollingStudent
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-red-600 hover:bg-red-700'

@@ -3,6 +3,13 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { GraduationCap, User, WarningCircle } from '@phosphor-icons/react'
+import {
+  sectionHeaderClass,
+  sectionTitleClass,
+  sectionSubtextClass,
+  headerIconWrapperClass,
+  ghostButtonClass,
+} from '@/components/enrollment-form/theme'
 
 type YearSelectionStepProps = {
   animatingStep: boolean
@@ -47,24 +54,23 @@ export default function YearSelectionStep({
           : 'opacity-100 transform translate-x-0'
       }`}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center flex-shrink-0">
-            <User size={16} className="sm:w-5 sm:h-5 text-white" weight="bold" />
+      <div className={sectionHeaderClass}>
+        <div className="flex items-center gap-3">
+          <div className={headerIconWrapperClass}>
+            <User size={18} className="text-blue-50" weight="bold" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2
-              className="text-lg sm:text-xl font-medium text-gray-900"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-            >
-              Select Your Year Level
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-600">
+            <h2 className={sectionTitleClass}>Select Your Year Level</h2>
+            <p className={sectionSubtextClass}>
               Choose your current year level in college
             </p>
           </div>
         </div>
-        <Button variant="ghost" onClick={onBack} className="w-full sm:w-auto">
+        <Button
+          variant="ghost"
+          onClick={onBack}
+          className={`${ghostButtonClass} w-full sm:w-auto`}
+        >
           Back
         </Button>
       </div>

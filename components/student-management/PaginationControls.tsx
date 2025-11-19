@@ -22,29 +22,30 @@ export default function PaginationControls({
 }: PaginationControlsProps) {
   if (totalItems === 0) return null
 
+  const baseButtonClasses =
+    'rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white bg-white text-blue-900'
+
   return (
-    <div className="flex items-center mt-3 shadow-lg justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl">
-      <div className="flex items-center gap-4">
-      <div
-        className="text-xs text-gray-600 flex items-center gap-2"
-        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-      >
-        <div className="w-3 h-3 aspect-square rounded-md bg-gradient-to-br from-blue-800 to-blue-900"></div>
-        Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
-        {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}{' '}
-        students
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between px-5 py-4 bg-white/90 border border-blue-100 rounded-xl shadow-lg mt-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+        <div
+          className="text-xs text-blue-900/70 flex items-center gap-3"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          <div className="w-3 h-3 rounded-md bg-blue-900/80"></div>
+          Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+          {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}{' '}
+          students
         </div>
-        <div className="flex items-center gap-2">
-          <label
-            className="text-xs text-gray-600"
-            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-          >
-            Show:
-          </label>
+        <label
+          className="flex items-center gap-2 text-xs text-blue-900/70"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          Show
           <select
             value={itemsPerPage}
             onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-            className="px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+            className="rounded-lg border border-blue-100 bg-white px-3 py-1 text-xs text-blue-900 focus:ring-2 focus:ring-blue-900 focus:outline-none"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
           >
             <option value={5}>5</option>
@@ -52,22 +53,24 @@ export default function PaginationControls({
             <option value={15}>15</option>
             <option value={20}>20</option>
           </select>
-        </div>
+        </label>
       </div>
-      <div className="flex items-center gap-2">
+
+      <nav
+        className="flex flex-wrap items-center justify-end gap-2"
+        aria-label="Student pagination"
+      >
         <button
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
-          className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
-            currentPage === 1
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white hover:from-blue-900 hover:to-blue-950'
-          }`}
+          className={`${baseButtonClasses} flex items-center gap-1 border border-blue-100 hover:-translate-y-0.5 hover:border-blue-300 disabled:hover:translate-y-0`}
           style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          aria-label="Previous page"
         >
-          <ArrowLeft size={14} />
+          <ArrowLeft size={14} className="text-blue-900" />
           Previous
         </button>
+
         <div className="flex items-center gap-1">
           {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
             let pageNum
@@ -84,32 +87,31 @@ export default function PaginationControls({
               <button
                 key={pageNum}
                 onClick={() => onPageChange(pageNum)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                className={`${baseButtonClasses} border ${
                   currentPage === pageNum
-                    ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white'
-                    : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                    ? 'border-blue-900 shadow-lg shadow-blue-900/30'
+                    : 'border-blue-100 hover:border-blue-300 hover:-translate-y-0.5'
                 }`}
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                aria-current={currentPage === pageNum ? 'page' : undefined}
               >
                 {pageNum}
               </button>
             )
           })}
         </div>
+
         <button
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
-          className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
-            currentPage === totalPages
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-br from-blue-800 to-blue-900 text-white hover:from-blue-900 hover:to-blue-950'
-          }`}
+          className={`${baseButtonClasses} flex items-center gap-1 border border-blue-100 hover:-translate-y-0.5 hover:border-blue-300 disabled:hover:translate-y-0`}
           style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          aria-label="Next page"
         >
           Next
-          <ArrowRight size={14} />
+          <ArrowRight size={14} className="text-blue-900" />
         </button>
-      </div>
+      </nav>
     </div>
   )
 }

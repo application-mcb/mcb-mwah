@@ -351,7 +351,7 @@ export default function ExportCSVModal({
                         <h4 className="text-xs font-medium text-gray-700">{category.label}</h4>
                         <button
                           onClick={() => handleCategoryToggle(category.key)}
-                          className="text-xs text-blue-900 hover:text-blue-700 font-medium"
+                          className="text-xs text-blue-900 hover:text-blue-700 font-medium rounded-lg"
                         >
                           {allSelected ? 'Deselect All' : 'Select All'}
                         </button>

@@ -4,6 +4,15 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Check, FileText, BookOpen } from '@phosphor-icons/react'
+import {
+  sectionHeaderClass,
+  sectionTitleClass,
+  sectionSubtextClass,
+  headerIconWrapperClass,
+  ghostButtonClass,
+  primaryButtonClass,
+  mutedPanelClass,
+} from '@/components/enrollment-form/theme'
 
 type PersonalInfo = {
   firstName: string
@@ -192,32 +201,18 @@ export default function ConfirmationStep({
 
   return (
     <div
-      className={`space-y-4 sm:space-y-6 transition-all duration-500 bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-blue-100 shadow-lg ${
-        animatingStep
-          ? 'opacity-0 transform translate-x-4'
-          : 'opacity-100 transform translate-x-0'
+      className={`space-y-6 text-blue-50 transition-all duration-500 ${
+        animatingStep ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
       }`}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md flex-shrink-0">
-            <Check
-              size={16}
-              className="sm:w-5 sm:h-5 text-white"
-              weight="bold"
-            />
+      <div className={sectionHeaderClass}>
+        <div className="flex items-center gap-3">
+          <div className={headerIconWrapperClass}>
+            <Check size={18} className="text-blue-50" weight="bold" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2
-              className="text-lg sm:text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-            >
-              Confirm Your Enrollment
-            </h2>
-            <p
-              className="text-xs sm:text-sm text-gray-600"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
+            <h2 className={sectionTitleClass}>Confirm Your Enrollment</h2>
+            <p className={sectionSubtextClass}>
               Review all information and submit your enrollment
             </p>
           </div>
@@ -225,14 +220,16 @@ export default function ConfirmationStep({
         <Button
           variant="ghost"
           onClick={onBack}
-          className="rounded-xl w-full sm:w-auto"
+          className={`${ghostButtonClass} w-full sm:w-auto`}
         >
           Back
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <div className="p-6 rounded-xl border border-blue-100 bg-white/80 backdrop-blur-sm shadow-lg">
+        <div
+          className={`${mutedPanelClass} p-6 [&_.text-gray-900]:text-blue-100 [&_.text-gray-600]:text-blue-200 [&_.text-gray-500]:text-blue-300`}
+        >
           <div className="space-y-6">
             <div>
               <h4
@@ -498,24 +495,21 @@ export default function ConfirmationStep({
         </div>
       </div>
 
-      <div className="flex justify-end space-x-3 pt-6 border-t border-blue-100">
+      <div className="flex justify-end gap-3 pt-6 border-t border-blue-800/40">
         <Button
           variant="ghost"
           onClick={onBack}
-          className="rounded-xl"
+          className={ghostButtonClass}
           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
         >
           Back
         </Button>
         <Button
           onClick={onOpenSubmit}
-          className="bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 transition-all duration-300 hover:shadow-lg rounded-xl"
+          className={`${primaryButtonClass} flex items-center gap-2`}
           style={{ fontFamily: 'Poppins', fontWeight: 400 }}
         >
-          <Check
-            size={16}
-            className="mr-2 transition-transform duration-200 hover:rotate-12"
-          />
+          <Check size={16} className="transition-transform duration-200" />
           Submit Enrollment
         </Button>
       </div>

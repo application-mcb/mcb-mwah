@@ -18,6 +18,7 @@ import EnrollmentForm from '@/components/enrollment-form'
 import DocumentsManager from '@/components/documents-manager'
 import MySubjectsView from '../../components/my-subjects-view'
 import AcademicRecords from '@/components/academic-records'
+import StudentAnalytics from '@/components/student-analytics'
 import AccountSetupProgress from '@/components/account-setup-progress'
 import EventsSidebar from '@/components/events-sidebar'
 import EventsOverview from '@/components/events-overview'
@@ -1793,6 +1794,20 @@ export default function Dashboard() {
                   Chat
                 </span>
               </button>
+              {/* Logout Button */}
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="relative flex h-12 flex-shrink-0 items-center gap-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white rounded-2xl bg-gradient-to-br from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 w-12 justify-center"
+                aria-label="Sign out"
+              >
+                <span className="flex h-9 w-9 aspect-square items-center justify-center rounded-2xl bg-white text-red-600">
+                  <SignOut size={18} weight="fill" />
+                </span>
+                <span className="text-xs font-medium overflow-hidden transition-all duration-300 max-w-0 opacity-0">
+                  Sign Out
+                </span>
+              </button>
             </div>
           </div>
         </div>
@@ -2368,48 +2383,40 @@ export default function Dashboard() {
           )}
 
           {currentView === 'performance' && (
-            <div className="space-y-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
-                  <ChartBar size={20} className="text-white" weight="fill" />
-                </div>
-                <div>
-                  <h1
-                    className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
+            <>
+              {user ? (
+                <StudentAnalytics
+                  studentId={user.uid}
+                  studentName={
+                    userProfile
+                      ? `${userProfile?.firstName || ''} ${
+                          userProfile?.lastName || ''
+                        }`.trim()
+                      : undefined
+                  }
+                />
+              ) : (
+                <Card className="p-12 text-center border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
+                  <ChartBar
+                    size={48}
+                    className="mx-auto text-gray-400 mb-4"
+                    weight="duotone"
+                  />
+                  <h3
+                    className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent mb-2"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
-                    Academic Performance
-                  </h1>
+                    Performance data not available
+                  </h3>
                   <p
-                    className="text-sm text-gray-600"
+                    className="text-gray-600 text-justify rounded-xl border border-blue-100 shadow-sm p-3 bg-blue-50"
                     style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                   >
-                    Track your grades and academic progress
+                    Sign in to view your personalized analytics.
                   </p>
-                </div>
-              </div>
-
-              <Card className="p-12 text-center border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
-                <ChartBar
-                  size={48}
-                  className="mx-auto text-gray-400 mb-4"
-                  weight="duotone"
-                />
-                <h3
-                  className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent mb-2"
-                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                >
-                  Performance data not available
-                </h3>
-                <p
-                  className="text-gray-600 text-justify rounded-xl border border-blue-100 shadow-sm p-3 bg-blue-50"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                >
-                  Your academic performance data will be available once you have
-                  completed assessments and grades have been recorded.
-                </p>
-              </Card>
-            </div>
+                </Card>
+              )}
+            </>
           )}
 
           {currentView === 'records' && (

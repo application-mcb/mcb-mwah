@@ -190,18 +190,19 @@ export const LandingEventsCalendar = () => {
         <div className="absolute top-0 right-1/4 w-64 h-64 bg-blue-900/5 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-blue-800/5 rounded-full blur-3xl"></div>
       </div>
+      <div className="texture-overlay" aria-hidden="true"></div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-12">
           <h2
-            className="text-4xl lg:text-5xl font-medium text-blue-900 mb-4"
+            className="text-3xl sm:text-4xl lg:text-5xl font-medium text-blue-900 mb-4"
             style={{ fontFamily: 'Poppins', fontWeight: 500 }}
           >
             Calendar of Activities
           </h2>
           <p
-            className="text-lg text-blue-800/70 max-w-2xl mx-auto font-mono"
+            className="text-base sm:text-lg text-blue-800/70 max-w-2xl mx-auto font-mono"
             style={{ fontWeight: 300 }}
           >
             View all scheduled events and activities in our interactive
@@ -214,15 +215,15 @@ export const LandingEventsCalendar = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-900/30 border-t-blue-900"></div>
           </div>
         ) : (
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg p-6">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg p-4 sm:p-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-md">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-md">
                   <Calendar size={20} className="text-white" weight="fill" />
                 </div>
                 <h3
-                  className="text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
+                  className="text-lg sm:text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
                   style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                 >
                   {monthName} {year}
@@ -232,7 +233,7 @@ export const LandingEventsCalendar = () => {
                 {pastEvents.length > 0 && (
                   <button
                     onClick={() => setShowPastEventsModal(true)}
-                    className="px-4 py-2 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 text-white text-sm font-medium hover:from-blue-900 hover:to-blue-950 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-900"
+                    className="px-3 sm:px-4 py-2 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs sm:text-sm font-medium hover:from-blue-900 hover:to-blue-950 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-900"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
                     See Previous Events
@@ -256,12 +257,12 @@ export const LandingEventsCalendar = () => {
             </div>
 
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {/* Day headers */}
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                 <div
                   key={day}
-                  className="text-center text-sm font-medium text-blue-900 py-2"
+                  className="text-center text-xs sm:text-sm font-medium text-blue-900 py-2"
                   style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                 >
                   {day}
@@ -286,7 +287,7 @@ export const LandingEventsCalendar = () => {
                   >
                     <button
                       onClick={() => handleDateClick(day.date, dayEvents)}
-                      className={`relative p-2 rounded-xl border transition-all duration-200 min-h-[80px] flex flex-col items-start w-full ${
+                      className={`relative p-1 sm:p-2 rounded-lg sm:rounded-xl border transition-all duration-200 min-h-[60px] sm:min-h-[80px] flex flex-col items-start w-full ${
                         isCurrentMonth
                           ? isToday
                             ? 'bg-white border-blue-400 hover:border-blue-500 hover:shadow-md text-gray-900'
@@ -302,9 +303,9 @@ export const LandingEventsCalendar = () => {
                           : undefined
                       }
                     >
-                      <div className="flex items-center gap-1.5 w-full">
+                      <div className="flex items-center gap-1 sm:gap-1.5 w-full">
                         <span
-                          className={`text-sm font-medium ${
+                          className={`text-xs sm:text-sm font-medium ${
                             isCurrentMonth
                               ? isToday
                                 ? 'text-blue-900'
@@ -323,7 +324,7 @@ export const LandingEventsCalendar = () => {
                               weight="fill"
                             />
                             <span
-                              className="text-[10px] font-medium text-blue-900"
+                              className="text-[8px] sm:text-[10px] font-medium text-blue-900"
                               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                             >
                               today
@@ -332,8 +333,8 @@ export const LandingEventsCalendar = () => {
                         )}
                       </div>
                       {dayEvents.length > 0 && (
-                        <div className="flex flex-col gap-1.5 mt-2 w-full">
-                          <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-col gap-1 sm:gap-1.5 mt-1 sm:mt-2 w-full">
+                          <div className="flex flex-wrap gap-1 sm:gap-1.5">
                             {dayEvents.slice(0, 3).map((event) => {
                               const IconComponent = getIconComponent(event.icon)
                               const colorClasses = getColorClasses(event.color)
@@ -348,7 +349,7 @@ export const LandingEventsCalendar = () => {
                                     e.stopPropagation()
                                     handleEventClick(event)
                                   }}
-                                  className={`w-6 h-6 rounded-lg ${colorClasses.bg} border-2 ${colorClasses.border} flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-sm`}
+                                  className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg ${colorClasses.bg} border-2 ${colorClasses.border} flex items-center justify-center cursor-pointer hover:scale-110 transition-transform duration-200 shadow-sm`}
                                   title={event.title}
                                 >
                                   <IconComponent
@@ -361,7 +362,7 @@ export const LandingEventsCalendar = () => {
                             })}
                             {dayEvents.length > 3 && (
                               <div
-                                className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-medium border-2 ${
+                                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg flex items-center justify-center text-[8px] sm:text-[10px] font-medium border-2 ${
                                   isCurrentMonth
                                     ? isToday
                                       ? 'bg-blue-100 border-blue-300 text-blue-900'
@@ -376,7 +377,7 @@ export const LandingEventsCalendar = () => {
                           </div>
                           {dayEvents.length >= 2 && (
                             <div
-                              className={`text-[9px] font-medium ${
+                              className={`text-[8px] sm:text-[9px] font-medium ${
                                 isCurrentMonth
                                   ? isToday
                                     ? 'text-blue-900'
@@ -477,29 +478,29 @@ export const LandingEventsCalendar = () => {
             day: 'numeric',
             year: 'numeric',
           })}`}
-          size="lg"
+          size="xl"
         >
-          <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50">
+          <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-blue-50">
             {selectedDateEvents.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <div className="text-center py-8 sm:py-12">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
                   <Calendar size={40} className="text-white" weight="duotone" />
                 </div>
                 <p
-                  className="text-gray-600 text-lg font-medium mb-2"
+                  className="text-gray-600 text-base sm:text-lg font-medium mb-2"
                   style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                 >
                   No events scheduled
                 </p>
                 <p
-                  className="text-gray-500 text-sm"
+                  className="text-gray-500 text-xs sm:text-sm"
                   style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                 >
                   There are no events scheduled for this date.
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {selectedDateEvents.map((event) => {
                   const IconComponent = getIconComponent(event.icon)
                   const colorMap: Record<string, string> = {
@@ -549,26 +550,26 @@ export const LandingEventsCalendar = () => {
                   return (
                     <div
                       key={event.id}
-                      className={`group p-6 rounded-xl bg-gradient-to-br ${gradientClass} shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-white/20`}
+                      className={`group p-4 sm:p-6 rounded-xl bg-gradient-to-br ${gradientClass} shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-white/20`}
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-110 transition-transform duration-300">
+                      <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-110 transition-transform duration-300 mx-auto sm:mx-0">
                           <IconComponent
                             size={28}
                             className="text-blue-900"
                             weight="fill"
                           />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex-1 min-w-0 text-center sm:text-left">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2">
                             <h3
-                              className="text-lg font-medium text-white"
+                              className="text-base sm:text-lg font-medium text-white"
                               style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                             >
                               {event.title}
                             </h3>
                             {daysText && (
-                              <div className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/30">
+                              <div className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 border border-white/30 mx-auto sm:mx-0">
                                 <span
                                   className="text-xs font-medium text-white whitespace-nowrap"
                                   style={{
@@ -582,12 +583,12 @@ export const LandingEventsCalendar = () => {
                             )}
                           </div>
                           <p
-                            className="text-sm text-white/90 mb-3 leading-relaxed"
+                            className="text-xs sm:text-sm text-white/90 mb-3 leading-relaxed"
                             style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                           >
                             {event.description}
                           </p>
-                          <div className="flex items-center gap-2 text-sm text-white/80 bg-white/10 rounded-lg px-3 py-2 w-fit">
+                          <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm text-white/80 bg-white/10 rounded-lg px-3 py-2 w-fit mx-auto sm:mx-0">
                             <Calendar size={16} weight="duotone" />
                             <span
                               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
@@ -615,10 +616,10 @@ export const LandingEventsCalendar = () => {
           isOpen={selectedEvent !== null}
           onClose={() => setSelectedEvent(null)}
           title={selectedEvent.title}
-          size="lg"
+          size="xl"
         >
-          <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50">
-            <div className="space-y-4">
+          <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 to-blue-50">
+            <div className="space-y-3 sm:space-y-4">
               {(() => {
                 const IconComponent = getIconComponent(selectedEvent.icon)
                 const colorMap: Record<string, string> = {
@@ -662,26 +663,26 @@ export const LandingEventsCalendar = () => {
 
                 return (
                   <div
-                    className={`group p-6 rounded-xl bg-gradient-to-br ${gradientClass} shadow-lg border border-white/20`}
+                    className={`group p-4 sm:p-6 rounded-xl bg-gradient-to-br ${gradientClass} shadow-lg border border-white/20`}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-md">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-white flex items-center justify-center flex-shrink-0 shadow-md mx-auto sm:mx-0">
                         <IconComponent
                           size={28}
                           className="text-blue-900"
                           weight="fill"
                         />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex-1 min-w-0 text-center sm:text-left">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-2">
                           <h3
-                            className="text-lg font-medium text-white"
+                            className="text-base sm:text-lg font-medium text-white"
                             style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                           >
                             {selectedEvent.title}
                           </h3>
                           {daysText && (
-                            <div className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/30">
+                            <div className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 border border-white/30 mx-auto sm:mx-0">
                               <span
                                 className="text-xs font-medium text-white whitespace-nowrap"
                                 style={{
@@ -695,13 +696,13 @@ export const LandingEventsCalendar = () => {
                           )}
                         </div>
                         <p
-                          className="text-sm text-white/90 mb-3 leading-relaxed"
+                          className="text-xs sm:text-sm text-white/90 mb-3 leading-relaxed"
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                         >
                           {selectedEvent.description}
                         </p>
-                        <div className="flex items-center gap-2 text-sm text-white/80 bg-white/10 rounded-lg px-3 py-2 w-fit">
-                          <Calendar size={16} weight="duotone" />
+                        <div className="flex items-center justify-center sm:justify-start gap-2 text-xs sm:text-sm text-white/80 bg-white/10 rounded-lg px-3 py-2 w-fit mx-auto sm:mx-0">
+                          <Calendar size={14} weight="duotone" />
                           <span
                             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                           >
@@ -726,68 +727,70 @@ export const LandingEventsCalendar = () => {
         isOpen={showPastEventsModal}
         onClose={() => setShowPastEventsModal(false)}
         title="Previous Events"
-        size="lg"
+        size="xl"
       >
-        {pastEvents.length === 0 ? (
-          <p
-            className="text-gray-600 text-center py-4"
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-          >
-            No past events
-          </p>
-        ) : (
-          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-            {pastEvents.map((event) => {
-              const IconComponent = getIconComponent(event.icon)
-              const gradientClass =
-                event.color === 'blue-900'
-                  ? 'from-blue-900 to-blue-800'
-                  : 'from-blue-800 to-blue-700'
+        <div className="p-4 sm:p-6">
+          {pastEvents.length === 0 ? (
+            <p
+              className="text-gray-600 text-center py-4 text-sm sm:text-base"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
+              No past events
+            </p>
+          ) : (
+            <div className="space-y-3 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
+              {pastEvents.map((event) => {
+                const IconComponent = getIconComponent(event.icon)
+                const gradientClass =
+                  event.color === 'blue-900'
+                    ? 'from-blue-900 to-blue-800'
+                    : 'from-blue-800 to-blue-700'
 
-              return (
-                <div
-                  key={event.id}
-                  className={`p-4 rounded-xl bg-gradient-to-br ${gradientClass}`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center flex-shrink-0">
-                      <IconComponent
-                        size={20}
-                        className="text-blue-900"
-                        weight="fill"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3
-                        className="text-sm font-medium text-white mb-1"
-                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                      >
-                        {event.title}
-                      </h3>
-                      <p
-                        className="text-xs text-white/90 mb-2"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
-                        {event.description}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-white/80">
-                        <Calendar size={14} weight="duotone" />
-                        <span
+                return (
+                  <div
+                    key={event.id}
+                    className={`p-3 sm:p-4 rounded-xl bg-gradient-to-br ${gradientClass}`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center flex-shrink-0 mx-auto sm:mx-0">
+                        <IconComponent
+                          size={20}
+                          className="text-blue-900"
+                          weight="fill"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0 text-center sm:text-left">
+                        <h3
+                          className="text-sm sm:text-base font-medium text-white mb-1"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          {event.title}
+                        </h3>
+                        <p
+                          className="text-xs sm:text-sm text-white/90 mb-2"
                           style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                         >
-                          {formatDateRangeAsWords(
-                            event.startDate,
-                            event.endDate
-                          )}
-                        </span>
+                          {event.description}
+                        </p>
+                        <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-white/80">
+                          <Calendar size={14} weight="duotone" />
+                          <span
+                            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                          >
+                            {formatDateRangeAsWords(
+                              event.startDate,
+                              event.endDate
+                            )}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+                )
+              })}
+            </div>
+          )}
+        </div>
       </Modal>
     </section>
   )

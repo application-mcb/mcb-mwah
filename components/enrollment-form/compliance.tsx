@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   BookOpen,
@@ -11,6 +10,13 @@ import {
   CaretLeft,
   CaretRight,
 } from '@phosphor-icons/react'
+import {
+  sectionTitleClass,
+  sectionSubtextClass,
+  headerIconWrapperClass,
+  primaryButtonClass,
+  ghostButtonClass,
+} from '@/components/enrollment-form/theme'
 
 type ComplianceStepProps = {
   animatingStep: boolean
@@ -90,104 +96,101 @@ export default function ComplianceStep({
 
   return (
     <div
-      className={`p-4 sm:p-6 lg:p-8 border-none bg-gray-50 border-1 shadow-sm border-blue-900 h-full transition-all duration-500 ${
-        animatingStep
-          ? 'opacity-0 transform translate-x-4'
-          : 'opacity-100 transform translate-x-0'
+      className={`space-y-6 transition-all duration-500 text-blue-50 ${
+        animatingStep ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
       }`}
     >
-      <div className="text-center space-y-4 sm:space-y-6">
-        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-900 flex items-center justify-center mx-auto">
-          <CurrentIcon
-            size={24}
-            className="sm:w-8 sm:h-8 text-white"
-            weight="fill"
-          />
-        </div>
-
-        <div className="space-y-3 sm:space-y-4 flex flex-col items-center">
-          <div className="flex items-center justify-center space-x-2 mb-2">
-            {compliancePages.map((_, index) => (
-              <div
-                key={index}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index === currentPage ? 'bg-blue-900' : 'bg-gray-300'
-                }`}
-              />
-            ))}
-          </div>
-
-          <h3
-            className="text-lg sm:text-xl font-medium text-gray-900 mb-2"
-            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+      <div className="rounded-2xl border border-blue-800/40 bg-white/5 backdrop-blur-lg p-6 sm:p-8 space-y-5 text-center shadow-inner shadow-blue-950/30">
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className={`${headerIconWrapperClass} w-16 h-16`}
+            aria-hidden="true"
           >
-            {currentCompliance.title}
-          </h3>
+            <CurrentIcon size={28} className="text-blue-50" weight="fill" />
+          </div>
 
-          <div className="text-gray-600 text-sm text-left max-w-2xl mx-auto border-1 shadow-sm border-blue-900 p-3 sm:p-4 lg:p-6 bg-blue-50 whitespace-pre-line leading-relaxed">
-            {currentCompliance.content}
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-2">
+              {compliancePages.map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    index === currentPage
+                      ? 'w-6 bg-blue-300'
+                      : 'w-2 bg-blue-900/40'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <h3 className={`${sectionTitleClass} text-center`}>
+              {currentCompliance.title}
+            </h3>
+            <p className={`${sectionSubtextClass} text-center`}>
+              Slide through all compliance statements to continue
+            </p>
           </div>
         </div>
 
-        <div className="w-full max-w-2xl mx-auto">
-          {isLastPage ? (
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3 justify-start">
-                <input
-                  type="checkbox"
-                  id="compliance-check"
-                  checked={complianceChecked}
-                  onChange={onComplianceCheck}
-                  className="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 focus:ring-blue-500 transition-all duration-200 flex-shrink-0"
-                />
-                <label
-                  htmlFor="compliance-check"
-                  className="text-sm text-gray-900 cursor-pointer leading-relaxed"
-                >
-                  I acknowledge and agree to comply with all school policies and
-                  requirements
-                </label>
-              </div>
-
-              <Button
-                onClick={onProceed}
-                disabled={!complianceChecked}
-                className={`bg-blue-900 hover:bg-blue-900 transition-all duration-300 hover:shadow-lg w-full sm:w-auto sm:px-6 ${
-                  !complianceChecked ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Proceed to Level Selection
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-              <Button
-                onClick={handlePrevious}
-                disabled={currentPage === 0}
-                variant="outline"
-                className={`flex items-center justify-center space-x-2 w-full sm:w-auto ${
-                  currentPage === 0
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:bg-blue-50'
-                }`}
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                <CaretLeft size={16} />
-                <span>Previous</span>
-              </Button>
-
-              <Button
-                onClick={handleNext}
-                className="flex items-center justify-center space-x-2 bg-blue-900 hover:bg-blue-900 transition-all duration-300 hover:shadow-lg w-full sm:w-auto"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                <span>Next</span>
-                <CaretRight size={16} />
-              </Button>
-            </div>
-          )}
+        <div className="text-sm text-left max-w-3xl mx-auto rounded-2xl border border-blue-800/40 bg-blue-950/40 p-4 sm:p-6 whitespace-pre-line leading-relaxed text-blue-100 shadow-inner shadow-blue-950/40">
+          {currentCompliance.content}
         </div>
+      </div>
+
+      <div className="w-full max-w-2xl mx-auto">
+        {isLastPage ? (
+          <div className="space-y-4">
+            <label
+              htmlFor="compliance-check"
+              className="flex items-start gap-3 text-sm leading-relaxed cursor-pointer text-blue-100"
+            >
+              <input
+                type="checkbox"
+                id="compliance-check"
+                checked={complianceChecked}
+                onChange={onComplianceCheck}
+                className="w-5 h-5 mt-0.5 rounded-md border border-blue-700/40 bg-blue-950/60 text-blue-200 focus:ring-blue-200 focus:ring-offset-0"
+              />
+              I acknowledge and agree to comply with all school policies and
+              requirements
+            </label>
+
+            <Button
+              onClick={onProceed}
+              disabled={!complianceChecked}
+              className={`${primaryButtonClass} w-full sm:w-auto sm:px-6 ${
+                !complianceChecked ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              Proceed to Level Selection
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              onClick={handlePrevious}
+              disabled={currentPage === 0}
+              variant="outline"
+              className={`${ghostButtonClass} flex items-center justify-center gap-2 w-full sm:w-auto ${
+                currentPage === 0 ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <CaretLeft size={16} />
+              <span>Previous</span>
+            </Button>
+
+            <Button
+              onClick={handleNext}
+              className={`${primaryButtonClass} flex items-center justify-center gap-2 w-full sm:w-auto`}
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <span>Next</span>
+              <CaretRight size={16} />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

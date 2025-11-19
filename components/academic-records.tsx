@@ -980,17 +980,11 @@ export default function AcademicRecords({
               )
 
               // Get subject color with better fallback
-              const subjectColor = subject?.color && subject.color.trim() !== ''
-                ? subject.color
-                : 'blue-900'
+              const subjectColor =
+                subject?.color && subject.color.trim() !== ''
+                  ? subject.color
+                  : 'blue-900'
               const resolvedColor = getSubjectColor(subjectColor)
-
-              console.log(`Subject ${subjectId}:`, {
-                subject: subject,
-                rawColor: subject?.color,
-                subjectColor: subjectColor,
-                resolvedColor: resolvedColor
-              })
 
               return (
                 <Card
@@ -1516,18 +1510,20 @@ export default function AcademicRecords({
                           <div className="space-y-2">
                             {/* Subject Info */}
                             <div className="flex items-center">
-                            <div
-                              className="w-4 h-4 flex-shrink-0 mr-3 rounded border border-gray-300"
-                              style={{
-                                backgroundColor: (() => {
-                                  const subject = subjects[subjectId]
-                                  const subjectColor = subject?.color && subject.color.trim() !== ''
-                                    ? subject.color
-                                    : 'blue-900'
-                                  return getSubjectColor(subjectColor)
-                                })(),
-                              }}
-                            ></div>
+                              <div
+                                className="w-4 h-4 flex-shrink-0 mr-3 rounded border border-gray-300"
+                                style={{
+                                  backgroundColor: (() => {
+                                    const subject = subjects[subjectId]
+                                    const subjectColor =
+                                      subject?.color &&
+                                      subject.color.trim() !== ''
+                                        ? subject.color
+                                        : 'blue-900'
+                                    return getSubjectColor(subjectColor)
+                                  })(),
+                                }}
+                              ></div>
                               <div>
                                 <div
                                   className="text-sm font-medium text-gray-900"
@@ -1987,9 +1983,10 @@ export default function AcademicRecords({
                     className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md"
                     style={{
                       backgroundColor: (() => {
-                        const subjectColor = subject?.color && subject.color.trim() !== ''
-                          ? subject.color
-                          : 'blue-900'
+                        const subjectColor =
+                          subject?.color && subject.color.trim() !== ''
+                            ? subject.color
+                            : 'blue-900'
                         return getSubjectColor(subjectColor)
                       })(),
                     }}

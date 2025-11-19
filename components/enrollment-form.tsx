@@ -29,43 +29,16 @@ import {
   isRegularGradeLevel,
   isRegularYearSemester,
 } from '@/components/enrollment-form/utils/enrollment-utils'
-import {
-  GraduationCap,
-  BookOpen,
-  Check,
-  Warning,
-  Calendar,
-  IdentificationCard,
-  Heart,
-  User,
-  Envelope,
-  Phone,
-  MapPin,
-  Users,
-  UserCircle,
-  File,
-  FileText,
-  X,
-  ArrowRight,
-  ArrowLeft,
-  Medal,
-  Certificate,
-  Clock,
-  CalendarBlank,
-  UserCheck,
-  ShieldCheck,
-  Info,
-  WarningCircle,
-  Calculator,
-  Atom,
-  Globe,
-  Monitor,
-  Palette,
-  MusicNote,
-  Book,
-  Books,
-} from '@phosphor-icons/react'
+import { GraduationCap } from '@phosphor-icons/react'
 import { GradeData } from '@/lib/grade-section-database'
+import {
+  enrollmentSurfaceClass,
+  sectionHeaderClass,
+  sectionTitleClass,
+  sectionSubtextClass,
+  headerIconWrapperClass,
+  sectionShellClass,
+} from '@/components/enrollment-form/theme'
 
 interface EnrollmentFormProps {
   userId: string
@@ -351,23 +324,23 @@ export default function EnrollmentForm({
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div
+      className={`${enrollmentSurfaceClass} space-y-6 p-4 sm:p-6 lg:p-8`}
+      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+    >
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-blue-100 shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md flex-shrink-0">
-              <GraduationCap size={24} className="text-white" weight="fill" />
+      <div className={sectionHeaderClass}>
+        <div className="flex flex-col gap-3 text-blue-50">
+          <div className="flex items-center gap-3">
+            <div className={headerIconWrapperClass} aria-hidden="true">
+              <GraduationCap size={26} className="text-blue-50" weight="fill" />
             </div>
             <div className="min-w-0 flex-1">
-              <h1
-                className="text-xl sm:text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
+              <h1 className={`${sectionTitleClass} text-2xl`}>
                 Student Enrollment
               </h1>
-              <p className="text-xs sm:text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-                Select your grade level and complete your enrollment process
+              <p className={sectionSubtextClass}>
+                Choose your learning path and complete the guided checklist
               </p>
             </div>
           </div>
@@ -390,93 +363,105 @@ export default function EnrollmentForm({
 
       {/* Loading State */}
       {!userProfile && (
-        <Card className="p-8 border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
+        <Card className="p-8 border border-blue-800/30 bg-white/5 backdrop-blur-md rounded-2xl shadow-inner shadow-blue-950/40">
           <div className="text-center space-y-4">
-            <div className="animate-spin rounded-xl h-8 w-8 border-2 border-blue-900/30 border-t-blue-900 mx-auto"></div>
-            <p className="text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Loading your profile information...</p>
+            <div className="animate-spin rounded-lg h-8 w-8 border-2 border-blue-800/30 border-t-blue-200 mx-auto"></div>
+            <p className="text-blue-100">Loading your profile information...</p>
           </div>
         </Card>
       )}
 
       {/* Step Content */}
       {userProfile && state.currentStep === 'compliance' && (
-        <ComplianceStep
-          animatingStep={state.animatingStep}
-          complianceChecked={state.complianceChecked}
-          onComplianceCheck={handleComplianceCheck}
-          onProceed={handleProceedToLevelSelection}
-        />
+        <div className={sectionShellClass}>
+          <ComplianceStep
+            animatingStep={state.animatingStep}
+            complianceChecked={state.complianceChecked}
+            onComplianceCheck={handleComplianceCheck}
+            onProceed={handleProceedToLevelSelection}
+          />
+        </div>
       )}
 
       {userProfile && state.currentStep === 're-enroll' && (
-        <ReEnrollStep
-          animatingStep={state.animatingStep}
-          previousEnrollment={state.previousEnrollment}
-          reEnrollSemester={state.reEnrollSemester}
-          onBack={() => {
-            state.setIsReEnrolling(false)
-            state.setCurrentStep('compliance')
-          }}
-          onProceed={handleProceedToReEnrollConfirmation}
-        />
+        <div className={sectionShellClass}>
+          <ReEnrollStep
+            animatingStep={state.animatingStep}
+            previousEnrollment={state.previousEnrollment}
+            reEnrollSemester={state.reEnrollSemester}
+            onBack={() => {
+              state.setIsReEnrolling(false)
+              state.setCurrentStep('compliance')
+            }}
+            onProceed={handleProceedToReEnrollConfirmation}
+          />
+        </div>
       )}
 
       {userProfile && state.currentStep === 'level-selection' && (
-        <LevelSelectionStep
-          animatingStep={state.animatingStep}
-          checkingPreviousEnrollment={state.checkingPreviousEnrollment}
-          previousEnrollment={state.previousEnrollment}
-          existingEnrollment={state.existingEnrollment}
-          grades={state.grades}
-          enrollmentStartPeriodHS={state.enrollmentStartPeriodHS}
-          enrollmentEndPeriodHS={state.enrollmentEndPeriodHS}
-          enrollmentStartPeriodCollege={state.enrollmentStartPeriodCollege}
-          enrollmentEndPeriodCollege={state.enrollmentEndPeriodCollege}
-          isEnrollmentAvailable={state.isEnrollmentAvailable}
-          getEnrollmentPeriodMessage={state.getEnrollmentPeriodMessage}
-          getEnrollmentDaysRemaining={state.getEnrollmentDaysRemaining}
-          getEnrollmentProgress={state.getEnrollmentProgress}
-          handleLevelSelect={handleLevelSelect}
-          handleBackToCompliance={handleBackToCompliance}
-          handleStartReEnroll={handleStartReEnroll}
-        />
+        <div className={sectionShellClass}>
+          <LevelSelectionStep
+            animatingStep={state.animatingStep}
+            checkingPreviousEnrollment={state.checkingPreviousEnrollment}
+            previousEnrollment={state.previousEnrollment}
+            existingEnrollment={state.existingEnrollment}
+            grades={state.grades}
+            enrollmentStartPeriodHS={state.enrollmentStartPeriodHS}
+            enrollmentEndPeriodHS={state.enrollmentEndPeriodHS}
+            enrollmentStartPeriodCollege={state.enrollmentStartPeriodCollege}
+            enrollmentEndPeriodCollege={state.enrollmentEndPeriodCollege}
+            isEnrollmentAvailable={state.isEnrollmentAvailable}
+            getEnrollmentPeriodMessage={state.getEnrollmentPeriodMessage}
+            getEnrollmentDaysRemaining={state.getEnrollmentDaysRemaining}
+            getEnrollmentProgress={state.getEnrollmentProgress}
+            handleLevelSelect={handleLevelSelect}
+            handleBackToCompliance={handleBackToCompliance}
+            handleStartReEnroll={handleStartReEnroll}
+          />
+        </div>
       )}
 
       {userProfile && state.currentStep === 'grade-selection' && (
-        <GradeSelectionStep
-          animatingStep={state.animatingStep}
-          grades={state.grades}
-          selectingGrade={state.selectingGrade}
-          handleBackToLevelSelection={handleBackToLevelSelection}
-          handleGradeSelect={handleGradeSelect}
-        />
+        <div className={sectionShellClass}>
+          <GradeSelectionStep
+            animatingStep={state.animatingStep}
+            grades={state.grades}
+            selectingGrade={state.selectingGrade}
+            handleBackToLevelSelection={handleBackToLevelSelection}
+            handleGradeSelect={handleGradeSelect}
+          />
+        </div>
       )}
 
       {userProfile &&
         state.currentStep === 'course-selection' &&
         state.selectedLevel === 'college' && (
-          <CourseSelectionStep
-            animatingStep={state.animatingStep}
-            loadingCourses={state.loadingCourses}
-            courses={state.courses}
-            previousEnrollment={state.previousEnrollment}
-            selectedCourse={state.selectedCourse}
-            handleBackToLevelSelection={handleBackToLevelSelection}
-            handleCourseSelect={handleCourseSelect}
-          />
+          <div className={sectionShellClass}>
+            <CourseSelectionStep
+              animatingStep={state.animatingStep}
+              loadingCourses={state.loadingCourses}
+              courses={state.courses}
+              previousEnrollment={state.previousEnrollment}
+              selectedCourse={state.selectedCourse}
+              handleBackToLevelSelection={handleBackToLevelSelection}
+              handleCourseSelect={handleCourseSelect}
+            />
+          </div>
         )}
 
       {userProfile &&
         state.currentStep === 'year-selection' &&
         state.selectedLevel === 'college' &&
         state.selectedCourse && (
-          <YearSelectionStep
-            animatingStep={state.animatingStep}
-            previousEnrollment={state.previousEnrollment}
-            selectedYear={state.selectedYear}
-            onBack={() => changeStep('course-selection')}
-            onSelectYear={handleYearSelect}
-          />
+          <div className={sectionShellClass}>
+            <YearSelectionStep
+              animatingStep={state.animatingStep}
+              previousEnrollment={state.previousEnrollment}
+              selectedYear={state.selectedYear}
+              onBack={() => changeStep('course-selection')}
+              onSelectYear={handleYearSelect}
+            />
+          </div>
         )}
 
       {userProfile &&
@@ -486,17 +471,19 @@ export default function EnrollmentForm({
           state.selectedYear) ||
           (state.selectedLevel === 'high-school' &&
             state.selectedGrade?.department === 'SHS')) && (
-          <SemesterSelectionStep
-            animatingStep={state.animatingStep}
-            currentSystemSemester={state.currentSystemSemester}
-            selectedSemester={state.selectedSemester}
-            onBack={() =>
-              state.selectedLevel === 'college'
-                ? changeStep('year-selection')
-                : changeStep('grade-selection')
-            }
-            onSelectSemester={handleSemesterSelect}
-          />
+          <div className={sectionShellClass}>
+            <SemesterSelectionStep
+              animatingStep={state.animatingStep}
+              currentSystemSemester={state.currentSystemSemester}
+              selectedSemester={state.selectedSemester}
+              onBack={() =>
+                state.selectedLevel === 'college'
+                  ? changeStep('year-selection')
+                  : changeStep('grade-selection')
+              }
+              onSelectSemester={handleSemesterSelect}
+            />
+          </div>
         )}
 
       {userProfile &&
@@ -505,42 +492,45 @@ export default function EnrollmentForm({
           (state.selectedCourse &&
             state.selectedYear &&
             state.selectedSemester)) &&
-        // For SHS, require semester; for JHS, no semester needed
         (!state.selectedGrade ||
           state.selectedGrade.department !== 'SHS' ||
           state.selectedSemester) && (
-          <PersonalInfoStep
-            animatingStep={state.animatingStep}
-            selectedLevel={state.selectedLevel}
-            selectedGrade={state.selectedGrade}
-            selectedCourse={state.selectedCourse}
-            selectedYear={state.selectedYear}
-            selectedSemester={state.selectedSemester}
-            personalInfo={state.personalInfo}
-            calculatedAge={state.calculatedAge}
-            onBackGrade={handleBackToGradeSelection}
-            onBackSemester={() => changeStep('semester-selection')}
-            onProceedToConfirmation={handleProceedToConfirmation}
-            onChange={handlePersonalInfoChange}
-            onPhoneChange={handlePhoneNumberChange}
-            onPhoneKeyDown={handlePhoneNumberKeyDown}
-          />
+          <div className={sectionShellClass}>
+            <PersonalInfoStep
+              animatingStep={state.animatingStep}
+              selectedLevel={state.selectedLevel}
+              selectedGrade={state.selectedGrade}
+              selectedCourse={state.selectedCourse}
+              selectedYear={state.selectedYear}
+              selectedSemester={state.selectedSemester}
+              personalInfo={state.personalInfo}
+              calculatedAge={state.calculatedAge}
+              onBackGrade={handleBackToGradeSelection}
+              onBackSemester={() => changeStep('semester-selection')}
+              onProceedToConfirmation={handleProceedToConfirmation}
+              onChange={handlePersonalInfoChange}
+              onPhoneChange={handlePhoneNumberChange}
+              onPhoneKeyDown={handlePhoneNumberKeyDown}
+            />
+          </div>
         )}
       {userProfile &&
         state.currentStep === 'confirmation' &&
         (state.selectedGrade || state.selectedCourse) && (
-          <ConfirmationStep
-            animatingStep={state.animatingStep}
-            selectedLevel={state.selectedLevel}
-            selectedGrade={state.selectedGrade}
-            selectedCourse={state.selectedCourse}
-            selectedYear={state.selectedYear}
-            selectedSemester={state.selectedSemester}
-            personalInfo={state.personalInfo}
-            documentsStatus={state.documentsStatus}
-            onBack={handleBackToPersonalInfo}
-            onOpenSubmit={handleOpenSubmitModal}
-          />
+          <div className={sectionShellClass}>
+            <ConfirmationStep
+              animatingStep={state.animatingStep}
+              selectedLevel={state.selectedLevel}
+              selectedGrade={state.selectedGrade}
+              selectedCourse={state.selectedCourse}
+              selectedYear={state.selectedYear}
+              selectedSemester={state.selectedSemester}
+              personalInfo={state.personalInfo}
+              documentsStatus={state.documentsStatus}
+              onBack={handleBackToPersonalInfo}
+              onOpenSubmit={handleOpenSubmitModal}
+            />
+          </div>
         )}
 
       <IrregularStudentModal

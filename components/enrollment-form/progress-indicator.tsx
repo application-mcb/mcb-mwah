@@ -15,8 +15,33 @@ type ProgressIndicatorProps = {
 }
 
 // Helper function to check if selected grade is SHS
-const isSHSGrade = (grade: any | null): boolean => {
-  return grade?.department === 'SHS'
+const isSHSGrade = (grade: any | null): boolean => grade?.department === 'SHS'
+
+const stepWrapperClass =
+  'flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200/70 rounded-xl p-2'
+
+const getCircleClass = (isActive: boolean, isCompleted: boolean): string => {
+  if (isActive) {
+    return 'relative w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 text-blue-50 shadow-lg shadow-blue-900/40 border border-blue-300/20'
+  }
+
+  if (isCompleted) {
+    return 'relative w-12 h-12 flex items-center justify-center rounded-xl bg-blue-900/60 text-blue-50 border border-blue-400/20 shadow-md shadow-blue-900/30'
+  }
+
+  return 'relative w-12 h-12 flex items-center justify-center rounded-xl border border-blue-800/30 bg-blue-950/30 text-blue-400 group-hover:border-blue-500/50'
+}
+
+const getLabelClass = (isActive: boolean, isCompleted: boolean): string => {
+  if (isActive) {
+    return 'text-xs font-medium text-blue-50'
+  }
+
+  if (isCompleted) {
+    return 'text-xs font-medium text-blue-100'
+  }
+
+  return 'text-xs font-medium text-blue-400 group-hover:text-blue-200'
 }
 
 export default function ProgressIndicator({
@@ -31,16 +56,16 @@ export default function ProgressIndicator({
   onProgressStepClick,
 }: ProgressIndicatorProps) {
   return (
-    <div className="bg-white p-4 sm:p-6 border border-gray-200 shadow-lg">
+    <div className="rounded-2xl border border-blue-800/40 bg-white/5 backdrop-blur-md p-6 shadow-inner shadow-blue-950/40 text-blue-50">
       <div className="relative">
         {/* Desktop Progress Steps Container */}
         <div className="hidden lg:flex justify-between items-start relative">
           {/* Progress Line Background - positioned behind circles */}
-          <div className="absolute top-6 left-6 right-6 h-1 bg-gray-200 z-0"></div>
+          <div className="absolute top-6 left-6 right-6 h-1 bg-blue-950/30 z-0 rounded-full"></div>
 
           {/* Animated Progress Line - positioned behind circles */}
           <div
-            className="absolute top-6 left-6 h-1 bg-gradient-to-r from-blue-600 to-blue-900 transition-all duration-1000 ease-out z-10"
+            className="absolute top-6 left-6 h-1 bg-gradient-to-r from-blue-500 via-blue-700 to-blue-400 transition-all duration-700 ease-out z-10 rounded-full shadow-lg shadow-blue-900/40"
             style={{
               width: (() => {
                 const isSHS = isSHSGrade(selectedGrade)
@@ -120,19 +145,25 @@ export default function ProgressIndicator({
           {/* Step 1: Compliance */}
           <div
             key="compliance-step"
-            className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
-              currentStep === 'compliance' ? 'scale-110' : 'hover:scale-105'
+            className={`${stepWrapperClass} ${
+              currentStep === 'compliance' ? 'scale-105' : 'hover:scale-105'
             }`}
+            role="button"
+            tabIndex={0}
+            aria-label="Go to compliance step"
             onClick={() => onProgressStepClick('compliance')}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onProgressStepClick('compliance')
+              }
+            }}
           >
             <div
-              className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
-                currentStep === 'compliance'
-                  ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30'
-                  : complianceChecked
-                  ? 'bg-blue-900 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
-              }`}
+              className={getCircleClass(
+                currentStep === 'compliance',
+                complianceChecked
+              )}
             >
               <Check
                 size={18}
@@ -141,17 +172,14 @@ export default function ProgressIndicator({
               />
               {/* Pulse animation for current step */}
               {currentStep === 'compliance' && (
-                <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
+                <div className="absolute inset-0 rounded-xl bg-blue-500/40 animate-ping opacity-60"></div>
               )}
             </div>
             <span
-              className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
-                currentStep === 'compliance'
-                  ? 'text-blue-900 font-semibold'
-                  : complianceChecked
-                  ? 'text-blue-900'
-                  : 'text-gray-400 group-hover:text-gray-600'
-              }`}
+              className={`${getLabelClass(
+                currentStep === 'compliance',
+                complianceChecked
+              )} text-center mt-2`}
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               Compliance
@@ -161,21 +189,25 @@ export default function ProgressIndicator({
           {/* Step 2: Level Selection */}
           <div
             key="level-selection-step"
-            className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
-              currentStep === 'level-selection'
-                ? 'scale-110'
-                : 'hover:scale-105'
+            className={`${stepWrapperClass} ${
+              currentStep === 'level-selection' ? 'scale-105' : 'hover:scale-105'
             }`}
+            role="button"
+            tabIndex={0}
+            aria-label="Go to level selection step"
             onClick={() => onProgressStepClick('level-selection')}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onProgressStepClick('level-selection')
+              }
+            }}
           >
             <div
-              className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
-                currentStep === 'level-selection'
-                  ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30'
-                  : selectedLevel !== null
-                  ? 'bg-blue-900 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
-              }`}
+              className={getCircleClass(
+                currentStep === 'level-selection',
+                selectedLevel !== null
+              )}
             >
               <User
                 size={18}
@@ -184,17 +216,14 @@ export default function ProgressIndicator({
               />
               {/* Pulse animation for current step */}
               {currentStep === 'level-selection' && (
-                <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
+                <div className="absolute inset-0 rounded-xl bg-blue-500/40 animate-ping opacity-60"></div>
               )}
             </div>
             <span
-              className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
-                currentStep === 'level-selection'
-                  ? 'text-blue-900 font-semibold'
-                  : selectedLevel !== null
-                  ? 'text-blue-900'
-                  : 'text-gray-400 group-hover:text-gray-600'
-              }`}
+              className={`${getLabelClass(
+                currentStep === 'level-selection',
+                selectedLevel !== null
+              )} text-center mt-2`}
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               Level Selection
@@ -204,12 +233,19 @@ export default function ProgressIndicator({
           {/* Step 3: Grade/Course Selection */}
           <div
             key="selection-step"
-            className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
+            className={`${stepWrapperClass} ${
               currentStep === 'grade-selection' ||
               currentStep === 'course-selection'
-                ? 'scale-110'
+                ? 'scale-105'
                 : 'hover:scale-105'
             }`}
+            role="button"
+            tabIndex={0}
+            aria-label={
+              selectedLevel === 'high-school'
+                ? 'Go to grade selection step'
+                : 'Go to course selection step'
+            }
             onClick={() =>
               onProgressStepClick(
                 selectedLevel === 'high-school'
@@ -217,16 +253,23 @@ export default function ProgressIndicator({
                   : 'course-selection'
               )
             }
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onProgressStepClick(
+                  selectedLevel === 'high-school'
+                    ? 'grade-selection'
+                    : 'course-selection'
+                )
+              }
+            }}
           >
             <div
-              className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
+              className={getCircleClass(
                 currentStep === 'grade-selection' ||
-                currentStep === 'course-selection'
-                  ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30'
-                  : selectedGrade !== null || selectedCourse !== null
-                  ? 'bg-blue-900 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
-              }`}
+                  currentStep === 'course-selection',
+                selectedGrade !== null || selectedCourse !== null
+              )}
             >
               <GraduationCap
                 size={18}
@@ -236,18 +279,15 @@ export default function ProgressIndicator({
               {/* Pulse animation for current step */}
               {(currentStep === 'grade-selection' ||
                 currentStep === 'course-selection') && (
-                <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
+                <div className="absolute inset-0 rounded-xl bg-blue-500/40 animate-ping opacity-60"></div>
               )}
             </div>
             <span
-              className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
+              className={`${getLabelClass(
                 currentStep === 'grade-selection' ||
-                currentStep === 'course-selection'
-                  ? 'text-blue-900 font-semibold'
-                  : selectedGrade !== null || selectedCourse !== null
-                  ? 'text-blue-900'
-                  : 'text-gray-400 group-hover:text-gray-600'
-              }`}
+                  currentStep === 'course-selection',
+                selectedGrade !== null || selectedCourse !== null
+              )} text-center mt-2`}
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               {selectedLevel === 'high-school'
@@ -262,40 +302,42 @@ export default function ProgressIndicator({
           {selectedLevel === 'college' && (
             <div
               key="year-selection-step"
-              className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
+              className={`${stepWrapperClass} ${
                 currentStep === 'year-selection'
-                  ? 'scale-110'
+                  ? 'scale-105'
                   : 'hover:scale-105'
               }`}
+              role="button"
+              tabIndex={0}
+              aria-label="Go to year selection step"
               onClick={() => onProgressStepClick('year-selection')}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onProgressStepClick('year-selection')
+                }
+              }}
             >
               <div
-                className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
-                  currentStep === 'year-selection'
-                    ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30'
-                    : selectedYear !== null
-                    ? 'bg-blue-900 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
-                }`}
+                className={getCircleClass(
+                  currentStep === 'year-selection',
+                  selectedYear !== null
+                )}
               >
                 <User
                   size={18}
                   weight="bold"
                   className="transition-all duration-300"
                 />
-                {/* Pulse animation for current step */}
                 {currentStep === 'year-selection' && (
-                  <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
+                  <div className="absolute inset-0 rounded-xl bg-blue-500/40 animate-ping opacity-60"></div>
                 )}
               </div>
               <span
-                className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
-                  currentStep === 'year-selection'
-                    ? 'text-blue-900 font-semibold'
-                    : selectedYear !== null
-                    ? 'text-blue-900'
-                    : 'text-gray-400 group-hover:text-gray-600'
-                }`}
+                className={`${getLabelClass(
+                  currentStep === 'year-selection',
+                  selectedYear !== null
+                )} text-center mt-2`}
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
                 Year Level
@@ -307,40 +349,42 @@ export default function ProgressIndicator({
           {(selectedLevel === 'college' || isSHSGrade(selectedGrade)) && (
             <div
               key="semester-selection-step"
-              className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
+              className={`${stepWrapperClass} ${
                 currentStep === 'semester-selection'
-                  ? 'scale-110'
+                  ? 'scale-105'
                   : 'hover:scale-105'
               }`}
+              role="button"
+              tabIndex={0}
+              aria-label="Go to semester selection step"
               onClick={() => onProgressStepClick('semester-selection')}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onProgressStepClick('semester-selection')
+                }
+              }}
             >
               <div
-                className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
-                  currentStep === 'semester-selection'
-                    ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30'
-                    : selectedSemester !== null
-                    ? 'bg-blue-900 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
-                }`}
+                className={getCircleClass(
+                  currentStep === 'semester-selection',
+                  selectedSemester !== null
+                )}
               >
                 <Calendar
                   size={18}
                   weight="bold"
                   className="transition-all duration-300"
                 />
-                {/* Pulse animation for current step */}
                 {currentStep === 'semester-selection' && (
-                  <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
+                  <div className="absolute inset-0 rounded-xl bg-blue-500/40 animate-ping opacity-60"></div>
                 )}
               </div>
               <span
-                className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
-                  currentStep === 'semester-selection'
-                    ? 'text-blue-900 font-semibold'
-                    : selectedSemester !== null
-                    ? 'text-blue-900'
-                    : 'text-gray-400 group-hover:text-gray-600'
-                }`}
+                className={`${getLabelClass(
+                  currentStep === 'semester-selection',
+                  selectedSemester !== null
+                )} text-center mt-2`}
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
                 Semester
@@ -351,40 +395,40 @@ export default function ProgressIndicator({
           {/* Step 6/5: Personal Info */}
           <div
             key="personal-info-step"
-            className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
-              currentStep === 'personal-info'
-                ? 'scale-110'
-                : 'hover:scale-105'
+            className={`${stepWrapperClass} ${
+              currentStep === 'personal-info' ? 'scale-105' : 'hover:scale-105'
             }`}
+            role="button"
+            tabIndex={0}
+            aria-label="Go to personal information step"
             onClick={() => onProgressStepClick('personal-info')}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onProgressStepClick('personal-info')
+              }
+            }}
           >
             <div
-              className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
-                currentStep === 'personal-info'
-                  ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30'
-                  : isPersonalInfoCompleted()
-                  ? 'bg-blue-900 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
-              }`}
+              className={getCircleClass(
+                currentStep === 'personal-info',
+                isPersonalInfoCompleted()
+              )}
             >
               <User
                 size={18}
                 weight="bold"
                 className="transition-all duration-300"
               />
-              {/* Pulse animation for current step */}
               {currentStep === 'personal-info' && (
-                <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
+                <div className="absolute inset-0 rounded-xl bg-blue-500/40 animate-ping opacity-60"></div>
               )}
             </div>
             <span
-              className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
-                currentStep === 'personal-info'
-                  ? 'text-blue-900 font-semibold'
-                  : isPersonalInfoCompleted()
-                  ? 'text-blue-900'
-                  : 'text-gray-400 group-hover:text-gray-600'
-              }`}
+              className={`${getLabelClass(
+                currentStep === 'personal-info',
+                isPersonalInfoCompleted()
+              )} text-center mt-2`}
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               Personal Info
@@ -394,38 +438,40 @@ export default function ProgressIndicator({
           {/* Step 7/6: Confirmation */}
           <div
             key="confirmation-step"
-            className={`flex flex-col items-center cursor-pointer group transition-all duration-300 relative z-20 ${
-              currentStep === 'confirmation' ? 'scale-110' : 'hover:scale-105'
+            className={`${stepWrapperClass} ${
+              currentStep === 'confirmation' ? 'scale-105' : 'hover:scale-105'
             }`}
+            role="button"
+            tabIndex={0}
+            aria-label="Go to confirmation step"
             onClick={() => onProgressStepClick('confirmation')}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onProgressStepClick('confirmation')
+              }
+            }}
           >
             <div
-              className={`relative w-12 h-12 flex items-center justify-center text-sm font-medium transition-all duration-500 rounded-none ${
-                currentStep === 'confirmation'
-                  ? 'bg-blue-900 text-white shadow-lg shadow-blue-900/30'
-                  : isPersonalInfoCompleted()
-                  ? 'bg-blue-900 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
-              }`}
+              className={getCircleClass(
+                currentStep === 'confirmation',
+                isPersonalInfoCompleted()
+              )}
             >
               <Check
                 size={18}
                 weight="bold"
                 className="transition-all duration-300"
               />
-              {/* Pulse animation for current step */}
               {currentStep === 'confirmation' && (
-                <div className="absolute inset-0 rounded-none bg-blue-900 animate-ping opacity-20"></div>
+                <div className="absolute inset-0 rounded-xl bg-blue-500/40 animate-ping opacity-60"></div>
               )}
             </div>
             <span
-              className={`text-xs font-medium mt-2 text-center transition-all duration-300 ${
-                currentStep === 'confirmation'
-                  ? 'text-blue-900 font-semibold'
-                  : isPersonalInfoCompleted()
-                  ? 'text-blue-900'
-                  : 'text-gray-400 group-hover:text-gray-600'
-              }`}
+              className={`${getLabelClass(
+                currentStep === 'confirmation',
+                isPersonalInfoCompleted()
+              )} text-center mt-2`}
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               Confirmation

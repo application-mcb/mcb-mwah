@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { EventData } from '@/lib/types/events'
 import { formatDateRangeAsWords } from '@/lib/utils/date-formatter'
-import { Calendar, CaretLeft, CaretRight } from '@phosphor-icons/react'
+import { Calendar } from '@phosphor-icons/react'
 import * as PhosphorIcons from '@phosphor-icons/react'
 
 export const EventsCarouselSection = () => {
@@ -11,10 +11,9 @@ export const EventsCarouselSection = () => {
   const [loading, setLoading] = useState(true)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isVisible, setIsVisible] = useState(false)
+  const [eventsPerSlide, setEventsPerSlide] = useState(3)
   const sectionRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef<NodeJS.Timeout | null>(null)
-
-  const eventsPerSlide = 3
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -63,6 +62,23 @@ export const EventsCarouselSection = () => {
   }, [])
 
   useEffect(() => {
+    const updateEventsPerSlide = () => {
+      if (window.innerWidth < 768) {
+        setEventsPerSlide(1) // Mobile: 1 event per slide
+      } else if (window.innerWidth < 1024) {
+        setEventsPerSlide(2) // Tablet: 2 events per slide
+      } else {
+        setEventsPerSlide(3) // Desktop: 3 events per slide
+      }
+    }
+
+    updateEventsPerSlide()
+    window.addEventListener('resize', updateEventsPerSlide)
+
+    return () => window.removeEventListener('resize', updateEventsPerSlide)
+  }, [])
+
+  useEffect(() => {
     if (events.length === 0 || !isVisible) return
 
     autoScrollRef.current = setInterval(() => {
@@ -77,27 +93,7 @@ export const EventsCarouselSection = () => {
         clearInterval(autoScrollRef.current)
       }
     }
-  }, [events.length, isVisible])
-
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => {
-      const maxIndex = Math.ceil(events.length / eventsPerSlide) - 1
-      return prev <= 0 ? maxIndex : prev - 1
-    })
-    if (autoScrollRef.current) {
-      clearInterval(autoScrollRef.current)
-    }
-  }
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => {
-      const maxIndex = Math.ceil(events.length / eventsPerSlide) - 1
-      return prev >= maxIndex ? 0 : prev + 1
-    })
-    if (autoScrollRef.current) {
-      clearInterval(autoScrollRef.current)
-    }
-  }
+  }, [events.length, isVisible, eventsPerSlide])
 
   const getIconComponent = (iconName: string) => {
     const IconComponent =
@@ -133,8 +129,6 @@ export const EventsCarouselSection = () => {
     return iconColorMap[color] || 'text-blue-900'
   }
 
-  const maxIndex = Math.ceil(events.length / eventsPerSlide) - 1
-
   return (
     <section
       id="events"
@@ -146,18 +140,19 @@ export const EventsCarouselSection = () => {
         <div className="absolute top-0 left-1/4 w-64 h-64 bg-blue-900/5 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-blue-800/5 rounded-full blur-3xl"></div>
       </div>
+      <div className="texture-overlay" aria-hidden="true"></div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative p-6 sm:p-10 z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-12 sm:mb-16">
           <h2
-            className="text-4xl lg:text-5xl font-medium text-blue-900 mb-4"
+            className="text-3xl sm:text-4xl lg:text-5xl font-medium text-blue-900 mb-4"
             style={{ fontFamily: 'Poppins', fontWeight: 500 }}
           >
             Upcoming Events & Announcements
           </h2>
           <p
-            className="text-lg text-blue-800/70 max-w-2xl mx-auto font-mono"
+            className="text-base sm:text-lg text-blue-800/70 max-w-2xl mx-auto font-mono"
             style={{ fontWeight: 300 }}
           >
             Stay informed about important dates, activities, and announcements
@@ -202,10 +197,20 @@ export const EventsCarouselSection = () => {
                       transform: isVisible
                         ? 'translateY(0)'
                         : 'translateY(20px)',
-                      transition: `opacity 0.6s ease-out ${groupIndex * 0.1}s, transform 0.6s ease-out ${groupIndex * 0.1}s`,
+                      transition: `opacity 0.6s ease-out ${
+                        groupIndex * 0.1
+                      }s, transform 0.6s ease-out ${groupIndex * 0.1}s`,
                     }}
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div
+                      className={`grid gap-6 ${
+                        eventsPerSlide === 1
+                          ? 'grid-cols-1'
+                          : eventsPerSlide === 2
+                          ? 'grid-cols-1 sm:grid-cols-2'
+                          : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                      }`}
+                    >
                       {events
                         .slice(
                           groupIndex * eventsPerSlide,
@@ -275,50 +280,9 @@ export const EventsCarouselSection = () => {
                 ))}
               </div>
             </div>
-
-            {/* Navigation Arrows */}
-            {events.length > eventsPerSlide && (
-              <>
-                <button
-                  onClick={handlePrevious}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-12 h-12 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center text-white hover:from-blue-900 hover:to-blue-950 transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-900 z-10"
-                  aria-label="Previous events"
-                >
-                  <CaretLeft size={20} weight="bold" />
-                </button>
-                <button
-                  onClick={handleNext}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-12 h-12 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center text-white hover:from-blue-900 hover:to-blue-950 transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-900 z-10"
-                  aria-label="Next events"
-                >
-                  <CaretRight size={20} weight="bold" />
-                </button>
-              </>
-            )}
-
-            {/* Navigation Dots */}
-            {events.length > eventsPerSlide && (
-              <div className="flex justify-center mt-8 space-x-2">
-                {Array.from({
-                  length: Math.ceil(events.length / eventsPerSlide),
-                }).map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentIndex(index)}
-                    className={`w-2 h-2 rounded-full transition-colors duration-200 ${
-                      index === currentIndex
-                        ? 'bg-blue-900 w-8'
-                        : 'bg-gray-300 hover:bg-gray-400'
-                    }`}
-                    aria-label={`Go to slide ${index + 1}`}
-                  />
-                ))}
-              </div>
-            )}
           </div>
         )}
       </div>
     </section>
   )
 }
-

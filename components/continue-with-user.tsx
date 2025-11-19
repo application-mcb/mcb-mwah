@@ -1,19 +1,25 @@
-"use client";
+'use client'
 
-import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, SignOut } from "@phosphor-icons/react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useAuth } from '@/lib/auth-context'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { User, SignOut } from '@phosphor-icons/react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export const ContinueWithUser: React.FC = () => {
-  const { user, signOut } = useAuth();
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const { user, signOut } = useAuth()
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleContinue = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       // Call our API to check user status and get redirect path
       const response = await fetch('/api/auth/login', {
@@ -23,75 +29,78 @@ export const ContinueWithUser: React.FC = () => {
         },
         body: JSON.stringify({
           uid: user?.uid,
-          email: user?.email
+          email: user?.email,
         }),
-      });
+      })
 
-      const result = await response.json();
+      const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to continue');
+        throw new Error(result.error || 'Failed to continue')
       }
 
       // Handle redirect based on user role and profile completion status
       if (result.isRegistrar) {
-        router.push(result.redirectTo || '/registrar');
+        router.push(result.redirectTo || '/registrar')
       } else if (result.isTeacher) {
-        router.push(result.redirectTo || '/teacher');
+        router.push(result.redirectTo || '/teacher')
       } else if (result.hasCompleteProfile) {
-        router.push('/dashboard');
+        router.push('/dashboard')
       } else {
-        router.push('/setup');
+        router.push('/setup')
       }
     } catch (error) {
-      console.error('Continue failed:', error);
+      console.error('Continue failed:', error)
       // If API call fails, fall back to dashboard
-      router.push('/dashboard');
+      router.push('/dashboard')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
-
-  const handleLogout = async () => {
-    setIsLoading(true);
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (!user) return null;
-
-  const displayName = user.displayName || user.email?.split('@')[0] || 'User';
-  const nameParts = user.displayName?.split(' ') || user.email?.split('@')[0]?.split(' ') || ['U'];
-  const firstName = nameParts[0] || 'U';
-  const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
-
-  // Get at least 2 characters for initials
-  let initials = firstName.charAt(0).toUpperCase();
-  if (lastName) {
-    initials += lastName.charAt(0).toUpperCase();
-  } else if (firstName.length > 1) {
-    initials += firstName.charAt(1).toUpperCase();
-  } else {
-    // If only one character in first name and no last name, duplicate the first character
-    initials += initials;
   }
 
-  const hasProfilePicture = user.photoURL && user.photoURL.trim() !== '';
+  const handleLogout = async () => {
+    setIsLoading(true)
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Logout failed:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (!user) return null
+
+  const displayName = user.displayName || user.email?.split('@')[0] || 'User'
+  const nameParts = user.displayName?.split(' ') ||
+    user.email?.split('@')[0]?.split(' ') || ['U']
+  const firstName = nameParts[0] || 'U'
+  const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
+
+  // Get at least 2 characters for initials
+  let initials = firstName.charAt(0).toUpperCase()
+  if (lastName) {
+    initials += lastName.charAt(0).toUpperCase()
+  } else if (firstName.length > 1) {
+    initials += firstName.charAt(1).toUpperCase()
+  } else {
+    // If only one character in first name and no last name, duplicate the first character
+    initials += initials
+  }
+
+  const hasProfilePicture = user.photoURL && user.photoURL.trim() !== ''
 
   return (
     <Card className="w-full max-w-lg mx-auto shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
-      <CardHeader className="text-center pb-8">
-        <CardTitle className="text-3xl font-light text-gray-900 mb-2">Welcome Back</CardTitle>
-        <CardDescription className="text-gray-500 text-base">
+      <CardHeader className="text-center pb-6 sm:pb-8 px-4 sm:px-6">
+        <CardTitle className="text-2xl sm:text-3xl font-light text-gray-900 mb-2">
+          Welcome Back
+        </CardTitle>
+        <CardDescription className="text-gray-500 text-sm sm:text-base">
           Continue with your account
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col justify-center flex-1 space-y-6">
+      <CardContent className="flex flex-col justify-center flex-1 space-y-6 px-4 sm:px-6">
         {/* User Info Section */}
         <div className="text-center space-y-4">
           <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto overflow-hidden">
@@ -102,12 +111,12 @@ export const ContinueWithUser: React.FC = () => {
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   // Fallback to initials if image fails to load
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const parent = target.parentElement;
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  const parent = target.parentElement
                   if (parent) {
-                    parent.innerHTML = `<span class="text-white text-lg font-medium">${initials}</span>`;
-                    parent.classList.add('bg-blue-900');
+                    parent.innerHTML = `<span class="text-white text-lg font-medium">${initials}</span>`
+                    parent.classList.add('bg-blue-900')
                   }
                 }}
               />
@@ -118,12 +127,10 @@ export const ContinueWithUser: React.FC = () => {
             )}
           </div>
           <div>
-            <h3 className="text-xl font-medium text-gray-900 mb-1 capitalize" >
+            <h3 className="text-xl font-medium text-gray-900 mb-1 capitalize">
               Continue as {displayName}
             </h3>
-            <p className="text-sm text-gray-600 font-mono">
-              {user.email}
-            </p>
+            <p className="text-sm text-gray-600 font-mono">{user.email}</p>
           </div>
         </div>
 
@@ -158,5 +165,5 @@ export const ContinueWithUser: React.FC = () => {
         </Button>
       </CardContent>
     </Card>
-  );
-};
+  )
+}

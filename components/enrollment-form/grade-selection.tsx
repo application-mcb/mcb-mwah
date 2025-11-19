@@ -4,6 +4,13 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { GraduationCap } from '@phosphor-icons/react'
 import { GradeData } from '@/lib/grade-section-database'
+import {
+  sectionHeaderClass,
+  sectionTitleClass,
+  sectionSubtextClass,
+  headerIconWrapperClass,
+  ghostButtonClass,
+} from '@/components/enrollment-form/theme'
 
 type GradeSelectionStepProps = {
   animatingStep: boolean
@@ -15,14 +22,13 @@ type GradeSelectionStepProps = {
 
 const getColorValue = (color: string): string => {
   const colorMap: Record<string, string> = {
-    'blue-900': '#1e40af',
+    'blue-900': '#1e3a8a',
     'red-800': '#991b1b',
     'emerald-800': '#065f46',
     'yellow-800': '#92400e',
     'orange-800': '#9a3412',
     'violet-800': '#5b21b6',
     'purple-800': '#6b21a8',
-    'blue-900': '#1d4ed8',
     'red-700': '#b91c1c',
     'emerald-700': '#047857',
     'yellow-700': '#a16207',
@@ -31,7 +37,6 @@ const getColorValue = (color: string): string => {
     'purple-700': '#8b5cf6',
     'indigo-800': '#312e81',
     'indigo-700': '#4338ca',
-    'blue-900': '#1e3a8a',
   }
   return colorMap[color] || '#065f46'
 }
@@ -51,28 +56,25 @@ export default function GradeSelectionStep({
           : 'opacity-100 transform translate-x-0'
       }`}
     >
-      <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-blue-100 shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center flex-shrink-0">
-              <GraduationCap size={16} className="sm:w-5 sm:h-5 text-white" weight="bold" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2
-                className="text-lg sm:text-xl font-medium text-gray-900"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Select Your Grade Level
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-600">
-                Choose the grade level you wish to enroll in
-              </p>
-            </div>
+      <div className={sectionHeaderClass}>
+        <div className="flex items-center gap-3">
+          <div className={headerIconWrapperClass}>
+            <GraduationCap size={18} className="text-blue-50" weight="bold" />
           </div>
-          <Button variant="ghost" onClick={handleBackToLevelSelection} className="w-full sm:w-auto">
-            Back
-          </Button>
+          <div className="min-w-0 flex-1">
+            <h2 className={sectionTitleClass}>Select Your Grade Level</h2>
+            <p className={sectionSubtextClass}>
+              Choose the grade level you wish to enroll in
+            </p>
+          </div>
         </div>
+        <Button
+          variant="ghost"
+          onClick={handleBackToLevelSelection}
+          className={`${ghostButtonClass} w-full sm:w-auto`}
+        >
+          Back
+        </Button>
       </div>
 
       {grades.length === 0 ? (
@@ -132,7 +134,9 @@ export default function GradeSelectionStep({
                 </p>
                 <div className="hidden sm:block pt-2 border-t border-gray-200">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-white">Click to select</span>
+                    <span className="text-[10px] text-white">
+                      Click to select
+                    </span>
                     <div
                       className={`w-4 h-4 border-2 border-white transition-colors`}
                     ></div>

@@ -321,7 +321,9 @@ export default function EventsOverview({ level, userId }: EventsOverviewProps) {
                   // Calculate days left
                   const now = new Date()
                   const startDate = new Date(event.startDate)
-                  const endDate = new Date(event.endDate)
+                  const endDate = event.endDate
+                    ? new Date(event.endDate)
+                    : startDate
                   const selectedDateObj = selectedDate || now
 
                   let daysLeft: number | null = null
@@ -445,7 +447,9 @@ export default function EventsOverview({ level, userId }: EventsOverviewProps) {
                 // Calculate days left
                 const now = new Date()
                 const startDate = new Date(selectedEvent.startDate)
-                const endDate = new Date(selectedEvent.endDate)
+                const endDate = selectedEvent.endDate
+                  ? new Date(selectedEvent.endDate)
+                  : startDate
 
                 let daysText = ''
                 if (now < startDate) {

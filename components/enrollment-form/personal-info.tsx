@@ -9,6 +9,14 @@ import {
   IdentificationCard,
   Heart,
 } from '@phosphor-icons/react'
+import {
+  sectionHeaderClass,
+  sectionTitleClass,
+  sectionSubtextClass,
+  headerIconWrapperClass,
+  ghostButtonClass,
+  mutedPanelClass,
+} from '@/components/enrollment-form/theme'
 
 type PersonalInfo = {
   firstName: string
@@ -68,49 +76,37 @@ export default function PersonalInfoStep({
           : 'opacity-100 transform translate-x-0'
       } min-h-0 sm:min-h-fit`}
     >
-      <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-blue-100 shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md flex-shrink-0">
-              <User
-                size={16}
-                className="sm:w-5 sm:h-5 text-white"
-                weight="bold"
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2
-                className="text-lg sm:text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Personal Information
-              </h2>
-              <p
-                className="text-xs sm:text-sm text-gray-600"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-              >
-                Review and update your personal details for enrollment
-              </p>
-            </div>
+      <div className={sectionHeaderClass}>
+        <div className="flex items-center gap-3">
+          <div className={headerIconWrapperClass}>
+            <User size={18} className="text-blue-50" weight="bold" />
           </div>
-          <Button
-            variant="ghost"
-            onClick={() => {
-              if (selectedLevel === 'college') {
-                onBackSemester()
-              } else {
-                onBackGrade()
-              }
-            }}
-            className="rounded-xl w-full sm:w-auto"
-            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-          >
-            Back
-          </Button>
+          <div className="min-w-0 flex-1">
+            <h2 className={sectionTitleClass}>Personal Information</h2>
+            <p className={sectionSubtextClass}>
+              Review and update your personal details for enrollment
+            </p>
+          </div>
         </div>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            if (selectedLevel === 'college') {
+              onBackSemester()
+            } else {
+              onBackGrade()
+            }
+          }}
+          className={`${ghostButtonClass} w-full sm:w-auto`}
+          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+        >
+          Back
+        </Button>
       </div>
 
-      <div className="p-4 sm:p-6 lg:p-8 rounded-xl border border-blue-100 bg-white/80 backdrop-blur-sm shadow-lg overflow-visible sm:overflow-auto">
+      <div
+        className={`${mutedPanelClass} p-4 sm:p-6 lg:p-8 overflow-visible sm:overflow-auto [&_.text-gray-900]:text-blue-100 [&_.text-gray-700]:text-blue-200 [&_.text-gray-600]:text-blue-200 [&_.text-gray-500]:text-blue-300 [&_.text-gray-400]:text-blue-300 [&_.text-red-500]:text-blue-300 [&_.border-gray-300]:border-blue-700/40 [&_.bg-gray-50]:bg-blue-950/30`}
+      >
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div>
             <h3

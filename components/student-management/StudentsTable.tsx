@@ -105,7 +105,7 @@ const ActionMenu = ({
           <div className="py-1">
             <button
               onClick={() => handleMenuAction(() => onViewStudent(enrollment))}
-              className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2 rounded-lg"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               <Eye size={14} />
@@ -113,7 +113,7 @@ const ActionMenu = ({
             </button>
             <button
               onClick={() => handleMenuAction(() => onOpenAIChat(enrollment))}
-              className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2 rounded-lg"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               <Sparkle size={14} />
@@ -121,7 +121,7 @@ const ActionMenu = ({
             </button>
             <button
               onClick={() => handleMenuAction(() => onPrintStudent(enrollment))}
-              className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2 rounded-lg"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               <Printer size={14} />

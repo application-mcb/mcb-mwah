@@ -190,13 +190,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onSwitchTo
 
   return (
     <Card className="w-full max-w-lg mx-auto shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
-      <CardHeader className="text-center pb-8">
-        <CardTitle className="text-3xl font-light text-gray-900 mb-2">Welcome Back</CardTitle>
-        <CardDescription className="text-gray-500 text-base">
+      <CardHeader className="text-center pb-6 sm:pb-8 px-4 sm:px-6">
+        <CardTitle className="text-2xl sm:text-3xl font-light text-gray-900 mb-2">Welcome Back</CardTitle>
+        <CardDescription className="text-gray-500 text-sm sm:text-base">
           Sign in to your account
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col justify-center flex-1">
+      <CardContent className="flex flex-col justify-center flex-1 px-4 sm:px-6">
         {/* Login Method Tabs */}
         <div className="flex space-x-1 mb-8 bg-gray-100 p-1 rounded-xl shadow-inner">
           <button
