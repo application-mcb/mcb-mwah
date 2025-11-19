@@ -4,12 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { EventData } from '@/lib/types/events'
 import { formatDateRangeAsWords } from '@/lib/utils/date-formatter'
 import EventsCalendar from './events-calendar'
-import {
-  Calendar,
-  CaretRight,
-  Bell,
-  X,
-} from '@phosphor-icons/react'
+import { Calendar, CaretRight, Bell, X } from '@phosphor-icons/react'
 import { Modal } from './ui/modal'
 import * as PhosphorIcons from '@phosphor-icons/react'
 
@@ -18,10 +13,7 @@ interface EventsOverviewProps {
   userId: string
 }
 
-export default function EventsOverview({
-  level,
-  userId,
-}: EventsOverviewProps) {
+export default function EventsOverview({ level, userId }: EventsOverviewProps) {
   const [events, setEvents] = useState<EventData[]>([])
   const [pastEvents, setPastEvents] = useState<EventData[]>([])
   const [loading, setLoading] = useState(true)
@@ -29,6 +21,7 @@ export default function EventsOverview({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedDateEvents, setSelectedDateEvents] = useState<EventData[]>([])
   const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null)
+  const [featuredIndex, setFeaturedIndex] = useState(0)
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -49,15 +42,15 @@ export default function EventsOverview({
         const upcomingData = await upcomingResponse.json()
 
         // Fetch past events
-        const pastResponse = await fetch(
-          `/api/events?level=${level}&type=past`
-        )
+        const pastResponse = await fetch(`/api/events?level=${level}&type=past`)
         const pastData = await pastResponse.json()
 
         // Combine active and upcoming events for calendar display
         const allVisibleEvents = [
           ...(activeData.success && activeData.events ? activeData.events : []),
-          ...(upcomingData.success && upcomingData.events ? upcomingData.events : []),
+          ...(upcomingData.success && upcomingData.events
+            ? upcomingData.events
+            : []),
         ]
         setEvents(allVisibleEvents)
 
@@ -103,6 +96,19 @@ export default function EventsOverview({
     return IconComponent
   }
 
+  useEffect(() => {
+    if (featuredEvents.length === 0) {
+      setFeaturedIndex(0)
+      return
+    }
+
+    const interval = setInterval(() => {
+      setFeaturedIndex((prev) => (prev + 1) % featuredEvents.length)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [featuredEvents.length])
+
   return (
     <div className="space-y-6">
       {/* Banner Section - Featured Announcements */}
@@ -119,40 +125,58 @@ export default function EventsOverview({
               Featured Announcements
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {featuredEvents.map((event) => {
-              const IconComponent = getIconComponent(event.icon)
-              return (
-                <div
-                  key={event.id}
-                  className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-200"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center flex-shrink-0">
-                      <IconComponent
-                        size={20}
-                        className="text-blue-900"
-                        weight="fill"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3
-                        className="text-sm font-medium text-white mb-1"
-                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                      >
-                        {event.title}
-                      </h3>
-                      <p
-                        className="text-xs text-white/80 line-clamp-2"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
-                        {event.description}
-                      </p>
+          <div className="relative overflow-hidden">
+            <div
+              className="flex transition-transform duration-500 ease-in-out"
+              style={{
+                transform: `translateX(-${featuredIndex * 100}%)`,
+              }}
+            >
+              {featuredEvents.map((event) => {
+                const IconComponent = getIconComponent(event.icon)
+                return (
+                  <div key={event.id} className="w-full flex-shrink-0 px-1">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center flex-shrink-0">
+                          <IconComponent
+                            size={20}
+                            className="text-blue-900"
+                            weight="fill"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3
+                            className="text-sm font-medium text-white mb-1"
+                            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                          >
+                            {event.title}
+                          </h3>
+                          <p
+                            className="text-xs text-white/80 line-clamp-2"
+                            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                          >
+                            {event.description}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
+            <div className="flex justify-center mt-4 space-x-2">
+              {featuredEvents.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setFeaturedIndex(index)}
+                  className={`w-2 h-2 rounded-full transition-colors duration-200 ${
+                    index === featuredIndex ? 'bg-white' : 'bg-white/40'
+                  }`}
+                  aria-label={`Go to featured announcement ${index + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -218,8 +242,13 @@ export default function EventsOverview({
                       </p>
                       <div className="flex items-center gap-2 text-xs text-white/80">
                         <Calendar size={14} weight="duotone" />
-                        <span style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-                          {formatDateRangeAsWords(event.startDate, event.endDate)}
+                        <span
+                          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                        >
+                          {formatDateRangeAsWords(
+                            event.startDate,
+                            event.endDate
+                          )}
                         </span>
                       </div>
                     </div>
@@ -286,30 +315,40 @@ export default function EventsOverview({
                     'violet-800': 'from-violet-800 to-violet-700',
                     'purple-800': 'from-purple-800 to-purple-700',
                   }
-                  const gradientClass = colorMap[event.color] || 'from-blue-900 to-blue-800'
+                  const gradientClass =
+                    colorMap[event.color] || 'from-blue-900 to-blue-800'
 
                   // Calculate days left
                   const now = new Date()
                   const startDate = new Date(event.startDate)
                   const endDate = new Date(event.endDate)
                   const selectedDateObj = selectedDate || now
-                  
+
                   let daysLeft: number | null = null
                   let daysText = ''
-                  
+
                   if (selectedDateObj < startDate) {
                     // Event hasn't started yet
-                    const diffTime = startDate.getTime() - selectedDateObj.getTime()
+                    const diffTime =
+                      startDate.getTime() - selectedDateObj.getTime()
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
                     daysLeft = diffDays
-                    daysText = diffDays === 1 ? '1 day left' : `${diffDays} days left`
-                  } else if (selectedDateObj >= startDate && selectedDateObj <= endDate) {
+                    daysText =
+                      diffDays === 1 ? '1 day left' : `${diffDays} days left`
+                  } else if (
+                    selectedDateObj >= startDate &&
+                    selectedDateObj <= endDate
+                  ) {
                     // Event is ongoing
-                    const diffTime = endDate.getTime() - selectedDateObj.getTime()
+                    const diffTime =
+                      endDate.getTime() - selectedDateObj.getTime()
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
                     if (diffDays > 0) {
                       daysLeft = diffDays
-                      daysText = diffDays === 1 ? 'Ends in 1 day' : `Ends in ${diffDays} days`
+                      daysText =
+                        diffDays === 1
+                          ? 'Ends in 1 day'
+                          : `Ends in ${diffDays} days`
                     } else {
                       daysText = 'Ends today'
                     }
@@ -340,7 +379,10 @@ export default function EventsOverview({
                               <div className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/30">
                                 <span
                                   className="text-xs font-medium text-white whitespace-nowrap"
-                                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                                  style={{
+                                    fontFamily: 'Poppins',
+                                    fontWeight: 500,
+                                  }}
                                 >
                                   {daysText}
                                 </span>
@@ -355,8 +397,13 @@ export default function EventsOverview({
                           </p>
                           <div className="flex items-center gap-2 text-sm text-white/80 bg-white/10 rounded-lg px-3 py-2 w-fit">
                             <Calendar size={16} weight="duotone" />
-                            <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                              {formatDateRangeAsWords(event.startDate, event.endDate)}
+                            <span
+                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            >
+                              {formatDateRangeAsWords(
+                                event.startDate,
+                                event.endDate
+                              )}
                             </span>
                           </div>
                         </div>
@@ -404,13 +451,16 @@ export default function EventsOverview({
                 if (now < startDate) {
                   const diffTime = startDate.getTime() - now.getTime()
                   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-                  daysText = diffDays === 1 ? '1 day left' : `${diffDays} days left`
+                  daysText =
+                    diffDays === 1 ? '1 day left' : `${diffDays} days left`
                 } else if (now >= startDate && now <= endDate) {
                   const diffTime = endDate.getTime() - now.getTime()
                   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
                   if (diffDays > 0) {
                     daysText =
-                      diffDays === 1 ? 'Ends in 1 day' : `Ends in ${diffDays} days`
+                      diffDays === 1
+                        ? 'Ends in 1 day'
+                        : `Ends in ${diffDays} days`
                   } else {
                     daysText = 'Ends today'
                   }
@@ -440,7 +490,10 @@ export default function EventsOverview({
                             <div className="flex-shrink-0 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/30">
                               <span
                                 className="text-xs font-medium text-white whitespace-nowrap"
-                                style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 500,
+                                }}
                               >
                                 {daysText}
                               </span>
@@ -455,7 +508,9 @@ export default function EventsOverview({
                         </p>
                         <div className="flex items-center gap-2 text-sm text-white/80 bg-white/10 rounded-lg px-3 py-2 w-fit">
                           <Calendar size={16} weight="duotone" />
-                          <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                          <span
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
                             {formatDateRangeAsWords(
                               selectedEvent.startDate,
                               selectedEvent.endDate
@@ -523,8 +578,13 @@ export default function EventsOverview({
                       </p>
                       <div className="flex items-center gap-2 text-xs text-white/80">
                         <Calendar size={14} weight="duotone" />
-                        <span style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-                          {formatDateRangeAsWords(event.startDate, event.endDate)}
+                        <span
+                          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                        >
+                          {formatDateRangeAsWords(
+                            event.startDate,
+                            event.endDate
+                          )}
                         </span>
                       </div>
                     </div>
@@ -538,4 +598,3 @@ export default function EventsOverview({
     </div>
   )
 }
-

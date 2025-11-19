@@ -483,27 +483,29 @@ export default function DocumentsManager({
         </div>
 
         {/* Documents Grid Skeleton */}
-        <div className="flex flex-wrap gap-4 sm:gap-6">
+        <div className="flex flex-wrap gap-3 sm:gap-4 lg:gap-6">
           {Array.from({ length: 7 }).map((_, index) => (
             <div
               key={index}
-              className="flex-[1_1_min(100%,_360px)] max-w-full flex"
+              className="flex-[1_1_min(100%,_320px)] sm:flex-[1_1_min(100%,_360px)] max-w-full flex"
             >
-              <div className="border border-gray-200 border-dashed rounded-xl p-6 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse h-full w-full flex flex-col">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-16 h-16 bg-gray-300 rounded-lg flex-shrink-0"></div>
-                  <div className="flex-1 space-y-3">
-                    <div className="h-5 bg-gray-300 rounded-lg w-3/4"></div>
-                    <div className="h-4 bg-gray-300 rounded-lg w-full"></div>
-                    <div className="h-4 bg-gray-300 rounded-lg w-2/3"></div>
+              <div className="border border-gray-200 border-dashed rounded-xl p-4 sm:p-6 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse h-full w-full flex flex-col">
+                <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-300 rounded-lg flex-shrink-0"></div>
+                  <div className="flex-1 space-y-2 sm:space-y-3">
+                    <div className="h-4 sm:h-5 bg-gray-300 rounded-lg w-3/4"></div>
+                    <div className="h-3 sm:h-4 bg-gray-300 rounded-lg w-full"></div>
+                    <div className="h-3 sm:h-4 bg-gray-300 rounded-lg w-2/3"></div>
                   </div>
                 </div>
-                <div className="flex-1 flex flex-col justify-between space-y-4">
-                  <div className="h-7 bg-gray-300 rounded-lg w-24"></div>
-                  <div className="flex gap-2 mt-auto">
-                    <div className="h-9 bg-gray-300 rounded-lg flex-1"></div>
-                    <div className="h-9 bg-gray-300 rounded-lg flex-1"></div>
-                    <div className="h-9 bg-gray-300 rounded-lg flex-1"></div>
+                <div className="flex-1 flex flex-col justify-between space-y-3 sm:space-y-4">
+                  <div className="h-6 sm:h-7 bg-gray-300 rounded-lg w-20 sm:w-24"></div>
+                  <div className="flex flex-col sm:flex-row gap-2 mt-auto">
+                    <div className="flex gap-2">
+                      <div className="h-8 sm:h-9 bg-gray-300 rounded-lg flex-1"></div>
+                      <div className="h-8 sm:h-9 bg-gray-300 rounded-lg flex-1"></div>
+                    </div>
+                    <div className="h-8 sm:h-9 bg-gray-300 rounded-lg"></div>
                   </div>
                 </div>
               </div>
@@ -517,34 +519,37 @@ export default function DocumentsManager({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
-              <FileText size={24} className="text-white" weight="fill" />
+      <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-blue-100 shadow-lg">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md flex-shrink-0">
+                <FileText size={20} className="sm:w-6 sm:h-6 text-white" weight="fill" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2
+                  className="text-lg sm:text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Document Management
+                </h2>
+                <p
+                  className="text-xs sm:text-sm text-gray-600 mt-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  Upload and manage your academic documents. These documents will
+                  be available for all your enrollments.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2
-                className="text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Document Management
-              </h2>
-              <p
-                className="text-sm text-gray-600 mt-1"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-              >
-                Upload and manage your academic documents. These documents will
-                be available for all your enrollments.
-              </p>
+            <div className="flex items-center justify-center sm:justify-end">
+              <div className="flex items-center space-x-2 text-xs sm:text-sm text-white bg-gradient-to-br from-blue-800 to-blue-900 px-3 py-2 sm:px-4 sm:py-2 rounded-xl shadow-md">
+                <Check size={14} className="sm:w-4 sm:h-4" />
+                <span style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                  {documents.length} of {getRequiredDocumentsCount()} required uploaded
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center space-x-2 text-sm text-white bg-gradient-to-br from-blue-800 to-blue-900 px-4 py-2 rounded-xl shadow-md">
-            <Check size={16} />
-            <span style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
-              {documents.length} of {getRequiredDocumentsCount()} required
-              uploaded
-            </span>
           </div>
         </div>
       </div>
@@ -560,10 +565,10 @@ export default function DocumentsManager({
           return (
             <div
               key={docType.key}
-              className="flex-[1_1_min(100%,_360px)] max-w-full flex"
+              className="flex-[1_1_min(100%,_320px)] sm:flex-[1_1_min(100%,_360px)] max-w-full flex"
             >
               <Card
-                className={`group flex flex-col h-full w-full p-6 border-none rounded-xl text-white transition-all duration-300 ease-in-out hover:-translate-y-2 hover:scale-[1.02] ${getCardGradient(
+                className={`group flex flex-col h-full w-full p-4 sm:p-6 border-none rounded-xl text-white transition-all duration-300 ease-in-out hover:-translate-y-2 hover:scale-[1.02] ${getCardGradient(
                   hasDoc
                 )}`}
                 style={{
@@ -582,17 +587,17 @@ export default function DocumentsManager({
                   e.currentTarget.style.boxShadow = `0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05), 0 0 0 1px ${shadowColor}33`
                 }}
               >
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-md">
+                <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-md">
                     <IconComponent
-                      size={32}
-                      className="text-blue-900"
+                      size={24}
+                      className="sm:w-8 sm:h-8 text-blue-900"
                       weight="fill"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3
-                      className="text-lg font-medium text-white leading-tight"
+                      className="text-base sm:text-lg font-medium text-white leading-tight"
                       style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                     >
                       {docType.name}
@@ -601,7 +606,7 @@ export default function DocumentsManager({
                       )}
                     </h3>
                     <p
-                      className="text-sm text-white/80 mt-2 leading-relaxed"
+                      className="text-xs sm:text-sm text-white/80 mt-1 sm:mt-2 leading-relaxed"
                       style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                     >
                       {docType.description}
@@ -689,41 +694,43 @@ export default function DocumentsManager({
                           {formatFileSize(existingDoc?.fileSize || 0)}
                         </span>
                       </p>
-                      <div className="mt-auto flex gap-2">
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            if (!existingDoc) return
-                            handlePreview(existingDoc)
-                          }}
-                          className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-blue-900 hover:bg-blue-50 transition-all duration-200 rounded-lg shadow-sm"
-                          aria-label={`Preview ${docType.name}`}
-                        >
-                          <Eye size={14} className="text-blue-900" />
-                          <span
-                            className="text-xs"
-                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      <div className="mt-auto flex flex-col sm:flex-row gap-2">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (!existingDoc) return
+                              handlePreview(existingDoc)
+                            }}
+                            className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-white text-blue-900 hover:bg-blue-50 transition-all duration-200 rounded-lg shadow-sm flex-1"
+                            aria-label={`Preview ${docType.name}`}
                           >
-                            Preview
-                          </span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            if (!existingDoc) return
-                            handleDownload(existingDoc)
-                          }}
-                          className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-blue-900 hover:bg-blue-50 transition-all duration-200 rounded-lg shadow-sm"
-                          aria-label={`Download ${docType.name}`}
-                        >
-                          <Download size={14} className="text-blue-900" />
-                          <span
-                            className="text-xs"
-                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            <Eye size={12} className="sm:w-3.5 sm:h-3.5 text-blue-900" />
+                            <span
+                              className="text-xs"
+                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            >
+                              Preview
+                            </span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (!existingDoc) return
+                              handleDownload(existingDoc)
+                            }}
+                            className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-white text-blue-900 hover:bg-blue-50 transition-all duration-200 rounded-lg shadow-sm flex-1"
+                            aria-label={`Download ${docType.name}`}
                           >
-                            Download
-                          </span>
-                        </Button>
+                            <Download size={12} className="sm:w-3.5 sm:h-3.5 text-blue-900" />
+                            <span
+                              className="text-xs"
+                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            >
+                              Download
+                            </span>
+                          </Button>
+                        </div>
                         <Button
                           size="sm"
                           onClick={() => {
@@ -732,10 +739,10 @@ export default function DocumentsManager({
                               setDeleteModalOpen(true)
                             }
                           }}
-                          className="flex items-center justify-center gap-2 px-4 py-2 bg-white text-blue-900 hover:bg-blue-50 transition-all duration-200 rounded-lg shadow-sm"
+                          className="flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-white text-blue-900 hover:bg-blue-50 transition-all duration-200 rounded-lg shadow-sm"
                           aria-label={`Delete ${docType.name}`}
                         >
-                          <Trash size={14} className="text-blue-900" />
+                          <Trash size={12} className="sm:w-3.5 sm:h-3.5 text-blue-900" />
                           <span
                             className="text-xs"
                             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
@@ -837,7 +844,7 @@ export default function DocumentsManager({
                           isProcessingFile
                         }
                       />
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <label
                           htmlFor={`file-${docType.key}`}
                           role="button"
@@ -851,7 +858,7 @@ export default function DocumentsManager({
                               if (fileInput) fileInput.click()
                             }
                           }}
-                          className={`inline-flex items-center justify-center px-4 py-2 text-xs text-white/90 hover:text-white hover:bg-white/30 rounded-lg transition-all duration-200 flex-1 ${
+                          className={`inline-flex items-center justify-center px-3 sm:px-4 py-2 text-xs text-white/90 hover:text-white hover:bg-white/30 rounded-lg transition-all duration-200 ${
                             uploadingDocKey === docType.key ||
                             filePreviewModalOpen ||
                             isProcessingFile
@@ -862,12 +869,12 @@ export default function DocumentsManager({
                         >
                           {uploadingDocKey === docType.key ? (
                             <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                              <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-2 border-white border-t-transparent mr-1 sm:mr-2"></div>
                               {Math.round(uploadProgress)}%
                             </>
                           ) : (
                             <>
-                              <Upload size={16} className="mr-2" />
+                              <Upload size={14} className="sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                               Choose File
                             </>
                           )}
@@ -878,7 +885,7 @@ export default function DocumentsManager({
                             setCameraDocumentKey(docType.key)
                             setCameraOpen(true)
                           }}
-                          className="text-white/90 hover:text-white hover:bg-white/30 px-4 py-2 text-xs bg-white/20 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 flex-1"
+                          className="text-white/90 hover:text-white hover:bg-white/30 px-3 sm:px-4 py-2 text-xs bg-white/20 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
                           disabled={
                             uploadingDocKey === docType.key ||
                             filePreviewModalOpen ||
@@ -886,7 +893,7 @@ export default function DocumentsManager({
                           }
                           style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                         >
-                          <Camera size={14} className="mr-2" />
+                          <Camera size={12} className="sm:w-3.5 sm:h-3.5 mr-1 sm:mr-2" />
                           Take Photo
                         </Button>
                       </div>

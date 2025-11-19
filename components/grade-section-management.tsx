@@ -27,6 +27,53 @@ import {
   MemberOfIcon,
 } from '@phosphor-icons/react'
 
+const GradeSectionSkeleton = () => {
+  return (
+    <div className="p-6 space-y-6" style={{ fontFamily: 'Poppins' }}>
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6 space-y-4 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/30" />
+            <div className="space-y-2">
+              <div className="h-5 bg-white/60 rounded w-44" />
+              <div className="h-3 bg-white/40 rounded w-64" />
+            </div>
+          </div>
+          <div className="h-10 w-40 rounded-lg bg-white/30" />
+        </div>
+        <div className="flex gap-2">
+          {[1, 2].map((toggle) => (
+            <div
+              key={`view-toggle-${toggle}`}
+              className="h-9 flex-1 rounded-lg bg-white/20"
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {[1, 2].map((list) => (
+          <div
+            key={`gs-list-${list}`}
+            className="rounded-xl border border-blue-100 bg-white shadow-sm p-4 space-y-3 animate-pulse"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gray-100" />
+              <div className="h-4 rounded bg-gray-100 w-32" />
+            </div>
+            {[1, 2, 3, 4].map((row) => (
+              <div
+                key={`gs-row-${list}-${row}`}
+                className="h-12 rounded-lg bg-gray-50"
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 interface GradeSectionManagementProps {
   registrarUid: string
 }
@@ -661,6 +708,10 @@ export default function GradeSectionManagement({
         )}
       </div>
     )
+  }
+
+  if (loading && grades.length === 0 && sections.length === 0) {
+    return <GradeSectionSkeleton />
   }
 
   return (

@@ -48,34 +48,34 @@ export default function CourseSelectionStep({
 }: CourseSelectionStepProps) {
   return (
     <div
-      className={`space-y-6 transition-all duration-500 ${
+      className={`space-y-4 sm:space-y-6 transition-all duration-500 ${
         animatingStep
           ? 'opacity-0 transform translate-x-4'
           : 'opacity-100 transform translate-x-0'
       }`}
     >
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-blue-100 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center">
-              <GraduationCap size={20} className="text-white" weight="bold" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center flex-shrink-0">
+              <GraduationCap size={16} className="sm:w-5 sm:h-5 text-white" weight="bold" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h2
-                className="text-xl font-medium text-gray-900"
+                className="text-lg sm:text-xl font-medium text-gray-900"
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
                 Select Your Course
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Choose the college course you wish to enroll in
               </p>
             </div>
           </div>
+          <Button variant="ghost" onClick={handleBackToLevelSelection} className="w-full sm:w-auto">
+            Back
+          </Button>
         </div>
-        <Button variant="ghost" onClick={handleBackToLevelSelection}>
-          Back
-        </Button>
       </div>
 
       {loadingCourses ? (
@@ -110,7 +110,7 @@ export default function CourseSelectionStep({
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 gap-4">
           {courses.map((course, index) => {
             const previousCourseCode =
               previousEnrollment?.enrollmentInfo?.courseCode
@@ -119,7 +119,7 @@ export default function CourseSelectionStep({
             return (
               <Card
                 key={`course-${course.id}-${index}`}
-                className={`group p-6 border-none border-1 shadow-sm bg-gray-50 ${
+                className={`group p-4 border-none border-1 shadow-sm bg-gray-50 ${
                   isPreviousCourse
                     ? 'opacity-40 cursor-not-allowed'
                     : 'hover:border-blue-900 cursor-pointer'
@@ -135,34 +135,32 @@ export default function CourseSelectionStep({
                 onClick={() => !isPreviousCourse && handleCourseSelect(course)}
               >
                 <div className="space-y-4 flex flex-col justify-between h-full">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`w-10 h-10 flex items-center justify-center bg-white`}
+                  <div className="flex flex-col items-center space-y-2">
+                    <div
+                      className={`w-8 h-8 flex items-center justify-center bg-white rounded-full`}
+                    >
+                      <GraduationCap
+                        size={16}
+                        weight="fill"
+                        style={{ color: getColorValue(course.color) }}
+                      />
+                    </div>
+                    <div className="text-center">
+                      <h3
+                        className="text-sm font-medium text-white mb-1"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                       >
-                        <GraduationCap
-                          size={20}
-                          weight="fill"
-                          style={{ color: getColorValue(course.color) }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3
-                          className="text-lg font-medium text-white"
-                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                        >
-                          {course.code}
-                        </h3>
-                        <p className="text-sm text-white">{course.name}</p>
-                      </div>
+                        {course.code}
+                      </h3>
+                      <p className="text-xs text-white/80">{course.name}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-white line-clamp-3">
+                  <p className="hidden sm:block text-xs text-white line-clamp-3">
                     {course.description}
                   </p>
-                  <div className="pt-2 border-t border-gray-200">
+                  <div className="hidden sm:block pt-2 border-t border-gray-200">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-white">
+                      <span className="text-[10px] text-white">
                         {isPreviousCourse
                           ? 'Previous course'
                           : 'Click to select'}

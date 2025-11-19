@@ -15,11 +15,39 @@ import { useRouter } from 'next/navigation'
 
 export const HeroSection = () => {
   const [isVisible, setIsVisible] = useState(false)
+  const [cursorPosition, setCursorPosition] = useState({ x: -200, y: -200 })
+  const [isCursorActive, setIsCursorActive] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   useEffect(() => {
     setIsVisible(true)
+  }, [])
+
+  useEffect(() => {
+    const node = heroRef.current
+    if (!node) return
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const rect = node.getBoundingClientRect()
+      setCursorPosition({
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      })
+      setIsCursorActive(true)
+    }
+
+    const handleMouseLeave = () => {
+      setIsCursorActive(false)
+    }
+
+    node.addEventListener('mousemove', handleMouseMove)
+    node.addEventListener('mouseleave', handleMouseLeave)
+
+    return () => {
+      node.removeEventListener('mousemove', handleMouseMove)
+      node.removeEventListener('mouseleave', handleMouseLeave)
+    }
   }, [])
 
   const handleGetStarted = () => {
@@ -39,6 +67,9 @@ export const HeroSection = () => {
       ref={heroRef}
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-white via-blue-50 to-blue-100"
     >
+      <div className="pointer-events-none absolute inset-0 opacity-70">
+        <div className="absolute opacity-20 inset-0 bg-[radial-gradient(circle_at_center,_rgba(15,23,42,0)_0%,_rgba(15,23,42,0.18)_30%,_rgba(23,37,84,0.45)_100%)]"></div>
+      </div>
       {/* Grid Background */}
       <div
         className="absolute inset-0 opacity-60"
@@ -56,6 +87,31 @@ export const HeroSection = () => {
         <div className="absolute top-20 left-10 w-72 h-72 bg-blue-900/5 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-800/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-900/3 rounded-full blur-3xl animate-pulse delay-2000"></div>
+      </div>
+
+      {/* Cursor Glow */}
+      <div
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+          isCursorActive ? 'opacity-100' : 'opacity-0'
+        }`}
+        aria-hidden="true"
+      >
+        <div
+          className="absolute w-32 h-32 rounded-full bg-blue-900/30 blur-3xl"
+          style={{
+            left: `${cursorPosition.x}px`,
+            top: `${cursorPosition.y}px`,
+            transform: 'translate(-50%, -50%)',
+          }}
+        ></div>
+        <div
+          className="absolute w-48 h-48 rounded-full bg-blue-800/20 blur-[120px]"
+          style={{
+            left: `${cursorPosition.x}px`,
+            top: `${cursorPosition.y}px`,
+            transform: 'translate(-50%, -50%)',
+          }}
+        ></div>
       </div>
 
       <div className="relative z-10 max-h-[1000px] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -116,7 +172,7 @@ export const HeroSection = () => {
             <div className="flex flex-wrap items-center gap-4">
               <Button
                 onClick={handleGetStarted}
-                className="rounded-full text-sm p-6 bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-xl"
+                className="rounded-lg text-sm px-6 py-4 bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-xl"
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
                 Start Enrolling
@@ -125,7 +181,7 @@ export const HeroSection = () => {
               <Button
                 onClick={handleLearnMore}
                 variant="outline"
-                className="rounded-full text-sm p-6 border-2 border-blue-900 text-blue-900 hover:bg-blue-50 transition-all duration-300 hover:scale-105 active:scale-95"
+                className="rounded-lg text-sm px-6 py-4 border-2 border-blue-900 text-blue-900 hover:bg-blue-50 transition-all duration-300 hover:scale-105 active:scale-95"
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
                 <Play size={20} className="mr-2" weight="fill" />
@@ -143,18 +199,25 @@ export const HeroSection = () => {
             }`}
           >
             <div className="relative">
-              {/* Placeholder Image */}
+              {/* Video Hero */}
               <div className="relative w-full h-[500px] rounded-xl overflow-hidden shadow-2xl border border-blue-200">
-                <img
-                  src="https://via.placeholder.com//1e40af/ffffff?text=Marian+College+Student+Portal"
-                  alt="Marian College Student Portal"
+                <video
                   className="w-full h-full object-cover"
+                  src="/page.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  aria-label="Marian College student experience"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/20 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/70 via-blue-900/30 to-transparent pointer-events-none"></div>
               </div>
 
               {/* Floating Cards */}
-              <div className="absolute -top-6 -left-6 bg-white rounded-xl p-4 shadow-xl border border-blue-100 animate-bounce delay-1000">
+              <div
+                className="absolute -top-6 -left-6 bg-white rounded-xl p-4 shadow-xl border border-blue-100 animate-pulse"
+                style={{ animationDuration: '4s' }}
+              >
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center">
                     <GraduationCap
@@ -180,7 +243,10 @@ export const HeroSection = () => {
                 </div>
               </div>
 
-              <div className="absolute -bottom-6 -right-6 bg-white rounded-xl p-4 shadow-xl border border-blue-100 animate-bounce delay-2000">
+              <div
+                className="absolute -bottom-6 -right-6 bg-white rounded-xl p-4 shadow-xl border border-blue-100 animate-pulse"
+                style={{ animationDuration: '5s', animationDelay: '1s' }}
+              >
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center">
                     <BookOpen size={20} className="text-white" weight="fill" />

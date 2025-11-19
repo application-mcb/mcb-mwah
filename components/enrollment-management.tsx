@@ -107,6 +107,87 @@ import {
   FailedPrerequisite,
 } from './enrollment-management/utils/prerequisites'
 
+const EnrollmentManagementSkeleton = () => {
+  return (
+    <div className="p-6 space-y-6" style={{ fontFamily: 'Poppins' }}>
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6 space-y-4 animate-pulse">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/30" />
+          <div className="space-y-2">
+            <div className="h-5 bg-white/50 rounded w-48" />
+            <div className="h-3 bg-white/40 rounded w-32" />
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((index) => (
+            <div
+              key={`overview-chip-${index}`}
+              className="h-10 rounded-lg bg-white/30"
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-blue-100 shadow-sm p-4 animate-pulse">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="h-10 rounded-lg bg-gray-100 w-full lg:flex-1" />
+          <div className="flex gap-2 w-full lg:w-auto">
+            {[1, 2, 3].map((control) => (
+              <div
+                key={`control-${control}`}
+                className="h-10 rounded-lg bg-gray-100 flex-1"
+              />
+            ))}
+          </div>
+          <div className="h-10 w-36 rounded-lg bg-gray-100" />
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {[1, 2].map((chart) => (
+          <div
+            key={`chart-${chart}`}
+            className="rounded-xl border border-blue-100 bg-white p-4 shadow-sm animate-pulse space-y-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gray-100" />
+              <div className="h-4 bg-gray-100 rounded w-32" />
+            </div>
+            <div className="h-48 rounded-xl bg-gray-50" />
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-blue-100 bg-white shadow-sm divide-y divide-blue-50">
+        <div className="p-4 flex items-center gap-3 animate-pulse">
+          <div className="w-6 h-6 rounded-md bg-gray-100" />
+          <div className="h-4 bg-gray-100 rounded w-40" />
+        </div>
+        {[1, 2, 3, 4, 5].map((row) => (
+          <div
+            key={`enroll-row-${row}`}
+            className="p-4 space-y-3 animate-pulse border-b border-blue-50 last:border-b-0"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gray-100" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-100 rounded w-2/3" />
+                <div className="h-3 bg-gray-100 rounded w-1/2" />
+              </div>
+              <div className="w-16 h-6 rounded-lg bg-gray-100" />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <div className="h-4 bg-gray-50 rounded" />
+              <div className="h-4 bg-gray-50 rounded" />
+              <div className="h-4 bg-gray-50 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 interface EnrollmentManagementProps {
   registrarUid: string
   registrarName?: string
@@ -1297,6 +1378,16 @@ export default function EnrollmentManagement({
   // Show loading skeleton only when no cached rows are available
   const showTableSkeleton =
     (loading || !allDataLoaded) && enrollments.length === 0
+  const showPageSkeleton = loading && enrollments.length === 0
+
+  if (showPageSkeleton) {
+    return (
+      <>
+        <AnimationStylesInjector />
+        <EnrollmentManagementSkeleton />
+      </>
+    )
+  }
 
   const studentIdResolved = resolveStudentId(viewingEnrollment, studentProfiles)
 

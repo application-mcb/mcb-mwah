@@ -35,6 +35,59 @@ import { toast } from 'react-toastify'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
+const SubjectManagementSkeleton = () => {
+  return (
+    <div className="p-6 space-y-6" style={{ fontFamily: 'Poppins' }}>
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6 space-y-4 animate-pulse">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/30" />
+          <div className="space-y-2">
+            <div className="h-5 bg-white/60 rounded w-48" />
+            <div className="h-3 bg-white/40 rounded w-64" />
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {[1, 2, 3].map((tab) => (
+            <div
+              key={`subject-tab-${tab}`}
+              className="h-10 rounded-lg bg-white/25"
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {[1, 2].map((panel) => (
+          <Card
+            key={`subject-panel-${panel}`}
+            className="p-4 border border-blue-100 rounded-xl bg-white shadow-sm animate-pulse space-y-3"
+          >
+            <div className="h-4 rounded bg-gray-100 w-32" />
+            {[1, 2, 3, 4].map((row) => (
+              <div
+                key={`panel-${panel}-row-${row}`}
+                className="h-10 rounded-lg bg-gray-50"
+              />
+            ))}
+          </Card>
+        ))}
+      </div>
+
+      <Card className="p-4 border border-blue-100 rounded-xl bg-white shadow-sm animate-pulse space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gray-100" />
+          <div className="h-4 rounded bg-gray-100 w-48" />
+        </div>
+        <div className="grid gap-3">
+          {[1, 2, 3, 4, 5].map((row) => (
+            <div key={`subject-row-${row}`} className="h-12 rounded-lg bg-gray-50" />
+          ))}
+        </div>
+      </Card>
+    </div>
+  )
+}
+
 interface SubjectManagementProps {
   registrarUid: string
 }
@@ -1267,6 +1320,16 @@ export default function SubjectManagement({
         )}
       </div>
     )
+  }
+
+  const showPageSkeleton =
+    (loading || subjectSetLoading || subjectAssignmentLoading) &&
+    subjects.length === 0 &&
+    subjectSets.length === 0 &&
+    subjectAssignments.length === 0
+
+  if (showPageSkeleton) {
+    return <SubjectManagementSkeleton />
   }
 
   return (

@@ -387,6 +387,11 @@ export function useEnrollmentState(
   useEffect(() => {
     if (userProfile) {
       console.log('Syncing user profile to enrollment form:', userProfile)
+      console.log('Raw gender from profile:', userProfile.gender)
+
+      const processedGender = userProfile.gender ? userProfile.gender.charAt(0).toUpperCase() + userProfile.gender.slice(1).toLowerCase() : ''
+      console.log('Processed gender:', processedGender)
+
       setPersonalInfo({
         firstName: userProfile.firstName || '',
         middleName: userProfile.middleName || '',
@@ -399,11 +404,17 @@ export function useEnrollmentState(
         birthMonth: userProfile.birthMonth || '',
         birthDay: userProfile.birthDay || '',
         birthYear: userProfile.birthYear || '',
-        placeOfBirth: '', // Not stored in profile
-        gender: userProfile.gender || '',
-        citizenship: '', // Not stored in profile
-        religion: '', // Not stored in profile
+        placeOfBirth: userProfile.placeOfBirth || '',
+        gender: processedGender,
+        citizenship: userProfile.citizenship || '',
+        religion: userProfile.religion || '',
         civilStatus: userProfile.civilStatus || '',
+      })
+      console.log('Personal info fields synced:', {
+        placeOfBirth: userProfile.placeOfBirth,
+        gender: processedGender,
+        citizenship: userProfile.citizenship,
+        religion: userProfile.religion,
       })
       console.log('Birthday fields synced:', {
         birthMonth: userProfile.birthMonth,

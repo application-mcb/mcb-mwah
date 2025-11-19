@@ -22,6 +22,14 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   assetPrefix: isProduction && cdnPrefix ? cdnPrefix : undefined,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      },
+    ],
+  },
   headers: async () => [
     {
       source: '/:all*(svg|jpg|png|webp|ico)',

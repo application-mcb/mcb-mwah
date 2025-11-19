@@ -41,32 +41,30 @@ export default function YearSelectionStep({
 
   return (
     <div
-      className={`space-y-6 transition-all duration-500 ${
+      className={`space-y-4 sm:space-y-6 transition-all duration-500 ${
         animatingStep
           ? 'opacity-0 transform translate-x-4'
           : 'opacity-100 transform translate-x-0'
       }`}
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center">
-              <User size={20} className="text-white" weight="bold" />
-            </div>
-            <div>
-              <h2
-                className="text-xl font-medium text-gray-900"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Select Your Year Level
-              </h2>
-              <p className="text-sm text-gray-600">
-                Choose your current year level in college
-              </p>
-            </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center flex-shrink-0">
+            <User size={16} className="sm:w-5 sm:h-5 text-white" weight="bold" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2
+              className="text-lg sm:text-xl font-medium text-gray-900"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              Select Your Year Level
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-600">
+              Choose your current year level in college
+            </p>
           </div>
         </div>
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={onBack} className="w-full sm:w-auto">
           Back
         </Button>
       </div>

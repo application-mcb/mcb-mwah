@@ -2,7 +2,13 @@
 
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { User, Envelope, Phone, IdentificationCard, Heart } from '@phosphor-icons/react'
+import {
+  User,
+  Envelope,
+  Phone,
+  IdentificationCard,
+  Heart,
+} from '@phosphor-icons/react'
 
 type PersonalInfo = {
   firstName: string
@@ -56,49 +62,69 @@ export default function PersonalInfoStep({
 }: PersonalInfoStepProps) {
   return (
     <div
-      className={`space-y-6 transition-all duration-500 ${
-        animatingStep ? 'opacity-0 transform translate-x-4' : 'opacity-100 transform translate-x-0'
-      }`}
+      className={`space-y-4 sm:space-y-6 transition-all duration-500 ${
+        animatingStep
+          ? 'opacity-0 transform translate-x-4'
+          : 'opacity-100 transform translate-x-0'
+      } min-h-0 sm:min-h-fit`}
     >
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-blue-100 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
-              <User size={20} className="text-white" weight="bold" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md flex-shrink-0">
+              <User
+                size={16}
+                className="sm:w-5 sm:h-5 text-white"
+                weight="bold"
+              />
             </div>
-            <div>
-              <h2 className="text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+            <div className="min-w-0 flex-1">
+              <h2
+                className="text-lg sm:text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
                 Personal Information
               </h2>
-              <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>Review and update your personal details for enrollment</p>
+              <p
+                className="text-xs sm:text-sm text-gray-600"
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
+                Review and update your personal details for enrollment
+              </p>
             </div>
           </div>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (selectedLevel === 'college') {
+                onBackSemester()
+              } else {
+                onBackGrade()
+              }
+            }}
+            className="rounded-xl w-full sm:w-auto"
+            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+          >
+            Back
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          onClick={() => {
-            if (selectedLevel === 'college') {
-              onBackSemester()
-            } else {
-              onBackGrade()
-            }
-          }}
-          className="rounded-xl"
-          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-        >
-          Back
-        </Button>
       </div>
 
-      <Card className="p-8 rounded-xl border border-blue-100 bg-white/80 backdrop-blur-sm shadow-lg">
+      <div className="p-4 sm:p-6 lg:p-8 rounded-xl border border-blue-100 bg-white/80 backdrop-blur-sm shadow-lg overflow-visible sm:overflow-auto">
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+            <h3
+              className="text-lg font-medium text-gray-900 mb-4"
+              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+            >
               Full Name
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -110,7 +136,10 @@ export default function PersonalInfoStep({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   Middle Name <span className="text-gray-400">(Optional)</span>
                 </label>
                 <input
@@ -122,7 +151,10 @@ export default function PersonalInfoStep({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -134,7 +166,10 @@ export default function PersonalInfoStep({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   Extension <span className="text-gray-400">(Optional)</span>
                 </label>
                 <input
@@ -149,12 +184,18 @@ export default function PersonalInfoStep({
           </div>
 
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+            <h3
+              className="text-lg font-medium text-gray-900 mb-4"
+              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+            >
               Contact Information
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   Email Address <span className="text-red-500">*</span>
                 </label>
                 <div>
@@ -168,7 +209,10 @@ export default function PersonalInfoStep({
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   Phone Number <span className="text-red-500">*</span>
                 </label>
                 <div>
@@ -186,12 +230,18 @@ export default function PersonalInfoStep({
           </div>
 
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+            <h3
+              className="text-lg font-medium text-gray-900 mb-4"
+              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+            >
               Personal Details
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   Date of Birth <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-4 gap-2 items-end">
@@ -223,11 +273,16 @@ export default function PersonalInfoStep({
                       className="w-full px-4 py-2 h-10 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
                     >
                       <option value="">Day</option>
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                        <option key={day} value={day.toString().padStart(2, '0')}>
-                          {day}
-                        </option>
-                      ))}
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                        (day) => (
+                          <option
+                            key={day}
+                            value={day.toString().padStart(2, '0')}
+                          >
+                            {day}
+                          </option>
+                        )
+                      )}
                     </select>
                   </div>
                   <div className="relative">
@@ -237,7 +292,10 @@ export default function PersonalInfoStep({
                       className="w-full px-4 py-2 h-10 border border-gray-300 focus:border-blue-900 focus:ring-1 focus:ring-blue-900 outline-none transition-all duration-300 hover:shadow-md focus:shadow-lg "
                     >
                       <option value="">Year</option>
-                      {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                      {Array.from(
+                        { length: 100 },
+                        (_, i) => new Date().getFullYear() - i
+                      ).map((year) => (
                         <option key={year} value={year.toString()}>
                           {year}
                         </option>
@@ -250,13 +308,18 @@ export default function PersonalInfoStep({
                         {calculatedAge} Years Old
                       </div>
                     ) : (
-                      <div className="px-3 py-2 bg-gray-50 border border-gray-200 text-xs text-gray-400 text-center min-w-[60px]">Age</div>
+                      <div className="px-3 py-2 bg-gray-50 border border-gray-200 text-xs text-gray-400 text-center min-w-[60px]">
+                        Age
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   Place of Birth <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -268,7 +331,10 @@ export default function PersonalInfoStep({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   Gender <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -283,7 +349,10 @@ export default function PersonalInfoStep({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   Civil Status <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -299,7 +368,10 @@ export default function PersonalInfoStep({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   Citizenship <span className="text-red-500">*</span>
                 </label>
                 <div>
@@ -313,7 +385,10 @@ export default function PersonalInfoStep({
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
                   Religion <span className="text-red-500">*</span>
                 </label>
                 <div>
@@ -330,14 +405,16 @@ export default function PersonalInfoStep({
           </div>
 
           <div className="flex justify-end pt-4 border-t border-blue-100">
-            <Button onClick={onProceedToConfirmation} className="bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 transition-all duration-300 hover:shadow-lg rounded-xl" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+            <Button
+              onClick={onProceedToConfirmation}
+              className="bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 transition-all duration-300 hover:shadow-lg rounded-xl w-full sm:w-auto"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
               Proceed to Confirmation
             </Button>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
-
-

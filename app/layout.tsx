@@ -101,10 +101,16 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
       { url: '/logo.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/logo.png', sizes: '192x192', type: 'image/png' }],
-    shortcut: ['/favicon.ico'],
+    apple: [
+      { url: '/logo.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+    ],
+    shortcut: ['/favicon.ico', '/favicon-32x32.png'],
   },
   manifest: '/manifest.webmanifest',
   themeColor: '#0f172a',
@@ -116,6 +122,12 @@ export const metadata: Metadata = {
 }
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+const navigationLinks = [
+  { name: 'Home', path: '/' },
+  { name: 'Login', path: '/login' },
+  { name: 'Dashboard', path: '/dashboard' },
+  { name: 'Teacher Portal', path: '/teacher' },
+]
 const organizationSchema = {
   '@context': 'https://schema.org',
   '@type': 'CollegeOrUniversity',
@@ -141,6 +153,23 @@ const organizationSchema = {
     telephone: '+63-44-766-1234',
   },
 }
+const siteNavigationSchema = navigationLinks.map((link) => ({
+  '@context': 'https://schema.org',
+  '@type': 'SiteNavigationElement',
+  name: link.name,
+  url: `${siteUrl}${link.path}`,
+}))
+const webSiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: defaultTitle,
+  url: siteUrl,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: `${siteUrl}/search?q={search_term_string}`,
+    'query-input': 'required name=search_term_string',
+  },
+}
 
 export default function RootLayout({
   children,
@@ -158,6 +187,22 @@ export default function RootLayout({
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(organizationSchema),
+          }}
+        />
+        <Script
+          id="site-navigation-structured-data"
+          type="application/ld+json"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(siteNavigationSchema),
+          }}
+        />
+        <Script
+          id="website-structured-data"
+          type="application/ld+json"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(webSiteSchema),
           }}
         />
         {GA_MEASUREMENT_ID ? (

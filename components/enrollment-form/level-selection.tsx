@@ -76,34 +76,34 @@ export default function LevelSelectionStep({
 }: LevelSelectionStepProps) {
   return (
     <div
-      className={`space-y-6 transition-all duration-500 ${
+      className={`space-y-4 sm:space-y-6 transition-all duration-500 ${
         animatingStep
           ? 'opacity-0 transform -translate-x-4'
           : 'opacity-100 transform translate-x-0'
       }`}
     >
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-blue-100 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center">
-              <User size={20} className="text-white" weight="bold" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center flex-shrink-0">
+              <User size={16} className="sm:w-5 sm:h-5 text-white" weight="bold" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h2
-                className="text-xl font-medium text-gray-900"
+                className="text-lg sm:text-xl font-medium text-gray-900"
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
                 Select Your Education Level
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Choose whether you're enrolling for high school or college
               </p>
             </div>
           </div>
+          <Button variant="ghost" onClick={handleBackToCompliance} className="w-full sm:w-auto">
+            Back
+          </Button>
         </div>
-        <Button variant="ghost" onClick={handleBackToCompliance}>
-          Back
-        </Button>
       </div>
 
       {(() => {
@@ -232,7 +232,7 @@ export default function LevelSelectionStep({
                     </div>
 
                     <p
-                      className="text-sm text-white/90"
+                      className="hidden sm:block text-sm text-white/90"
                       style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                     >
                       Continue with your previous enrollment information from{' '}
@@ -241,7 +241,7 @@ export default function LevelSelectionStep({
                       .
                     </p>
 
-                    <div className="space-y-2">
+                    <div className="hidden sm:block space-y-2">
                       <div className="flex items-center space-x-2 text-sm text-white/90">
                         <Check size={16} className="text-white" weight="bold" />
                         <span
@@ -287,7 +287,7 @@ export default function LevelSelectionStep({
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-white/20">
+                    <div className="hidden sm:block pt-4 border-t border-white/20">
                       <div className="flex items-center justify-between">
                         <span
                           className="text-sm text-white/90"
@@ -371,7 +371,7 @@ export default function LevelSelectionStep({
                       </div>
 
                       <p
-                        className="text-sm text-white/90"
+                        className="hidden sm:block text-sm text-white/90"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                       >
                         Select this option if you're enrolling for junior high
@@ -379,7 +379,7 @@ export default function LevelSelectionStep({
                         programs.
                       </p>
 
-                      <div className="space-y-2">
+                      <div className="hidden sm:block space-y-2">
                         <div className="flex items-center space-x-2 text-sm text-white/90">
                           <Check
                             size={16}
@@ -418,7 +418,7 @@ export default function LevelSelectionStep({
                         </div>
                       </div>
 
-                      <div className="space-y-2 pt-4 border-t border-white/20">
+                      <div className="hidden sm:block space-y-2 pt-4 border-t border-white/20">
                         <div className="flex items-center justify-between">
                           <span
                             className="text-sm font-medium text-white"
@@ -538,7 +538,7 @@ export default function LevelSelectionStep({
                       </div>
 
                       <p
-                        className="text-sm text-white/90"
+                        className="hidden sm:block text-sm text-white/90"
                         style={{ fontFamily: 'Poppins', fontWeight: 300 }}
                       >
                         {hasPreviousCollegeEnrollment
@@ -548,7 +548,7 @@ export default function LevelSelectionStep({
                           : "Select this option if you're enrolling for college degree programs and courses."}
                       </p>
 
-                      <div className="space-y-2">
+                      <div className="hidden sm:block space-y-2">
                         {hasPreviousCollegeEnrollment ? (
                           <>
                             <div className="flex items-center space-x-2 text-sm text-white/90">
@@ -648,7 +648,7 @@ export default function LevelSelectionStep({
                         )}
                       </div>
 
-                      <div className="space-y-2 pt-4 border-t border-white/20">
+                      <div className="hidden sm:block space-y-2 pt-4 border-t border-white/20">
                         <div className="flex items-center justify-between">
                           <span
                             className="text-sm font-medium text-white"

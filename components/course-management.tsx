@@ -10,6 +10,51 @@ import { CourseData, CourseColor } from '@/lib/types/course';
 import { useAuth } from '@/lib/auth-context';
 import { Trash, X, Warning, Check, Eye, GraduationCap } from '@phosphor-icons/react';
 
+const CourseManagementSkeleton = () => {
+  return (
+    <div className="p-6 space-y-6" style={{ fontFamily: 'Poppins' }}>
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6 space-y-4 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/30" />
+            <div className="space-y-2">
+              <div className="h-5 bg-white/60 rounded w-40" />
+              <div className="h-3 bg-white/40 rounded w-56" />
+            </div>
+          </div>
+          <div className="h-10 w-36 rounded-lg bg-white/30" />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center animate-pulse">
+        <div className="h-10 rounded-lg bg-gray-100 flex-1" />
+        <div className="flex gap-2 w-full sm:w-auto">
+          {[1, 2, 3, 4].map((filter) => (
+            <div key={`course-filter-${filter}`} className="h-9 w-16 rounded-lg bg-gray-100" />
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3, 4, 5, 6].map((card) => (
+          <div
+            key={`course-card-${card}`}
+            className="border border-blue-100 rounded-xl bg-white shadow-sm p-4 space-y-3 animate-pulse"
+          >
+            <div className="h-4 rounded bg-gray-100 w-24" />
+            <div className="h-6 rounded bg-gray-100 w-32" />
+            <div className="h-3 rounded bg-gray-50" />
+            <div className="flex gap-2">
+              <div className="h-8 flex-1 rounded-lg bg-gray-100" />
+              <div className="h-8 flex-1 rounded-lg bg-gray-100" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 interface CourseManagementProps {
   registrarUid: string;
 }
@@ -297,6 +342,10 @@ export default function CourseManagement({ registrarUid }: CourseManagementProps
       </div>
     );
   };
+
+  if (loading && courses.length === 0) {
+    return <CourseManagementSkeleton />;
+  }
 
   return (
     <>

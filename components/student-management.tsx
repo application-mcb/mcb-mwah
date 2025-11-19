@@ -100,6 +100,82 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleSheet)
 }
 
+const StudentManagementSkeleton = () => {
+  return (
+    <div className="p-6 space-y-6" style={{ fontFamily: 'Poppins' }}>
+      <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6 space-y-3 animate-pulse">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/30" />
+          <div className="space-y-2">
+            <div className="h-5 bg-white/50 rounded w-40" />
+            <div className="h-3 bg-white/30 rounded w-64" />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 pt-2">
+          {[1, 2].map((item) => (
+            <div
+              key={`chip-${item}`}
+              className="px-4 py-2 rounded-lg bg-white/20 w-28 h-6"
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((card) => (
+          <Card
+            key={`summary-${card}`}
+            className="p-4 border border-blue-100 rounded-xl bg-white shadow-sm animate-pulse"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-50" />
+              <div className="space-y-2 flex-1">
+                <div className="h-3 bg-gray-200 rounded w-20" />
+                <div className="h-4 bg-gray-300 rounded w-12" />
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="p-4 border border-blue-100 rounded-xl bg-white shadow-sm animate-pulse">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="h-10 bg-gray-100 rounded-lg w-full lg:flex-1" />
+          <div className="flex gap-2 w-full lg:w-auto">
+            {[1, 2, 3].map((filter) => (
+              <div
+                key={`filter-${filter}`}
+                className="h-10 flex-1 rounded-lg bg-gray-100"
+              />
+            ))}
+          </div>
+          <div className="h-10 w-32 rounded-lg bg-gray-100" />
+        </div>
+      </Card>
+
+      <Card className="border border-blue-100 rounded-xl bg-white shadow-sm">
+        <div className="p-4 border-b border-blue-50 flex items-center gap-3 animate-pulse">
+          <div className="w-6 h-6 rounded-md bg-gray-200" />
+          <div className="h-4 bg-gray-200 rounded w-32" />
+        </div>
+        <div className="divide-y divide-blue-50">
+          {[1, 2, 3, 4, 5].map((row) => (
+            <div
+              key={`row-${row}`}
+              className="grid grid-cols-4 gap-3 p-4 animate-pulse"
+            >
+              <div className="h-4 rounded bg-gray-100" />
+              <div className="h-4 rounded bg-gray-100" />
+              <div className="h-4 rounded bg-gray-100" />
+              <div className="h-4 rounded bg-gray-100" />
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  )
+}
+
 interface StudentManagementProps {
   registrarUid: string
   registrarName?: string
@@ -1360,6 +1436,11 @@ export default function StudentManagement({
 
   // Show loading skeleton only for table during data loading
   const showTableSkeleton = loading || !allDataLoaded
+  const showPageSkeleton = loading && !allDataLoaded
+
+  if (showPageSkeleton) {
+    return <StudentManagementSkeleton />
+  }
 
   return (
     <div className="p-6 space-y-6">

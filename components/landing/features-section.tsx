@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Modal } from '@/components/ui/modal'
@@ -21,28 +22,25 @@ interface Feature {
 
 const features: Feature[] = [
   {
+    icon: Calendar,
+    title: 'Calendar of Activities',
+    description:
+      'Comprehensive calendar system to track and manage all school activities, events, and important dates.',
+    image: '/calendar-feature.jpg',
+  },
+  {
     icon: GraduationCap,
     title: 'Online Enrollment/Re-enrollment',
     description:
       'Streamlined online enrollment and re-enrollment process with comprehensive form management and document tracking.',
-    image:
-      'https://via.placeholder.com/400x300/1e40af/ffffff?text=Online+Enrollment',
+    image: '/enrollment-feature.jpg',
   },
   {
     icon: ChartBar,
     title: 'Live Grade Management',
     description:
       'Real-time grade tracking and management system for teachers and administrators with instant updates.',
-    image:
-      'https://via.placeholder.com/400x300/1e3a8a/ffffff?text=Grade+Management',
-  },
-  {
-    icon: Calendar,
-    title: 'Calendar of Activities',
-    description:
-      'Comprehensive calendar system to track and manage all school activities, events, and important dates.',
-    image:
-      'https://via.placeholder.com/400x300/1e40af/ffffff?text=Calendar+Activities',
+    image: '/management-feature.jpg',
   },
 ]
 
@@ -134,7 +132,7 @@ export const FeaturesSection = () => {
               <Card
                 key={index}
                 data-index={index}
-                className={`group relative p-0 bg-white border border-blue-100 rounded-xl hover:shadow-xl transition-all duration-500 overflow-hidden ${
+                className={`group relative p-0 bg-white border border-blue-100 rounded-xl hover:shadow-xl transition-all duration-300 overflow-hidden ${
                   isVisible
                     ? 'opacity-100 translate-y-0'
                     : 'opacity-0 translate-y-10'
@@ -144,7 +142,7 @@ export const FeaturesSection = () => {
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform =
-                    'translateY(-8px) scale(1.02)'
+                    'translateY(-4px) scale(1.01)'
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0) scale(1)'
@@ -152,19 +150,22 @@ export const FeaturesSection = () => {
               >
                 {/* Picture */}
                 <div className="relative w-full h-48 rounded-t-xl overflow-hidden bg-gradient-to-br from-blue-800 to-blue-900">
-                  <img
+                  <Image
                     src={feature.image}
                     alt={feature.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    priority={index === 0}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-blue-900/50 to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-blue-900/50 to-transparent pointer-events-none"></div>
                 </div>
 
                 {/* Title */}
                 <div className="p-6">
                   <h3
                     className="text-xl font-medium text-blue-900 text-center"
-                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
                     {feature.title}
                   </h3>
@@ -200,12 +201,14 @@ export const FeaturesSection = () => {
           <div className="p-6">
             {/* Image */}
             <div className="relative w-full h-64 rounded-lg overflow-hidden mb-6 bg-gradient-to-br from-blue-800 to-blue-900">
-              <img
+              <Image
                 src={selectedFeature.image}
                 alt={selectedFeature.title}
-                className="w-full h-full object-cover"
+                fill
+                sizes="(max-width: 1024px) 100vw, 800px"
+                className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-blue-900/50 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-blue-900/50 to-transparent pointer-events-none"></div>
             </div>
 
             {/* Icon */}

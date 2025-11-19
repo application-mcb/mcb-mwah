@@ -192,41 +192,47 @@ export default function ConfirmationStep({
 
   return (
     <div
-      className={`space-y-6 transition-all duration-500 ${
+      className={`space-y-4 sm:space-y-6 transition-all duration-500 bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-blue-100 shadow-lg ${
         animatingStep
           ? 'opacity-0 transform translate-x-4'
           : 'opacity-100 transform translate-x-0'
       }`}
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
-              <Check size={20} className="text-white" weight="bold" />
-            </div>
-            <div>
-              <h2
-                className="text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Confirm Your Enrollment
-              </h2>
-              <p
-                className="text-sm text-gray-600"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-              >
-                Review all information and submit your enrollment
-              </p>
-            </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md flex-shrink-0">
+            <Check
+              size={16}
+              className="sm:w-5 sm:h-5 text-white"
+              weight="bold"
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2
+              className="text-lg sm:text-xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              Confirm Your Enrollment
+            </h2>
+            <p
+              className="text-xs sm:text-sm text-gray-600"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
+              Review all information and submit your enrollment
+            </p>
           </div>
         </div>
-        <Button variant="ghost" onClick={onBack} className="rounded-xl">
+        <Button
+          variant="ghost"
+          onClick={onBack}
+          className="rounded-xl w-full sm:w-auto"
+        >
           Back
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6 rounded-xl border border-blue-100 bg-white/80 backdrop-blur-sm shadow-lg">
+      <div className="grid grid-cols-1 gap-6">
+        <div className="p-6 rounded-xl border border-blue-100 bg-white/80 backdrop-blur-sm shadow-lg">
           <div className="space-y-6">
             <div>
               <h4
@@ -359,7 +365,7 @@ export default function ConfirmationStep({
               </h4>
               <div className="mb-4">
                 <div
-                  className="p-4 rounded-xl border border-blue-100 shadow-lg"
+                  className="p-3 sm:p-4 rounded-xl border border-blue-100 shadow-lg"
                   style={{
                     background: `linear-gradient(135deg, ${
                       selectedLevel === 'high-school' && selectedGrade
@@ -376,19 +382,28 @@ export default function ConfirmationStep({
                     } 100%)`,
                   }}
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center aspect-square shadow-md">
-                      <Check
-                        size={16}
-                        weight="fill"
-                        style={{ color: '#1e40af' }}
-                      />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                    <div className="flex items-center justify-between sm:justify-start">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white flex items-center justify-center aspect-square shadow-md flex-shrink-0">
+                        <Check
+                          size={12}
+                          className="sm:w-4 sm:h-4"
+                          weight="fill"
+                          style={{ color: '#1e40af' }}
+                        />
+                      </div>
+                      <div className="sm:hidden flex items-center space-x-1 ml-auto">
+                        <Check size={12} className="text-white" weight="bold" />
+                        <span className="text-xs text-white font-medium">
+                          Selected
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       {selectedLevel === 'high-school' && selectedGrade && (
                         <>
                           <h5
-                            className="font-medium text-white text-sm"
+                            className="font-medium text-white text-sm sm:text-base"
                             style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                           >
                             Grade {selectedGrade.gradeLevel}{' '}
@@ -401,7 +416,7 @@ export default function ConfirmationStep({
                                   : 'Second Semester'
                               }`}
                           </h5>
-                          <p className="text-xs text-white">
+                          <p className="text-xs sm:text-sm text-white/90">
                             {selectedGrade.department} Department
                           </p>
                         </>
@@ -412,7 +427,7 @@ export default function ConfirmationStep({
                         selectedSemester && (
                           <>
                             <h5
-                              className="font-medium text-white text-sm"
+                              className="font-medium text-white text-sm sm:text-base"
                               style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                             >
                               {selectedCourse.code} {selectedYear}{' '}
@@ -420,15 +435,17 @@ export default function ConfirmationStep({
                                 ? 'First Semester'
                                 : 'Second Semester'}
                             </h5>
-                            <p className="text-xs text-white">
+                            <p className="text-xs sm:text-sm text-white/90">
                               {selectedCourse.name}
                             </p>
                           </>
                         )}
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="hidden sm:flex items-center space-x-2 flex-shrink-0">
                       <Check size={14} className="text-white" weight="bold" />
-                      <span className="text-xs text-white">Selected</span>
+                      <span className="text-xs text-white font-medium">
+                        Selected
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -478,197 +495,30 @@ export default function ConfirmationStep({
               </div>
             </div>
           </div>
-        </Card>
-
-        <Card className="p-6 rounded-xl border border-blue-100 bg-white/80 backdrop-blur-sm shadow-lg">
-          <div className="space-y-6">
-            <div>
-              <h4
-                className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent mb-4"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Assigned Subjects ({assignedSubjects.length})
-              </h4>
-              {loadingSubjects ? (
-                <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg text-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-900/30 border-t-blue-900 mx-auto mb-2"></div>
-                  <p
-                    className="text-xs text-gray-500"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    Loading subjects...
-                  </p>
-                </div>
-              ) : assignedSubjects.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
-                  {assignedSubjects.map((subject) => (
-                    <div
-                      key={subject.id}
-                      className="flex items-center gap-2 p-2 bg-white rounded-xl border border-blue-100 shadow-sm"
-                    >
-                      <div
-                        className="w-3 h-3 rounded"
-                        style={{
-                          backgroundColor: getColorValue(subject.color),
-                        }}
-                      ></div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-gray-900 truncate">
-                          {subject.code || 'N/A'} - {subject.name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {(subject.lectureUnits || 0) +
-                            (subject.labUnits || 0)}{' '}
-                          units
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg text-center">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md mx-auto mb-2">
-                    <BookOpen size={20} className="text-white" weight="fill" />
-                  </div>
-                  <p
-                    className="text-xs text-gray-500"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    No subject assignment found for this enrollment.
-                    <br />
-                    Subjects will be assigned after enrollment approval.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-blue-100 pt-6">
-              <h4
-                className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent mb-4"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Document Management
-              </h4>
-
-              <div className="space-y-4">
-                <div
-                  className={`p-4 rounded-xl border ${
-                    documentsStatus?.isComplete
-                      ? 'bg-white/80 backdrop-blur-sm border-green-100 shadow-lg'
-                      : 'bg-white/80 backdrop-blur-sm border-yellow-100 shadow-lg'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h5
-                      className={`font-medium text-sm bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent`}
-                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                    >
-                      Required Documents Status
-                    </h5>
-                    <div
-                      className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg ${
-                        documentsStatus?.isComplete
-                          ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
-                          : 'bg-gradient-to-br from-yellow-700 to-yellow-800 text-white shadow-md'
-                      }`}
-                    >
-                      {documentsStatus?.isComplete ? (
-                        <Check size={12} />
-                      ) : (
-                        <FileText size={12} />
-                      )}
-                      <span style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
-                        {documentsStatus?.uploaded || 0}/
-                        {documentsStatus?.required || 4}
-                      </span>
-                    </div>
-                  </div>
-                  <p className={`text-xs text-gray-600`}>
-                    {documentsStatus?.isComplete
-                      ? 'All required documents have been uploaded. You can proceed with enrollment.'
-                      : `You need to upload ${
-                          (documentsStatus?.required || 4) -
-                          (documentsStatus?.uploaded || 0)
-                        } more required document(s) before submitting your enrollment.`}
-                  </p>
-                </div>
-
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg p-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
-                      <FileText
-                        size={16}
-                        className="text-white"
-                        weight="bold"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h5
-                        className="font-medium text-gray-900 text-sm mb-2"
-                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                      >
-                        Documents Managed Separately
-                      </h5>
-                      <p className="text-xs text-gray-600 mb-3">
-                        Your academic documents are now managed in the Documents
-                        section of your dashboard. You can upload and manage all
-                        your documents once and reuse them across multiple
-                        enrollments.
-                      </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl"
-                        onClick={() => {}}
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
-                        <FileText size={14} className="mr-1" />
-                        Manage Documents
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="text-xs text-gray-600 bg-blue-50 rounded-xl border border-blue-100 p-3"
-                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                >
-                  <strong>Note:</strong> Make sure you have uploaded all
-                  required documents in the Documents section before submitting
-                  your enrollment. Your documents will be automatically
-                  referenced during the enrollment process.
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
+        </div>
       </div>
 
-      <Card className="p-6 rounded-xl border border-blue-100 bg-white/80 backdrop-blur-sm shadow-lg">
-        <div className="space-y-4">
-          <div className="flex justify-end space-x-3 pt-4 border-t border-blue-100">
-            <Button
-              variant="ghost"
-              onClick={onBack}
-              className="rounded-xl"
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              Back
-            </Button>
-            <Button
-              onClick={onOpenSubmit}
-              className="bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 transition-all duration-300 hover:shadow-lg rounded-xl"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-            >
-              <Check
-                size={16}
-                className="mr-2 transition-transform duration-200 hover:rotate-12"
-              />
-              Submit Enrollment
-            </Button>
-          </div>
-        </div>
-      </Card>
+      <div className="flex justify-end space-x-3 pt-6 border-t border-blue-100">
+        <Button
+          variant="ghost"
+          onClick={onBack}
+          className="rounded-xl"
+          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+        >
+          Back
+        </Button>
+        <Button
+          onClick={onOpenSubmit}
+          className="bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 transition-all duration-300 hover:shadow-lg rounded-xl"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          <Check
+            size={16}
+            className="mr-2 transition-transform duration-200 hover:rotate-12"
+          />
+          Submit Enrollment
+        </Button>
+      </div>
     </div>
   )
 }

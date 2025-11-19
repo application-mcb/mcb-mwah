@@ -19,6 +19,7 @@ import TaskManager from '@/components/task-manager'
 import EventsSidebar from '@/components/events-sidebar'
 import RegistrarAnalytics from '@/components/registrar-analytics'
 import RegistrarProfileModal from '@/components/registrar-profile-modal'
+import RegistrarAuditLogs from '@/components/registrar-audit-logs'
 import { ContactData } from '@/lib/chat-database'
 import {
   collection,
@@ -83,6 +84,7 @@ type ViewType =
   | 'teacher-management'
   | 'events-management'
   | 'analytics'
+  | 'audit-logs'
 
 interface ChatMessage {
   id: string
@@ -749,6 +751,13 @@ export default function RegistrarPage() {
         icon: ChartBar,
         counts: null,
       },
+      {
+        view: 'audit-logs' as ViewType,
+        label: 'Audit Logs',
+        description: 'System activity trail',
+        icon: Shield,
+        counts: null,
+      },
     ]
 
     // If user is a teacher with permissions, filter navigation items
@@ -1272,6 +1281,14 @@ export default function RegistrarPage() {
           <RegistrarAnalytics
             registrarUid={registrar.uid}
             registrarName={`${registrar.firstName} ${registrar.lastName}`}
+          />
+        )}
+
+        {currentView === 'audit-logs' && registrar && (
+          <RegistrarAuditLogs
+            registrarName={`${registrar.firstName} ${registrar.lastName}`}
+            registrarEmail={registrar.email}
+            registrarAvatarUrl={registrar.photoURL}
           />
         )}
       </div>

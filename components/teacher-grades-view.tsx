@@ -376,19 +376,10 @@ export default function TeacherGradesView({
                     collegeStudentIds.push(enrollment.userId)
                   }
                 })
-
-                console.log('✅ College students found and stored:', {
-                  totalCollegeEnrollments: collegeEnrollments.length,
-                  collegeStudentIds: collegeStudentIds.length,
-                  collegeStudentIdsList: collegeStudentIds,
-                  collegeEnrollmentsMapKeys: Object.keys(collegeEnrollmentsMap),
-                })
               }
             }
           }
-        } catch (error) {
-          console.warn('Error loading college students:', error)
-        }
+        } catch (error) {}
 
         // Combine student IDs from sections and college enrollments
         const allStudentIdsCombined = [
@@ -404,17 +395,7 @@ export default function TeacherGradesView({
         Object.entries(collegeEnrollmentsMap).forEach(
           ([userId, enrollment]) => {
             enrollmentsMap[userId] = enrollment
-            console.log('✅ Added college enrollment to map:', {
-              userId,
-              name: `${enrollment.personalInfo.firstName} ${enrollment.personalInfo.lastName}`,
-              sectionId: enrollment.enrollmentInfo?.sectionId,
-            })
           }
-        )
-
-        console.log(
-          '📊 Final enrollmentsMap size:',
-          Object.keys(enrollmentsMap).length
         )
 
         if (allStudentIdsCombined.length > 0) {
@@ -446,16 +427,11 @@ export default function TeacherGradesView({
                 })
                 enrollmentBatchSuccess = true
               }
-            } catch (error) {
-              console.error('Error processing batch enrollment data:', error)
-            }
+            } catch (error) {}
           }
 
           // Fallback to individual requests if batch failed
           if (!enrollmentBatchSuccess && studentIdsToLoad.length > 0) {
-            console.warn(
-              'Batch enrollment request failed, falling back to individual requests'
-            )
             const enrollmentPromises = studentIdsToLoad.map((userId) =>
               fetch(`/api/enrollment?userId=${userId}`)
                 .then(async (res) => {

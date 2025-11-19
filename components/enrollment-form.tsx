@@ -351,22 +351,22 @@ export default function EnrollmentForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
-        <div className="flex items-center justify-between">
+      <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-blue-100 shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md flex-shrink-0">
               <GraduationCap size={24} className="text-white" weight="fill" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h1
-                className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
+                className="text-xl sm:text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
                 Student Enrollment
               </h1>
-              <p className="text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
+              <p className="text-xs sm:text-sm text-gray-600" style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                 Select your grade level and complete your enrollment process
               </p>
             </div>
@@ -374,17 +374,19 @@ export default function EnrollmentForm({
         </div>
       </div>
 
-      <ProgressIndicator
-        currentStep={state.currentStep}
-        selectedLevel={state.selectedLevel}
-        complianceChecked={state.complianceChecked}
-        selectedGrade={state.selectedGrade}
-        selectedCourse={state.selectedCourse}
-        selectedYear={state.selectedYear}
-        selectedSemester={state.selectedSemester}
-        isPersonalInfoCompleted={isPersonalInfoCompleted}
-        onProgressStepClick={handleProgressStepClick}
-      />
+      <div className="hidden lg:block">
+        <ProgressIndicator
+          currentStep={state.currentStep}
+          selectedLevel={state.selectedLevel}
+          complianceChecked={state.complianceChecked}
+          selectedGrade={state.selectedGrade}
+          selectedCourse={state.selectedCourse}
+          selectedYear={state.selectedYear}
+          selectedSemester={state.selectedSemester}
+          isPersonalInfoCompleted={isPersonalInfoCompleted}
+          onProgressStepClick={handleProgressStepClick}
+        />
+      </div>
 
       {/* Loading State */}
       {!userProfile && (

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { toast } from 'react-toastify'
 import {
   Card,
@@ -26,6 +27,7 @@ import {
   GraduationCap,
   Gear,
   Bell,
+  ChatCircleDots,
   SignOut,
   House,
   Phone,
@@ -83,8 +85,45 @@ export default function Dashboard() {
   const [studentMainId, setStudentMainId] = useState<string | null>(null)
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
   const [isArrangeView, setIsArrangeView] = useState(false)
-  const [isRightCollapsed, setIsRightCollapsed] = useState(false)
+  const [isRightCollapsed, setIsRightCollapsed] = useState(true)
+  const [isDesktopViewport, setIsDesktopViewport] = useState(true)
+  const hasRightSidebarPreference = useRef(false)
+  const [eventsSidebarView, setEventsSidebarView] = useState<'events' | 'chat'>(
+    'events'
+  )
   const router = useRouter()
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setIsDesktopViewport(true)
+      return
+    }
+    const updateViewport = () => {
+      setIsDesktopViewport(window.innerWidth >= 1024)
+    }
+    updateViewport()
+    window.addEventListener('resize', updateViewport)
+    return () => {
+      window.removeEventListener('resize', updateViewport)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (
+      isDesktopViewport &&
+      isRightCollapsed &&
+      !hasRightSidebarPreference.current
+    ) {
+      setIsRightCollapsed(false)
+    }
+  }, [isDesktopViewport, isRightCollapsed])
+
+  useEffect(() => {
+    if (!isDesktopViewport && !isRightCollapsed) {
+      hasRightSidebarPreference.current = false
+      setIsRightCollapsed(true)
+    }
+  }, [isDesktopViewport, isRightCollapsed])
 
   // Helper: robust enrollment fetch with fallbacks (handles API success:false and semester mismatches)
   const fetchEnrollmentWithFallback = async (
@@ -396,6 +435,16 @@ export default function Dashboard() {
     enrollmentData?.enrollmentInfo?.status,
   ])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    })
+  }, [currentView])
+
   const handleSignOut = async () => {
     try {
       await signOut(auth)
@@ -547,6 +596,16 @@ export default function Dashboard() {
     setIsArrangeView((prev) => !prev)
   }
 
+  const handleSetEventsSidebarView = (view: 'events' | 'chat') => {
+    setEventsSidebarView(view)
+    setIsRightCollapsed(false)
+  }
+
+  const handleToggleRightSidebar = () => {
+    hasRightSidebarPreference.current = true
+    setIsRightCollapsed((prev) => !prev)
+  }
+
   const handleToggleKeyDown = (
     event: React.KeyboardEvent,
     onToggle: () => void
@@ -560,15 +619,15 @@ export default function Dashboard() {
   const leftSidebarLayout = useMemo(() => {
     if (isLeftCollapsed) {
       return {
-        widthClass: 'w-[5.5rem]',
-        marginClass: 'ml-[5.5rem]',
+        widthClass: 'w-full lg:w-[5.5rem]',
+        marginClass: 'ml-0 lg:ml-[5.5rem]',
         contentAlignment: 'items-center',
       }
     }
 
     return {
-      widthClass: 'w-80',
-      marginClass: 'ml-80',
+      widthClass: 'w-full lg:w-80',
+      marginClass: 'ml-0 lg:ml-80',
       contentAlignment: 'items-start',
     }
   }, [isLeftCollapsed])
@@ -587,14 +646,14 @@ export default function Dashboard() {
 
     if (isRightCollapsed) {
       return {
-        widthClass: 'w-16 sm:w-20',
-        marginClass: 'mr-16 sm:mr-20',
+        widthClass: 'w-full lg:w-16 xl:w-20',
+        marginClass: 'mr-0 lg:mr-16 xl:mr-20',
       }
     }
 
     return {
-      widthClass: 'w-full sm:w-80 md:w-96',
-      marginClass: 'mr-0 sm:mr-80 md:mr-96',
+      widthClass: 'w-full lg:w-80 xl:w-96',
+      marginClass: 'mr-0 lg:mr-80 xl:mr-96',
     }
   }, [isRightCollapsed, enrollmentData])
 
@@ -672,6 +731,29 @@ export default function Dashboard() {
     ],
     []
   )
+
+  const isNavigationDisabled = (requiresEnrollment?: boolean) => {
+    if (!requiresEnrollment) {
+      return false
+    }
+    return !(
+      enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled'
+    )
+  }
+
+  const handleNavigationAction = (
+    targetView: ViewType,
+    requiresEnrollment?: boolean
+  ) => {
+    if (isNavigationDisabled(requiresEnrollment)) {
+      toast.info('You need to enroll first to access this feature.', {
+        autoClose: 3000,
+        position: 'top-right',
+      })
+      return
+    }
+    setCurrentView(targetView)
+  }
 
   const handleProgressUpdate = async () => {
     // Refresh enrollment data
@@ -773,6 +855,19 @@ export default function Dashboard() {
     }
 
     return fullName || 'Student'
+  }
+
+  const getFirstNameInitials = () => {
+    if (userProfile?.firstName) {
+      return userProfile.firstName.trim().slice(0, 2).toUpperCase()
+    }
+    if (user?.displayName) {
+      return user.displayName.trim().slice(0, 2).toUpperCase()
+    }
+    if (user?.email) {
+      return user.email.trim().slice(0, 2).toUpperCase()
+    }
+    return 'ST'
   }
 
   const getAddress = () => {
@@ -1139,19 +1234,25 @@ export default function Dashboard() {
       )
     }, 3000)
 
-    const subjectsInterval = setInterval(() => {
-      if (getStudentSubjects.length > 0) {
-        setSubjectsCarouselIndex(
-          (prev) => (prev + 1) % Math.ceil(getStudentSubjects.length / 3)
-        )
-      }
-    }, 4000)
-
     return () => {
       clearInterval(navInterval)
-      clearInterval(subjectsInterval)
     }
   }, [carouselNavigationItems.length])
+
+  useEffect(() => {
+    if (getStudentSubjects.length === 0) {
+      setSubjectsCarouselIndex(0)
+      return
+    }
+
+    const subjectsInterval = setInterval(() => {
+      setSubjectsCarouselIndex((prev) => (prev + 1) % getStudentSubjects.length)
+    }, 1000)
+
+    return () => {
+      clearInterval(subjectsInterval)
+    }
+  }, [getStudentSubjects.length])
 
   const handleNavigationClick = (item: any) => {
     if (
@@ -1199,7 +1300,15 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-blue-100 flex">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 bg-[length:40px_40px] bg-[image:linear-gradient(to_right,rgba(59,130,246,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(59,130,246,0.1)_1px,transparent_1px)] flex flex-col gap-6 lg:flex-row lg:gap-0 relative">
+      {/* Vignette Effect */}
+      <div
+        className="absolute inset-0 pointer-events-none z-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, transparent 40%, rgba(0, 43, 255, 0.15) 100%)',
+        }}
+      ></div>
       {/* Account Setup Progress Bar */}
       {user && (
         <div className="fixed top-0 left-0 right-0 z-50">
@@ -1213,7 +1322,7 @@ export default function Dashboard() {
 
       {/* Left Sidebar */}
       <aside
-        className={`${leftSidebarLayout.widthClass} bg-white/60 shadow-lg flex flex-col transition-all duration-300 h-screen fixed left-0 top-0 z-10 border-r border-blue-100`}
+        className={`hidden lg:flex ${leftSidebarLayout.widthClass} bg-white/60 shadow-lg flex-col transition-all duration-300 h-auto lg:h-screen lg:fixed lg:left-0 lg:top-0 z-20 lg:z-10 border-b lg:border-b-0 lg:border-r border-blue-100`}
       >
         <div
           className={`px-4 py-4 border-b bg-gradient-to-br from-blue-800 to-blue-900 flex items-center gap-3 w-full ${
@@ -1318,7 +1427,7 @@ export default function Dashboard() {
                 ) : (
                   <span
                     className="text-white text-xl font-bold"
-                    style={{ fontFamily: 'Poppins', fontWeight: 600 }}
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                   >
                     {userProfile?.firstName?.charAt(0).toUpperCase() ||
                       user?.displayName?.charAt(0).toUpperCase() ||
@@ -1388,43 +1497,23 @@ export default function Dashboard() {
             {navigationItems.map((item) => {
               const IconComponent = item.icon
               const isActive = currentView === item.view
-              const isDisabled =
-                item.requiresEnrollment &&
-                (!enrollmentData ||
-                  enrollmentData.enrollmentInfo?.status !== 'enrolled')
+              const isDisabled = isNavigationDisabled(item.requiresEnrollment)
 
               if (isArrangeViewActive) {
                 return (
                   <button
                     key={item.view}
                     type="button"
-                    onClick={() => {
-                      if (isDisabled) {
-                        toast.info(
-                          'You need to enroll first to access this feature.',
-                          {
-                            autoClose: 3000,
-                            position: 'top-right',
-                          }
-                        )
-                        return
-                      }
-                      setCurrentView(item.view)
-                    }}
+                    onClick={() =>
+                      handleNavigationAction(item.view, item.requiresEnrollment)
+                    }
                     onKeyDown={(event) =>
-                      handleToggleKeyDown(event, () => {
-                        if (isDisabled) {
-                          toast.info(
-                            'You need to enroll first to access this feature.',
-                            {
-                              autoClose: 3000,
-                              position: 'top-right',
-                            }
-                          )
-                          return
-                        }
-                        setCurrentView(item.view)
-                      })
+                      handleToggleKeyDown(event, () =>
+                        handleNavigationAction(
+                          item.view,
+                          item.requiresEnrollment
+                        )
+                      )
                     }
                     aria-label={item.label}
                     aria-current={isActive ? 'page' : undefined}
@@ -1475,33 +1564,13 @@ export default function Dashboard() {
                 <button
                   key={item.view}
                   type="button"
-                  onClick={() => {
-                    if (isDisabled) {
-                      toast.info(
-                        'You need to enroll first to access this feature.',
-                        {
-                          autoClose: 3000,
-                          position: 'top-right',
-                        }
-                      )
-                      return
-                    }
-                    setCurrentView(item.view)
-                  }}
+                  onClick={() =>
+                    handleNavigationAction(item.view, item.requiresEnrollment)
+                  }
                   onKeyDown={(event) =>
-                    handleToggleKeyDown(event, () => {
-                      if (isDisabled) {
-                        toast.info(
-                          'You need to enroll first to access this feature.',
-                          {
-                            autoClose: 3000,
-                            position: 'top-right',
-                          }
-                        )
-                        return
-                      }
-                      setCurrentView(item.view)
-                    })
+                    handleToggleKeyDown(event, () =>
+                      handleNavigationAction(item.view, item.requiresEnrollment)
+                    )
                   }
                   aria-label={item.label}
                   aria-current={isActive ? 'page' : undefined}
@@ -1580,6 +1649,7 @@ export default function Dashboard() {
               onKeyDown={(event) => handleToggleKeyDown(event, handleSignOut)}
               className="w-full rounded-xl flex items-center gap-3 px-4 py-3 justify-start text-left bg-transparent border border-transparent text-red-800 hover:border-red-300 hover:bg-red-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-800"
               aria-label="Sign out"
+              aria-controls="mobile-nav-panel"
             >
               <span className="flex items-center justify-center rounded-lg w-8 h-8 aspect-square bg-red-800">
                 <SignOut size={16} weight="fill" className="text-white" />
@@ -1595,40 +1665,326 @@ export default function Dashboard() {
         )}
       </aside>
 
+      {/* Mobile Navigation - Single Row - Full Width - Fixed */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40">
+        <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg w-full">
+          <div className="px-4 py-4">
+            <div className="flex items-center gap-3 overflow-x-auto pb-2">
+              {/* Logo on the left */}
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-md">
+                  <Image
+                    src="/logo.png"
+                    alt="Logo"
+                    width={40}
+                    height={40}
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+              {navigationItems.map((item) => {
+                const IconComponent = item.icon
+                const isDisabled = isNavigationDisabled(item.requiresEnrollment)
+                const isActive = currentView === item.view
+                return (
+                  <button
+                    key={`mobile-${item.view}`}
+                    type="button"
+                    onClick={() =>
+                      handleNavigationAction(item.view, item.requiresEnrollment)
+                    }
+                    className={`relative flex h-12 flex-shrink-0 items-center gap-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white rounded-2xl ${
+                      isDisabled
+                        ? 'cursor-not-allowed text-blue-100 opacity-50 bg-blue-800'
+                        : isActive
+                        ? 'bg-white text-blue-900 shadow-lg w-36 pl-3 pr-4'
+                        : 'bg-gradient-to-br from-blue-900 to-blue-800 text-white hover:from-blue-800 hover:to-blue-600 w-12 justify-center'
+                    }`}
+                    disabled={isDisabled}
+                    aria-label={item.label}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <span
+                      className={`flex h-9 w-9 aspect-square items-center justify-center rounded-2xl transition-colors duration-300 ${
+                        isActive
+                          ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white'
+                          : 'bg-white text-blue-900'
+                      }`}
+                    >
+                      <IconComponent size={18} weight="fill" />
+                    </span>
+                    <span
+                      className={`text-xs font-medium overflow-hidden transition-all duration-300 ${
+                        isActive
+                          ? 'max-w-[120px] opacity-100'
+                          : 'max-w-0 opacity-0'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
+                )
+              })}
+              {/* Events Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleSetEventsSidebarView('events')
+                  setIsRightCollapsed(false)
+                }}
+                className={`relative flex h-12 flex-shrink-0 items-center gap-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white rounded-2xl ${
+                  eventsSidebarView === 'events'
+                    ? 'bg-white text-blue-900 shadow-lg w-28 pl-3 pr-4'
+                    : 'bg-gradient-to-br from-blue-900 to-blue-800 text-white hover:from-blue-800 hover:to-blue-600 w-12 justify-center'
+                }`}
+                aria-pressed={eventsSidebarView === 'events'}
+                aria-label="Events"
+              >
+                <span
+                  className={`flex h-9 w-9 aspect-square items-center justify-center rounded-2xl transition-colors duration-300 ${
+                    eventsSidebarView === 'events'
+                      ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white'
+                      : 'bg-white text-blue-900'
+                  }`}
+                >
+                  <Bell size={18} weight="fill" />
+                </span>
+                <span
+                  className={`text-xs font-medium overflow-hidden transition-all duration-300 ${
+                    eventsSidebarView === 'events'
+                      ? 'max-w-[80px] opacity-100'
+                      : 'max-w-0 opacity-0'
+                  }`}
+                >
+                  Events
+                </span>
+              </button>
+              {/* Chat Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleSetEventsSidebarView('chat')
+                  setIsRightCollapsed(false)
+                }}
+                className={`relative flex h-12 flex-shrink-0 items-center gap-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white rounded-2xl ${
+                  eventsSidebarView === 'chat'
+                    ? 'bg-white text-blue-900 shadow-lg w-24 pl-3 pr-4'
+                    : 'bg-gradient-to-br from-blue-900 to-blue-800 text-white hover:from-blue-800 hover:to-blue-600 w-12 justify-center'
+                }`}
+                aria-pressed={eventsSidebarView === 'chat'}
+                aria-label="Chat"
+              >
+                <span
+                  className={`flex h-9 w-9 aspect-square items-center justify-center rounded-2xl transition-colors duration-300 ${
+                    eventsSidebarView === 'chat'
+                      ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white'
+                      : 'bg-white text-blue-900'
+                  }`}
+                >
+                  <ChatCircleDots size={18} weight="fill" />
+                </span>
+                <span
+                  className={`text-xs font-medium overflow-hidden transition-all duration-300 ${
+                    eventsSidebarView === 'chat'
+                      ? 'max-w-[60px] opacity-100'
+                      : 'max-w-0 opacity-0'
+                  }`}
+                >
+                  Chat
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
       <div
-        className={`flex-1 flex flex-col min-w-0 transition-all w-full duration-300 ${mainContentSpacing}`}
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 w-full ${mainContentSpacing}`}
       >
-        <div className="p-6">
+        <div className="w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-10 pb-6 lg:py-10 pt-32 lg:pt-10">
           {currentView === 'dashboard' && (
             <div className="space-y-8 w-full">
-              {/* Welcome Section */}
-              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
-                    <User size={32} className="text-white" weight="fill" />
-                  </div>
-                  <div>
-                    <h1
-                      className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
-                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                    >
-                      Welcome back, {userProfile?.firstName}!
-                    </h1>
-                    <p
-                      className="text-gray-600"
-                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                    >
-                      Here's your academic dashboard overview
+              {/* Welcome Section / Enrollment Warning */}
+              {enrollmentData &&
+              enrollmentData.enrollmentInfo?.status === 'enrolled' ? (
+                <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="relative w-16 h-16 aspect-square flex-shrink-0 rounded-full bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-md overflow-hidden">
+                        {userProfile?.photoURL && !profileImageError ? (
+                          <Image
+                            src={userProfile.photoURL}
+                            alt="Profile photo"
+                            fill
+                            sizes="64px"
+                            className="object-cover"
+                            onError={() => setProfileImageError(true)}
+                          />
+                        ) : user?.photoURL && !profileImageError ? (
+                          <Image
+                            src={user.photoURL}
+                            alt="Profile photo"
+                            fill
+                            sizes="64px"
+                            className="object-cover"
+                            onError={() => setProfileImageError(true)}
+                          />
+                        ) : (
+                          <div className="flex h-full w-full aspect-square items-center justify-center rounded-full bg-blue-900">
+                            <span
+                              className="text-white text-xl tracking-wide"
+                              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                            >
+                              {getFirstNameInitials()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <h1
+                          className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
+                          Hi, {userProfile?.firstName || 'Student'}!
+                        </h1>
+                        <p className="text-gray-600 font-mono text-xs">
+                          Here's your academic dashboard overview
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-blue-900/80 sm:text-right text-xs font-mono">
+                      Keep your profile updated to personalize your journey.
                     </p>
                   </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 lg:hidden">
+                    <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 flex-shrink-0 rounded-2xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center text-white">
+                          <GraduationCap size={16} weight="fill" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-gray-600 font-mono uppercase tracking-wide">
+                            Grade
+                          </p>
+                          <p className="text-base font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent font-mono">
+                            {getCurrentGrade()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 flex-shrink-0 rounded-2xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center text-white">
+                          <BookOpen size={16} weight="fill" />
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="text-[11px] text-gray-600 font-mono uppercase tracking-wide">
+                            Subjects
+                          </p>
+                          <p className="text-base font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent font-mono">
+                            {getSubjectCount}
+                          </p>
+                          {enrollmentData &&
+                            enrollmentData.enrollmentInfo?.status ===
+                              'enrolled' &&
+                            getStudentSubjects.length > 0 && (
+                              <div className="mt-1 flex gap-1">
+                                {getStudentSubjects
+                                  .slice(0, 5)
+                                  .map((subject) => (
+                                    <span
+                                      key={subject.id}
+                                      className="h-2 w-2 rounded-full"
+                                      style={{
+                                        backgroundColor: getSubjectColor(
+                                          subject.color
+                                        ),
+                                      }}
+                                    ></span>
+                                  ))}
+                              </div>
+                            )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center shadow-md">
+                        <GraduationCap
+                          size={32}
+                          className="text-white"
+                          weight="fill"
+                        />
+                      </div>
+                    </div>
+                    <h1
+                      className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent mb-2"
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    >
+                      Hi, {userProfile?.firstName || 'Student'}!
+                    </h1>
+                    <p className="text-gray-600 mb-6 text-sm">
+                      It seems that you are not enrolled yet. Get started with
+                      your academic journey today!
+                    </p>
+                    <Button
+                      onClick={() => setCurrentView('enrollment')}
+                      className="bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-6 py-3 rounded-lg shadow-md transition-all duration-200"
+                      style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                    >
+                      <GraduationCap size={18} className="mr-2" weight="fill" />
+                      Start Enrollment Process
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Mobile Inline Navigation Icons */}
+              <div className="lg:hidden mt-4">
+                <div className="flex items-center justify-center gap-3 overflow-x-auto pb-2">
+                  {navigationItems.slice(1).map((item) => {
+                    const IconComponent = item.icon
+                    const isDisabled = isNavigationDisabled(
+                      item.requiresEnrollment
+                    )
+                    const isActive = currentView === item.view
+                    return (
+                      <button
+                        key={`mobile-inline-${item.view}`}
+                        type="button"
+                        onClick={() =>
+                          handleNavigationAction(
+                            item.view,
+                            item.requiresEnrollment
+                          )
+                        }
+                        disabled={isDisabled}
+                        className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-900 shadow-sm ${
+                          isDisabled
+                            ? 'bg-blue-200 text-blue-400 cursor-not-allowed'
+                            : isActive
+                            ? 'bg-white text-blue-900 shadow-lg'
+                            : 'bg-gradient-to-br from-blue-900 to-blue-800 text-white hover:from-blue-800 hover:to-blue-600'
+                        }`}
+                        aria-label={item.label}
+                        aria-current={isActive ? 'page' : undefined}
+                      >
+                        <IconComponent size={20} weight="fill" />
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
               {/* Quick Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="hidden lg:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <Card className="p-6 border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
                       <GraduationCap
                         size={24}
@@ -1637,10 +1993,7 @@ export default function Dashboard() {
                       />
                     </div>
                     <div className="flex-1">
-                      <p
-                        className="text-sm text-gray-600"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
+                      <p className="text-sm text-gray-600 font-mono">
                         Current Grade
                       </p>
                       <div className="flex items-center gap-2">
@@ -1675,7 +2028,7 @@ export default function Dashboard() {
                 </Card>
 
                 <Card className="p-6 border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
                       <BookOpen
                         size={24}
@@ -1684,10 +2037,7 @@ export default function Dashboard() {
                       />
                     </div>
                     <div className="flex-1">
-                      <p
-                        className="text-sm text-gray-600"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
+                      <p className="text-sm text-gray-600 font-mono">
                         Subjects
                       </p>
                       <div className="flex items-center gap-2">
@@ -1721,7 +2071,7 @@ export default function Dashboard() {
                 </Card>
 
                 <Card className="p-6 border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
                       <ChartBar
                         size={24}
@@ -1730,10 +2080,7 @@ export default function Dashboard() {
                       />
                     </div>
                     <div>
-                      <p
-                        className="text-sm text-gray-600"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
+                      <p className="text-sm text-gray-600 font-mono">
                         Performance
                       </p>
                       <p
@@ -1748,7 +2095,7 @@ export default function Dashboard() {
               </div>
 
               {/* What would you like to do? - Navigation Carousel */}
-              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
+              <div className="hidden lg:block bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
                     <House size={20} className="text-white" weight="fill" />
@@ -1862,152 +2209,113 @@ export default function Dashboard() {
                           }%)`,
                         }}
                       >
-                        {Array.from({
-                          length: Math.ceil(getStudentSubjects.length / 3),
-                        }).map((_, groupIndex) => (
-                          <div
-                            key={groupIndex}
-                            className="w-full flex-shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500"
-                            style={{
-                              animationDelay: `${groupIndex * 150}ms`,
-                            }}
-                          >
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {getStudentSubjects
-                                .slice(groupIndex * 3, (groupIndex + 1) * 3)
-                                .map((subject, subjectIndex) => {
-                                  const IconComponent = getSubjectIcon(subject)
-                                  const subjectColor = getSubjectColor(
-                                    subject.color
-                                  )
-                                  const getGradientClass = (color: string) => {
-                                    const colorMap: Record<string, string> = {
-                                      'blue-900': 'from-blue-800 to-blue-900',
-                                      'blue-800': 'from-blue-700 to-blue-800',
-                                      'red-700': 'from-red-600 to-red-700',
-                                      'red-800': 'from-red-700 to-red-800',
-                                      'emerald-700':
-                                        'from-emerald-600 to-emerald-700',
-                                      'emerald-800':
-                                        'from-emerald-700 to-emerald-800',
-                                      'yellow-700':
-                                        'from-yellow-600 to-yellow-700',
-                                      'yellow-800':
-                                        'from-yellow-700 to-yellow-800',
-                                      'orange-700':
-                                        'from-orange-600 to-orange-700',
-                                      'orange-800':
-                                        'from-orange-700 to-orange-800',
-                                      'violet-700':
-                                        'from-violet-600 to-violet-700',
-                                      'violet-800':
-                                        'from-violet-700 to-violet-800',
-                                      'purple-700':
-                                        'from-purple-600 to-purple-700',
-                                      'purple-800':
-                                        'from-purple-700 to-purple-800',
-                                      'indigo-700':
-                                        'from-indigo-600 to-indigo-700',
-                                      'indigo-800':
-                                        'from-indigo-700 to-indigo-800',
-                                    }
-                                    return (
-                                      colorMap[subject.color] ||
-                                      'from-blue-800 to-blue-900'
-                                    )
-                                  }
-                                  return (
-                                    <div
-                                      key={subject.id}
-                                      className={`group p-6 rounded-xl hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out shadow-lg transform hover:scale-105 animate-in fade-in slide-in-from-bottom-4 bg-gradient-to-br ${getGradientClass(
-                                        subject.color
-                                      )}`}
-                                      style={{
-                                        animationDelay: `${
-                                          groupIndex * 150 +
-                                          subjectIndex * 75 +
-                                          200
-                                        }ms`,
-                                        animationFillMode: 'both',
-                                      }}
-                                    >
-                                      {/* Card Header */}
-                                      <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center gap-4">
-                                          <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center flex-shrink-0 aspect-square shadow-md">
-                                            <IconComponent
-                                              size={32}
-                                              style={{
-                                                color: getIconColor(
-                                                  subject.color
-                                                ),
-                                              }}
-                                              weight="fill"
-                                            />
-                                          </div>
-                                          <div>
-                                            <div className="flex items-center gap-3">
-                                              <h3
-                                                className="text-lg font-medium text-white"
-                                                style={{
-                                                  fontFamily: 'Poppins',
-                                                  fontWeight: 500,
-                                                }}
-                                              >
-                                                {subject.code}
-                                              </h3>
-                                            </div>
-                                            <div className="flex gap-1">
-                                              <div className="w-3 h-3 rounded bg-white"></div>
-                                              <div className="w-3 h-3 rounded bg-white/80"></div>
-                                              <div className="w-3 h-3 rounded bg-white/60"></div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
+                        {getStudentSubjects.map((subject, subjectIndex) => {
+                          const IconComponent = getSubjectIcon(subject)
+                          const getGradientClass = (color: string) => {
+                            const colorMap: Record<string, string> = {
+                              'blue-900': 'from-blue-800 to-blue-900',
+                              'blue-800': 'from-blue-700 to-blue-800',
+                              'red-700': 'from-red-600 to-red-700',
+                              'red-800': 'from-red-700 to-red-800',
+                              'emerald-700': 'from-emerald-600 to-emerald-700',
+                              'emerald-800': 'from-emerald-700 to-emerald-800',
+                              'yellow-700': 'from-yellow-600 to-yellow-700',
+                              'yellow-800': 'from-yellow-700 to-yellow-800',
+                              'orange-700': 'from-orange-600 to-orange-700',
+                              'orange-800': 'from-orange-700 to-orange-800',
+                              'violet-700': 'from-violet-600 to-violet-700',
+                              'violet-800': 'from-violet-700 to-violet-800',
+                              'purple-700': 'from-purple-600 to-purple-700',
+                              'purple-800': 'from-purple-700 to-purple-800',
+                              'indigo-700': 'from-indigo-600 to-indigo-700',
+                              'indigo-800': 'from-indigo-700 to-indigo-800',
+                            }
+                            return (
+                              colorMap[subject.color] ||
+                              'from-blue-800 to-blue-900'
+                            )
+                          }
 
-                                      <div className="flex items-center gap-4 mb-4">
-                                        <div className="flex items-center p-1 text-xs font-medium rounded-lg border border-white/30 bg-white/20 text-white">
-                                          <BookOpen
-                                            size={12}
-                                            className="mr-1"
-                                            weight="duotone"
-                                          />
-                                          Grade {subject.gradeLevel}
-                                        </div>
-                                        <div className="flex items-center p-1 text-xs font-medium rounded-lg border border-white/30 bg-white/20 text-white">
-                                          <Calculator
-                                            size={12}
-                                            className="mr-1"
-                                            weight="duotone"
-                                          />
-                                          {(subject.lectureUnits || 0) +
-                                            (subject.labUnits || 0)}{' '}
-                                          units
-                                        </div>
+                          return (
+                            <div
+                              key={subject.id}
+                              className="w-full flex-shrink-0 px-2"
+                            >
+                              <div
+                                className={`group p-6 rounded-xl hover:shadow-xl hover:-translate-y-2 transition-all duration-300 ease-in-out shadow-lg transform hover:scale-[1.01] bg-gradient-to-br ${getGradientClass(
+                                  subject.color
+                                )}`}
+                              >
+                                <div className="flex items-start justify-between mb-4">
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center flex-shrink-0 aspect-square shadow-md">
+                                      <IconComponent
+                                        size={32}
+                                        style={{
+                                          color: getIconColor(subject.color),
+                                        }}
+                                        weight="fill"
+                                      />
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-3">
+                                        <h3
+                                          className="text-lg font-medium text-white"
+                                          style={{
+                                            fontFamily: 'Poppins',
+                                            fontWeight: 500,
+                                          }}
+                                        >
+                                          {subject.code}
+                                        </h3>
                                       </div>
-
-                                      <div className="flex flex-col text-xs truncate-2-lines font-light text-justify">
-                                        <span className="text-white text-sm font-medium">
-                                          {subject.name}
-                                        </span>
-                                        <span className="text-white">
-                                          {subject.description}
-                                        </span>
+                                      <div className="flex gap-1">
+                                        <div className="w-3 h-3 rounded bg-white"></div>
+                                        <div className="w-3 h-3 rounded bg-white/80"></div>
+                                        <div className="w-3 h-3 rounded bg-white/60"></div>
                                       </div>
                                     </div>
-                                  )
-                                })}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-4 mb-4">
+                                  <div className="flex items-center p-1 text-xs font-medium rounded-lg border border-white/30 bg-white/20 text-white">
+                                    <BookOpen
+                                      size={12}
+                                      className="mr-1"
+                                      weight="duotone"
+                                    />
+                                    Grade {subject.gradeLevel}
+                                  </div>
+                                  <div className="flex items-center p-1 text-xs font-medium rounded-lg border border-white/30 bg-white/20 text-white">
+                                    <Calculator
+                                      size={12}
+                                      className="mr-1"
+                                      weight="duotone"
+                                    />
+                                    {(subject.lectureUnits || 0) +
+                                      (subject.labUnits || 0)}{' '}
+                                    units
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-col text-xs truncate-2-lines font-light text-justify">
+                                  <span className="text-white text-sm font-medium">
+                                    {subject.name}
+                                  </span>
+                                  <span className="text-white">
+                                    {subject.description}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
 
                       {/* Subjects carousel dots */}
                       <div className="flex justify-center mt-4 space-x-2">
-                        {Array.from({
-                          length: Math.ceil(getStudentSubjects.length / 3),
-                        }).map((_, index) => (
+                        {getStudentSubjects.map((_, index) => (
                           <button
                             key={index}
                             onClick={() => setSubjectsCarouselIndex(index)}
@@ -2026,10 +2334,12 @@ export default function Dashboard() {
               {/* Events & Announcements Overview */}
               {enrollmentData &&
                 enrollmentData.enrollmentInfo?.status === 'enrolled' && (
-                  <EventsOverview
-                    level={getStudentLevel()}
-                    userId={user?.uid || ''}
-                  />
+                  <div className="hidden lg:block">
+                    <EventsOverview
+                      level={getStudentLevel()}
+                      userId={user?.uid || ''}
+                    />
+                  </div>
                 )}
             </div>
           )}
@@ -2059,7 +2369,7 @@ export default function Dashboard() {
 
           {currentView === 'performance' && (
             <div className="space-y-6">
-              <div className="flex items-center space-x-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
                   <ChartBar size={20} className="text-white" weight="fill" />
                 </div>
@@ -2114,12 +2424,15 @@ export default function Dashboard() {
 
       {/* Right Sidebar - Events & Announcements */}
       {enrollmentData &&
-        enrollmentData.enrollmentInfo?.status === 'enrolled' && (
+        enrollmentData.enrollmentInfo?.status === 'enrolled' &&
+        (isDesktopViewport || !isRightCollapsed) && (
           <EventsSidebar
             level={getStudentLevel()}
             userId={user?.uid || ''}
             isCollapsed={isRightCollapsed}
-            onToggleCollapse={() => setIsRightCollapsed((prev) => !prev)}
+            onToggleCollapse={handleToggleRightSidebar}
+            activeView={eventsSidebarView}
+            onViewChange={setEventsSidebarView}
           />
         )}
 

@@ -31,6 +31,8 @@ interface EventsSidebarProps {
   isCollapsed?: boolean
   onToggleCollapse?: () => void
   hideHeader?: boolean // New prop to hide the header
+  activeView?: 'events' | 'chat'
+  onViewChange?: (view: 'events' | 'chat') => void
 }
 
 export default function EventsSidebar({
@@ -39,6 +41,8 @@ export default function EventsSidebar({
   isCollapsed: externalIsCollapsed,
   onToggleCollapse: externalOnToggleCollapse,
   hideHeader = false,
+  activeView,
+  onViewChange,
 }: EventsSidebarProps) {
   const [internalIsCollapsed, setInternalIsCollapsed] = useState(false)
   const isCollapsed =
@@ -47,7 +51,7 @@ export default function EventsSidebar({
       : internalIsCollapsed
   const [events, setEvents] = useState<EventData[]>([])
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'events' | 'chat'>('events')
+  const [view, setView] = useState<'events' | 'chat'>(activeView || 'events')
   const [contacts, setContacts] = useState<ContactData[]>([])
   const [selectedContact, setSelectedContact] = useState<ContactData | null>(
     null
@@ -57,6 +61,22 @@ export default function EventsSidebar({
   const previousContacts = useRef<ContactData[]>([])
 
   useEffect(() => {
+    if (!activeView) {
+      return
+    }
+    setView(activeView)
+  }, [activeView])
+
+  const handleViewChange = (nextView: 'events' | 'chat') => {
+    setView(nextView)
+    if (onViewChange) {
+      onViewChange(nextView)
+    }
+  }
+
+  useEffect(() => {
+    if (!level) return
+
     const fetchEvents = async () => {
       try {
         // Build API URL - if level is null, don't include it (API will return all events)
@@ -195,9 +215,27 @@ export default function EventsSidebar({
     return IconComponent
   }
 
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setIsMobile(false)
+      return
+    }
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   if (isCollapsed) {
+    if (isMobile) {
+      return null
+    }
     return (
-      <aside className="w-16 sm:w-20 bg-white/60 shadow-lg flex flex-col transition-all duration-300 h-screen fixed right-0 top-0 z-10 border-l border-blue-100 overflow-hidden">
+      <aside className="hidden lg:flex lg:w-16 xl:w-20 bg-white/60 shadow-lg flex-col transition-all duration-300 h-auto lg:h-screen relative lg:fixed lg:right-0 lg:top-0 z-10 border-t lg:border-t-0 lg:border-l border-blue-100 overflow-hidden mt-4 lg:mt-0">
         <div className="px-2 sm:px-3 py-3 sm:py-4 border-b border-blue-900 bg-gradient-to-br from-blue-800 to-blue-900 text-white flex flex-col items-center gap-2 flex-shrink-0">
           <button
             type="button"
@@ -221,8 +259,29 @@ export default function EventsSidebar({
   }
 
   if (selectedContact && view === 'chat') {
+    if (isMobile) {
+      return (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={handleToggleCollapse}
+          />
+          {/* Full screen chat */}
+          <aside className="fixed top-0 right-0 h-full w-full bg-white shadow-2xl flex flex-col z-50">
+            <ChatInterface
+              chatId={selectedContact.chatId!}
+              userId={userId}
+              contact={selectedContact}
+              onBack={() => setSelectedContact(null)}
+              onToggleCollapse={handleToggleCollapse}
+            />
+          </aside>
+        </>
+      )
+    }
     return (
-      <aside className="w-full sm:w-80 md:w-96 bg-white/60 shadow-lg flex flex-col transition-all duration-300 h-screen fixed right-0 top-0 z-10 border-l border-blue-100">
+      <aside className="w-full lg:w-80 xl:w-96 bg-white/60 shadow-lg flex flex-col transition-all duration-300 h-auto lg:h-screen relative lg:fixed lg:right-0 lg:top-0 z-10 border-t lg:border-t-0 lg:border-l border-blue-100 mt-4 lg:mt-0">
         <ChatInterface
           chatId={selectedContact.chatId!}
           userId={userId}
@@ -484,8 +543,31 @@ export default function EventsSidebar({
             </div>
           </>
         ) : loading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-900/30 border-t-blue-900"></div>
+          <div className="px-4 sm:px-6 py-4 sm:py-6">
+            {/* Skeleton Loading State */}
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="bg-white border border-blue-100 rounded-lg p-4 animate-pulse"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-200 to-blue-300 rounded-lg"></div>
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="h-4 bg-gradient-to-r from-blue-200 to-blue-300 rounded w-3/4"></div>
+                      <div className="h-3 bg-gradient-to-r from-blue-100 to-blue-200 rounded w-full"></div>
+                      <div className="h-3 bg-gradient-to-r from-blue-100 to-blue-200 rounded w-2/3"></div>
+                      <div className="flex items-center gap-2 mt-3">
+                        <div className="w-4 h-4 bg-gradient-to-r from-blue-200 to-blue-300 rounded"></div>
+                        <div className="h-3 bg-gradient-to-r from-blue-100 to-blue-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : events.length === 0 ? (
           <div className="text-center py-8">
@@ -808,12 +890,71 @@ export default function EventsSidebar({
     )
   }
 
+  // Mobile view - fixed overlay
+  if (isMobile) {
+    return (
+      <>
+        {/* Backdrop */}
+        <div
+          className="fixed inset-0 bg-black/50 z-40"
+          onClick={handleToggleCollapse}
+        />
+        {/* Sliding Panel */}
+        <aside className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl flex flex-col z-50">
+          <div className="px-4 py-4 border-b border-blue-100 bg-gradient-to-br from-blue-800 to-blue-900 text-white flex items-center justify-between flex-shrink-0">
+            <h2
+              className="text-lg font-medium"
+              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+            >
+              {view === 'events' ? 'Events & Announcements' : 'Chat'}
+            </h2>
+            <button
+              type="button"
+              onClick={handleToggleCollapse}
+              className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-xl transition-all duration-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white"
+              aria-label="Close panel"
+            >
+              <CaretRight size={20} weight="bold" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-blue-100 bg-blue-50">
+            <button
+              type="button"
+              onClick={() => handleViewChange('events')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
+                view === 'events'
+                  ? 'bg-blue-900 text-white'
+                  : 'bg-white text-blue-900 border border-blue-200'
+              }`}
+            >
+              <Bell size={16} weight="fill" />
+              <span className="text-sm font-medium">Events</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleViewChange('chat')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 ${
+                view === 'chat'
+                  ? 'bg-blue-900 text-white'
+                  : 'bg-white text-blue-900 border border-blue-200'
+              }`}
+            >
+              <ChatCircleDots size={16} weight="fill" />
+              <span className="text-sm font-medium">Chat</span>
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">{renderContent()}</div>
+        </aside>
+      </>
+    )
+  }
+
   if (hideHeader) {
     return renderContent()
   }
 
   return (
-    <aside className="w-full sm:w-80 md:w-96 bg-white/60 shadow-lg flex flex-col transition-all duration-300 h-screen fixed right-0 top-0 z-10 border-l border-blue-100">
+    <aside className="w-full lg:w-80 xl:w-96 bg-white/60 shadow-lg flex flex-col transition-all duration-300 h-auto lg:h-screen relative lg:fixed lg:right-0 lg:top-0 z-10 border-t lg:border-t-0 lg:border-l border-blue-100 mt-4 lg:mt-0">
       <div className="px-3 sm:px-4 py-3 sm:py-4 border-b border-blue-900 bg-gradient-to-br from-blue-800 to-blue-900 text-white flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white text-blue-900 flex items-center justify-center rounded-xl flex-shrink-0">
@@ -831,7 +972,9 @@ export default function EventsSidebar({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setView(view === 'events' ? 'chat' : 'events')}
+            onClick={() =>
+              handleViewChange(view === 'events' ? 'chat' : 'events')
+            }
             className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white flex-shrink-0 ${
               view === 'chat'
                 ? 'border-white/40 text-white hover:bg-white/20'
