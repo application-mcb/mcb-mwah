@@ -11,6 +11,66 @@ import type {
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!)
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const isRetryableGeminiError = (error: any) => {
+  const status = error?.status ?? error?.response?.status
+  const message = (error?.message || '').toLowerCase()
+  return (
+    status === 429 ||
+    status === 503 ||
+    message.includes('overloaded') ||
+    message.includes('quota') ||
+    message.includes('too many requests') ||
+    message.includes('rate limit')
+  )
+}
+
+const withGeminiRetry = async <T>(
+  action: () => Promise<T>,
+  retries = 3,
+  baseDelay = 500
+): Promise<T> => {
+  let attempt = 0
+  let lastError: any = null
+
+  while (attempt <= retries) {
+    try {
+      return await action()
+    } catch (error: any) {
+      lastError = error
+      const isRetryable = isRetryableGeminiError(error)
+      const isLastAttempt = attempt === retries
+
+      if (!isRetryable || isLastAttempt) {
+        if (isRetryable && isLastAttempt) {
+          const overloadError: Error & { status?: number } = new Error(
+            'Gemini service is temporarily unavailable. Please try again later.'
+          )
+          overloadError.status = error?.status || 503
+          overloadError.cause = error
+          throw overloadError
+        }
+        throw error
+      }
+
+      const delay = baseDelay * Math.pow(2, attempt)
+      await sleep(delay)
+    }
+
+    attempt += 1
+  }
+
+  throw lastError ?? new Error('Gemini request failed')
+}
+
+const isGeminiServiceUnavailable = (error: any) =>
+  Boolean(error) &&
+  isRetryableGeminiError(error) &&
+  (error?.status === 503 ||
+    error?.status === 429 ||
+    (error?.message || '').toLowerCase().includes('temporarily unavailable'))
+
 interface RouteParams {
   params: Promise<{
     id: string
@@ -61,15 +121,17 @@ async function extractTextWithGemini(
     try {
       const model = genAI.getGenerativeModel({ model: modelName })
 
-      const result = await model.generateContent([
-        {
-          inlineData: {
-            data: base64Data,
-            mimeType: mimeType,
+      const result = await withGeminiRetry(() =>
+        model.generateContent([
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType,
+            },
           },
-        },
-        'Extract all text from this document. Return only the extracted text, nothing else.',
-      ])
+          'Extract all text from this document. Return only the extracted text, nothing else.',
+        ])
+      )
 
       const response = await result.response
       const text = response.text()
@@ -278,7 +340,7 @@ IMPORTANT: Return ONLY valid JSON. Do not include any text before or after the J
     let text: string
 
     try {
-      result = await model.generateContent(prompt)
+      result = await withGeminiRetry(() => model.generateContent(prompt))
       response = await result.response
       text = response.text()
     } catch (apiError: any) {
@@ -501,15 +563,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       ocrMethod = geminiResult.method
     } catch (geminiError: any) {
       console.error('Gemini OCR failed:', geminiError)
-      // Tesseract.js doesn't work in server-side Next.js, so just return error
+      const unavailable = isGeminiServiceUnavailable(geminiError)
       return NextResponse.json(
         {
           success: false,
-          error:
-            'Failed to extract text from document. Please check your Gemini API key and ensure a vision-capable model is available.',
+          error: unavailable
+            ? 'Gemini OCR service is temporarily unavailable. Please try again shortly.'
+            : 'Failed to extract text from document. Please check your Gemini API key and ensure a vision-capable model is available.',
           details: geminiError.message || 'Unknown error',
         },
-        { status: 500 }
+        { status: unavailable ? 503 : 500 }
       )
     }
 
@@ -550,6 +613,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         studentDataType: typeof studentData,
         studentDataKeys: studentData ? Object.keys(studentData) : 'null/undefined',
       })
+
+      if (isGeminiServiceUnavailable(validationError)) {
+        const overloadError: Error & { status?: number } = new Error(
+          'Gemini validation service is temporarily unavailable. Please try again shortly.'
+        )
+        overloadError.status = 503
+        overloadError.cause = validationError
+        throw overloadError
+      }
 
       // Try to provide a basic validation based on extracted text
       // Check if text seems relevant to document type
@@ -641,15 +713,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json(response)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error scanning document:', error)
+    const unavailable = isGeminiServiceUnavailable(error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to scan document',
+        error: unavailable
+          ? 'Gemini services are temporarily unavailable. Please try again shortly.'
+          : 'Failed to scan document',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 }
+      { status: unavailable ? 503 : 500 }
     )
   }
 }
