@@ -40,20 +40,20 @@ export default function CourseChangeModal({
           </div>
         </div>
 
-        <div className="bg-yellow-50 border border-yellow-200 p-4 mb-6">
+        <div className="bg-white border border-blue-100 rounded-xl p-4 mb-6">
           <h4
-            className="text-sm font-medium text-yellow-900 mb-2"
+            className="text-sm font-medium text-blue-900 mb-2"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
           >
             You are about to change your course selection
           </h4>
-          <p className="text-sm text-yellow-800">
+          <p className="text-sm text-blue-900">
             Changing your course will reset your year and semester selections.
             You will need to reselect these options for your new course.
           </p>
         </div>
 
-        <div className="bg-gray-50 border border-gray-200 p-4 mb-6">
+        <div className="bg-white border border-blue-100 rounded-xl p-4 mb-6">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-gray-600">New Course:</span>
             <span className="text-sm font-medium text-gray-900">
@@ -68,7 +68,7 @@ export default function CourseChangeModal({
           </p>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 p-4 mb-6">
+        <div className="bg-white border border-blue-100 rounded-xl p-4 mb-6">
           <h4
             className="text-sm font-medium text-blue-900 mb-2"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}

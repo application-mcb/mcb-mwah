@@ -137,7 +137,7 @@ export default function EnrollmentSummary({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
+      <div className="bg-white p-6 rounded-xl border border-blue-100 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
@@ -164,7 +164,7 @@ export default function EnrollmentSummary({
         {/* First Row - Personal Info, Academic Info, Actions */}
 
         {/* Second Row - Subjects Carousel */}
-        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
+        <div className="bg-white p-6 rounded-xl border border-blue-100 shadow-sm">
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
               <BookOpen size={16} className="text-white" weight="bold" />
@@ -181,7 +181,7 @@ export default function EnrollmentSummary({
           <div className="relative overflow-hidden">
             {loadingSubjects ? (
               <div className="flex justify-center">
-                <div className="p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg text-center">
+                <div className="p-8 bg-white rounded-xl border border-blue-100 shadow-sm text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-900/30 border-t-blue-900 mx-auto mb-3"></div>
                   <h4
                     className="text-sm font-medium text-gray-500 mb-2"
@@ -321,7 +321,7 @@ export default function EnrollmentSummary({
               </>
             ) : (
               <div className="flex-shrink-0 w-full">
-                <div className="p-8 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg text-center">
+                <div className="p-8 bg-white rounded-xl border border-blue-100 shadow-sm text-center">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md mx-auto mb-3">
                     <BookOpen
                       size={24}

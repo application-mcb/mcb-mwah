@@ -107,7 +107,7 @@ const Stage1 = ({
   if (currentStep === 'compliance') {
     return (
       <Card
-        className={`p-8 border-none bg-gray-50 border-1 shadow-sm border-blue-900 h-full transition-all duration-500 ${
+        className={`p-8 border border-blue-100 bg-white shadow-sm h-full transition-all duration-500 ${
           animatingStep
             ? 'opacity-0 transform translate-x-4'
             : 'opacity-100 transform translate-x-0'
@@ -124,7 +124,7 @@ const Stage1 = ({
             >
               Enrollment Compliance Agreement
             </h3>
-            <p className="text-gray-600 text-sm text-justify max-w-2xl mx-auto border-1 shadow-sm border-blue-900 p-4 bg-blue-50">
+            <p className="text-gray-600 text-sm text-justify max-w-2xl mx-auto border border-blue-100 p-4 bg-white rounded-xl">
               Before proceeding with enrollment, you must acknowledge and
               agree to comply with all school policies, academic requirements,
               and institutional guidelines. This includes maintaining academic
@@ -225,7 +225,7 @@ const Stage1 = ({
               <div
                 className={`relative border-2 rounded-lg p-6 cursor-pointer transition-all duration-300 hover:shadow-lg ${
                   selectedLevel === 'high-school'
-                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                    ? 'border-blue-500 bg-white shadow-md'
                     : 'border-gray-200 hover:border-blue-300'
                 }`}
                 onClick={() => handleLevelSelect('high-school')}
@@ -269,8 +269,8 @@ const Stage1 = ({
 
                     {/* Department Restriction */}
                     {studentDepartment && studentDepartment !== 'high-school' && (
-                      <div className="bg-amber-50 border border-amber-200 rounded p-2 mb-3">
-                        <p className="text-xs text-amber-700">
+                              <div className="bg-white border border-blue-100 rounded p-2 mb-3">
+                                <p className="text-xs text-blue-900">
                           Note: You are currently enrolled in College. Contact administration for department changes.
                         </p>
                       </div>
@@ -289,7 +289,7 @@ const Stage1 = ({
               <div
                 className={`relative border-2 rounded-lg p-6 cursor-pointer transition-all duration-300 hover:shadow-lg ${
                   selectedLevel === 'college'
-                    ? 'border-blue-500 bg-blue-50 shadow-md'
+                    ? 'border-blue-500 bg-white shadow-md'
                     : 'border-gray-200 hover:border-blue-300'
                 }`}
                 onClick={() => handleLevelSelect('college')}
@@ -333,8 +333,8 @@ const Stage1 = ({
 
                     {/* Department Restriction */}
                     {studentDepartment && studentDepartment !== 'college' && (
-                      <div className="bg-amber-50 border border-amber-200 rounded p-2 mb-3">
-                        <p className="text-xs text-amber-700">
+                              <div className="bg-white border border-blue-100 rounded p-2 mb-3">
+                                <p className="text-xs text-blue-900">
                           Note: You are currently enrolled in High School. Contact administration for department changes.
                         </p>
                       </div>

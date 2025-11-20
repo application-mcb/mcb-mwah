@@ -26,22 +26,22 @@ const getCircleClass = (isActive: boolean, isCompleted: boolean): string => {
   }
 
   if (isCompleted) {
-    return 'relative w-12 h-12 flex items-center justify-center rounded-xl bg-blue-900/60 text-blue-50 border border-blue-400/20 shadow-md shadow-blue-900/30'
+    return 'relative w-12 h-12 flex items-center justify-center rounded-xl bg-blue-900 text-white border border-blue-900 shadow-md shadow-blue-900/30'
   }
 
-  return 'relative w-12 h-12 flex items-center justify-center rounded-xl border border-blue-800/30 bg-blue-950/30 text-blue-400 group-hover:border-blue-500/50'
+  return 'relative w-12 h-12 flex items-center justify-center rounded-xl border border-blue-200 bg-white text-blue-400 group-hover:border-blue-500/70'
 }
 
 const getLabelClass = (isActive: boolean, isCompleted: boolean): string => {
   if (isActive) {
-    return 'text-xs font-medium text-blue-50'
+    return 'text-xs font-medium text-blue-900'
   }
 
   if (isCompleted) {
-    return 'text-xs font-medium text-blue-100'
+    return 'text-xs font-medium text-blue-700'
   }
 
-  return 'text-xs font-medium text-blue-400 group-hover:text-blue-200'
+  return 'text-xs font-medium text-blue-400 group-hover:text-blue-600'
 }
 
 export default function ProgressIndicator({
@@ -56,12 +56,12 @@ export default function ProgressIndicator({
   onProgressStepClick,
 }: ProgressIndicatorProps) {
   return (
-    <div className="rounded-2xl border border-blue-800/40 bg-white/5 backdrop-blur-md p-6 shadow-inner shadow-blue-950/40 text-blue-50">
+    <div className="rounded-2xl border border-blue-100 bg-white p-6 shadow-sm text-blue-900">
       <div className="relative">
         {/* Desktop Progress Steps Container */}
         <div className="hidden lg:flex justify-between items-start relative">
           {/* Progress Line Background - positioned behind circles */}
-          <div className="absolute top-6 left-6 right-6 h-1 bg-blue-950/30 z-0 rounded-full"></div>
+          <div className="absolute top-6 left-6 right-6 h-1 bg-white z-0 rounded-full shadow-sm"></div>
 
           {/* Animated Progress Line - positioned behind circles */}
           <div

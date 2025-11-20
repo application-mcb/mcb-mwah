@@ -105,7 +105,7 @@ export default function PersonalInfoStep({
       </div>
 
       <div
-        className={`${mutedPanelClass} p-4 sm:p-6 lg:p-8 overflow-visible sm:overflow-auto [&_.text-gray-900]:text-blue-100 [&_.text-gray-700]:text-blue-200 [&_.text-gray-600]:text-blue-200 [&_.text-gray-500]:text-blue-300 [&_.text-gray-400]:text-blue-300 [&_.text-red-500]:text-blue-300 [&_.border-gray-300]:border-blue-700/40 [&_.bg-gray-50]:bg-blue-950/30`}
+        className={`${mutedPanelClass} p-4 sm:p-6 lg:p-8 overflow-visible sm:overflow-auto`}
       >
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div>

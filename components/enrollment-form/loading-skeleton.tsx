@@ -15,10 +15,7 @@ export default function LoadingSkeleton() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(6)].map((_, i) => (
-          <Card
-            key={i}
-            className="p-6 bg-gray-50 border-0 border-r-0 border-b-0"
-          >
+          <Card key={i} className="p-6 bg-white border border-blue-50 shadow-sm">
             <div className="animate-pulse space-y-4">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gray-200 rounded"></div>

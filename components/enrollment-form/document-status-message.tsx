@@ -41,7 +41,7 @@ export default function DocumentStatusMessage({
       </div>
 
       {/* Document Requirements Alert */}
-      <Card className="p-6 border-none bg-gray-50 border-1 shadow-sm border-blue-900">
+      <Card className="p-6 border border-blue-100 bg-white shadow-sm">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 bg-gray-100 flex items-center justify-center">
             <FileText size={24} className="text-blue-900" weight="bold" />
@@ -62,7 +62,7 @@ export default function DocumentStatusMessage({
         </div>
 
         <div className="space-y-3">
-          <div className="bg-white border border-gray-200 p-4">
+        <div className="bg-white border border-blue-100 p-4 rounded-xl">
             <h4
               className="text-sm font-medium text-gray-900 mb-3"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
@@ -141,7 +141,7 @@ export default function DocumentStatusMessage({
       </Card>
 
       {/* Help Information */}
-      <Card className="p-6 border-none bg-gray-50 border-1 shadow-sm border-blue-900">
+      <Card className="p-6 border border-blue-100 bg-white shadow-sm">
         <h3
           className="text-lg font-medium text-gray-900 mb-3"
           style={{ fontFamily: 'Poppins', fontWeight: 500 }}

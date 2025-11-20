@@ -201,14 +201,14 @@ export default function ConfirmationStep({
 
   return (
     <div
-      className={`space-y-6 text-blue-50 transition-all duration-500 ${
+      className={`space-y-6 transition-all duration-500 ${
         animatingStep ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
       }`}
     >
       <div className={sectionHeaderClass}>
         <div className="flex items-center gap-3">
           <div className={headerIconWrapperClass}>
-            <Check size={18} className="text-blue-50" weight="bold" />
+            <Check size={18} className="text-white" weight="bold" />
           </div>
           <div className="min-w-0 flex-1">
             <h2 className={sectionTitleClass}>Confirm Your Enrollment</h2>
@@ -227,9 +227,7 @@ export default function ConfirmationStep({
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <div
-          className={`${mutedPanelClass} p-6 [&_.text-gray-900]:text-blue-100 [&_.text-gray-600]:text-blue-200 [&_.text-gray-500]:text-blue-300`}
-        >
+        <div className={`${mutedPanelClass} p-6`}>
           <div className="space-y-6">
             <div>
               <h4
@@ -242,12 +240,12 @@ export default function ConfirmationStep({
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <label
-                      className="text-sm font-medium text-gray-600"
+                      className="text-sm font-medium text-blue-900"
                       style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                     >
                       Full Name
                     </label>
-                    <p className="text-sm text-gray-900 mt-1 font-mono">
+                    <p className="text-sm text-gray-800 mt-1 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                       {personalInfo.firstName} {personalInfo.middleName}{' '}
                       {personalInfo.lastName} {personalInfo.nameExtension}
                     </p>
@@ -255,33 +253,33 @@ export default function ConfirmationStep({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label
-                        className="text-sm font-medium text-gray-600"
+                        className="text-sm font-medium text-blue-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                       >
                         Email Address
                       </label>
-                      <p className="text-sm text-gray-900 mt-1 font-mono">
+                      <p className="text-sm text-gray-800 mt-1 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                         {personalInfo.email || 'Not provided'}
                       </p>
                     </div>
                     <div>
                       <label
-                        className="text-sm font-medium text-gray-600"
+                        className="text-sm font-medium text-blue-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                       >
                         Phone Number
                       </label>
-                      <p className="text-sm text-gray-900 mt-1 font-mono">
+                      <p className="text-sm text-gray-800 mt-1 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                         {personalInfo.phone || 'Not provided'}
                       </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-600">
+                      <label className="text-sm font-medium text-blue-900" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                         Date of Birth
                       </label>
-                      <p className="text-sm text-gray-900 mt-1 font-mono">
+                      <p className="text-sm text-gray-800 mt-1 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                         {personalInfo.birthMonth &&
                         personalInfo.birthDay &&
                         personalInfo.birthYear
@@ -291,12 +289,12 @@ export default function ConfirmationStep({
                     </div>
                     <div>
                       <label
-                        className="text-sm font-medium text-gray-600"
+                        className="text-sm font-medium text-blue-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                       >
                         Place of Birth
                       </label>
-                      <p className="text-sm text-gray-900 mt-1 font-mono">
+                      <p className="text-sm text-gray-800 mt-1 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                         {personalInfo.placeOfBirth || 'Not provided'}
                       </p>
                     </div>
@@ -304,23 +302,23 @@ export default function ConfirmationStep({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label
-                        className="text-sm font-medium text-gray-600"
+                        className="text-sm font-medium text-blue-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                       >
                         Gender
                       </label>
-                      <p className="text-sm text-gray-900 mt-1 font-mono">
+                      <p className="text-sm text-gray-800 mt-1 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                         {personalInfo.gender || 'Not provided'}
                       </p>
                     </div>
                     <div>
                       <label
-                        className="text-sm font-medium text-gray-600"
+                        className="text-sm font-medium text-blue-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                       >
                         Civil Status
                       </label>
-                      <p className="text-sm text-gray-900 mt-1 font-mono">
+                      <p className="text-sm text-gray-800 mt-1 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                         {personalInfo.civilStatus || 'Not provided'}
                       </p>
                     </div>
@@ -328,23 +326,23 @@ export default function ConfirmationStep({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label
-                        className="text-sm font-medium text-gray-600"
+                        className="text-sm font-medium text-blue-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                       >
                         Citizenship
                       </label>
-                      <p className="text-sm text-gray-900 mt-1 font-mono">
+                      <p className="text-sm text-gray-800 mt-1 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                         {personalInfo.citizenship || 'Not provided'}
                       </p>
                     </div>
                     <div>
                       <label
-                        className="text-sm font-medium text-gray-600"
+                        className="text-sm font-medium text-blue-900"
                         style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                       >
                         Religion
                       </label>
-                      <p className="text-sm text-gray-900 mt-1 font-mono  ">
+                      <p className="text-sm text-gray-800 mt-1 font-mono" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
                         {personalInfo.religion || 'Not provided'}
                       </p>
                     </div>
@@ -450,11 +448,11 @@ export default function ConfirmationStep({
 
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-blue-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>
                     Enrollment Date:
                   </span>
                   <span
-                    className="text-sm text-gray-900"
+                    className="text-sm text-gray-800"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
                     {new Date().toLocaleDateString('en-US', {
@@ -465,9 +463,9 @@ export default function ConfirmationStep({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Academic Year:</span>
+                  <span className="text-sm text-blue-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>Academic Year:</span>
                   <span
-                    className="text-sm text-gray-900"
+                    className="text-sm text-gray-800"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
                     {new Date().getFullYear()} - {new Date().getFullYear() + 1}
@@ -478,9 +476,9 @@ export default function ConfirmationStep({
                     selectedGrade?.department === 'SHS' &&
                     selectedSemester)) && (
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Semester:</span>
+                    <span className="text-sm text-blue-900 font-medium" style={{ fontFamily: 'Poppins', fontWeight: 500 }}>Semester:</span>
                     <span
-                      className="text-sm text-gray-900"
+                      className="text-sm text-gray-800"
                       style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                     >
                       {selectedSemester === 'first-sem'
@@ -495,7 +493,7 @@ export default function ConfirmationStep({
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 pt-6 border-t border-blue-800/40">
+      <div className="flex justify-end gap-3 pt-6 border-t border-blue-100">
         <Button
           variant="ghost"
           onClick={onBack}

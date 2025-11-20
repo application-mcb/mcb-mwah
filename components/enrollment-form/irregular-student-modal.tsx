@@ -40,7 +40,7 @@ export default function IrregularStudentModal({
           </div>
         </div>
 
-        <div className="bg-gray-50 border border-gray-200 p-4 mb-6">
+        <div className="bg-white border border-blue-100 rounded-xl p-4 mb-6">
           <h4
             className="text-sm font-medium text-gray-900 mb-2"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
@@ -55,7 +55,7 @@ export default function IrregularStudentModal({
           </p>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 p-4 mb-6">
+        <div className="bg-white border border-blue-100 rounded-xl p-4 mb-6">
           <h4
             className="text-sm font-medium text-blue-900 mb-2"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
@@ -70,7 +70,7 @@ export default function IrregularStudentModal({
           </p>
         </div>
 
-        <div className="bg-gray-50 border border-gray-200 p-4 mb-6">
+        <div className="bg-white border border-blue-100 rounded-xl p-4 mb-6">
           <h4
             className="text-sm font-medium text-gray-900 mb-2"
             style={{ fontFamily: 'Poppins', fontWeight: 400 }}

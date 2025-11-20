@@ -21,7 +21,7 @@ export default function ReEnrollStep({
 }: ReEnrollStepProps) {
   return (
     <Card
-      className={`p-8 border-none bg-gray-50 border-1 shadow-sm border-blue-900 h-full transition-all duration-500 ${
+      className={`p-8 border border-blue-100 bg-white shadow-sm h-full transition-all duration-500 ${
         animatingStep
           ? 'opacity-0 transform translate-x-4'
           : 'opacity-100 transform translate-x-0'
@@ -63,7 +63,7 @@ export default function ReEnrollStep({
 
         {/* Previous Enrollment Info */}
         {previousEnrollment && (
-          <div className="bg-blue-50 border border-blue-200 p-4">
+          <div className="bg-white border border-blue-100 p-4 rounded-xl">
             <h3
               className="text-sm font-medium text-gray-900 mb-3"
               style={{ fontFamily: 'Poppins', fontWeight: 500 }}
@@ -192,7 +192,7 @@ export default function ReEnrollStep({
           const nextGrade = isHS && prevGrade ? prevGrade + 1 : undefined
           if (!isHS || !nextGrade || nextGrade > 12) return null
           return (
-            <div className="bg-blue-50 border border-blue-200 p-4">
+            <div className="bg-white border border-blue-100 p-4 rounded-xl">
               <h3
                 className="text-sm font-medium text-gray-900 mb-3"
                 style={{ fontFamily: 'Poppins', fontWeight: 500 }}
@@ -238,7 +238,7 @@ export default function ReEnrollStep({
           ((previousEnrollment?.enrollmentInfo?.level === 'college') ||
             (previousEnrollment?.enrollmentInfo?.level === 'high-school' &&
               previousEnrollment?.enrollmentInfo?.department === 'SHS')) && (
-            <div className="bg-blue-50 border border-blue-200 p-4">
+            <div className="bg-white border border-blue-100 p-4 rounded-xl">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-900 flex items-center justify-center">
                   <Calendar
@@ -284,7 +284,7 @@ export default function ReEnrollStep({
           )}
 
         {/* Note */}
-        <div className="bg-gray-50 border border-gray-200 p-4">
+        <div className="bg-white border border-blue-100 p-4 rounded-xl">
           <p
             className="text-xs text-gray-600"
             style={{ fontFamily: 'Poppins', fontWeight: 300 }}

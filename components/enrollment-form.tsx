@@ -330,7 +330,7 @@ export default function EnrollmentForm({
     >
       {/* Header */}
       <div className={sectionHeaderClass}>
-        <div className="flex flex-col gap-3 text-blue-50">
+        <div className="flex flex-col gap-3 text-blue-900">
           <div className="flex items-center gap-3">
             <div className={headerIconWrapperClass} aria-hidden="true">
               <GraduationCap size={26} className="text-blue-50" weight="fill" />
@@ -363,10 +363,10 @@ export default function EnrollmentForm({
 
       {/* Loading State */}
       {!userProfile && (
-        <Card className="p-8 border border-blue-800/30 bg-white/5 backdrop-blur-md rounded-2xl shadow-inner shadow-blue-950/40">
+        <Card className="p-8 border border-blue-100 bg-white rounded-2xl shadow-sm">
           <div className="text-center space-y-4">
-            <div className="animate-spin rounded-lg h-8 w-8 border-2 border-blue-800/30 border-t-blue-200 mx-auto"></div>
-            <p className="text-blue-100">Loading your profile information...</p>
+            <div className="animate-spin rounded-lg h-8 w-8 border-2 border-blue-100 border-t-blue-900 mx-auto"></div>
+            <p className="text-blue-900">Loading your profile information...</p>
           </div>
         </Card>
       )}

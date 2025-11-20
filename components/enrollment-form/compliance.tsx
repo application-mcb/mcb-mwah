@@ -96,11 +96,11 @@ export default function ComplianceStep({
 
   return (
     <div
-      className={`space-y-6 transition-all duration-500 text-blue-50 ${
+      className={`space-y-6 transition-all duration-500 text-blue-900 ${
         animatingStep ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
       }`}
     >
-      <div className="rounded-2xl border border-blue-800/40 bg-white/5 backdrop-blur-lg p-6 sm:p-8 space-y-5 text-center shadow-inner shadow-blue-950/30">
+      <div className="rounded-2xl border border-blue-100 bg-white p-6 sm:p-8 space-y-5 text-center shadow-sm">
         <div className="flex flex-col items-center gap-4">
           <div
             className={`${headerIconWrapperClass} w-16 h-16`}
@@ -132,7 +132,7 @@ export default function ComplianceStep({
           </div>
         </div>
 
-        <div className="text-sm text-left max-w-3xl mx-auto rounded-2xl border border-blue-800/40 bg-blue-950/40 p-4 sm:p-6 whitespace-pre-line leading-relaxed text-blue-100 shadow-inner shadow-blue-950/40">
+        <div className="text-sm text-left max-w-3xl mx-auto rounded-2xl border border-blue-100 bg-white p-4 sm:p-6 whitespace-pre-line leading-relaxed text-blue-900 shadow-sm">
           {currentCompliance.content}
         </div>
       </div>
@@ -142,14 +142,14 @@ export default function ComplianceStep({
           <div className="space-y-4">
             <label
               htmlFor="compliance-check"
-              className="flex items-start gap-3 text-sm leading-relaxed cursor-pointer text-blue-100"
+              className="flex items-start gap-3 text-sm leading-relaxed cursor-pointer text-blue-900"
             >
               <input
                 type="checkbox"
                 id="compliance-check"
                 checked={complianceChecked}
                 onChange={onComplianceCheck}
-                className="w-5 h-5 mt-0.5 rounded-md border border-blue-700/40 bg-blue-950/60 text-blue-200 focus:ring-blue-200 focus:ring-offset-0"
+                className="w-5 h-5 mt-0.5 rounded-md border border-blue-300 bg-white text-blue-900 focus:ring-blue-200 focus:ring-offset-0"
               />
               I acknowledge and agree to comply with all school policies and
               requirements
