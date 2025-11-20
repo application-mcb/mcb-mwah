@@ -70,6 +70,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onSwitchTo
       if (result.isRegistrar) {
         // User is a registrar, redirect to registrar dashboard
         window.location.href = result.redirectTo || '/registrar';
+      } else if (result.isTeacher) {
+        // User is a teacher, redirect to teacher dashboard
+        window.location.href = result.redirectTo || '/teacher';
       } else if (result.hasCompleteProfile) {
         // User has complete profile, redirect to student dashboard
         window.location.href = '/dashboard';
@@ -138,6 +141,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, onSwitchTo
       if (googleAuthResult.isRegistrar) {
         // User is a registrar, redirect to registrar dashboard
         window.location.href = googleAuthResult.redirectTo || '/registrar';
+      } else if (googleAuthResult.isTeacher) {
+        // User is a teacher, redirect to teacher dashboard
+        window.location.href = googleAuthResult.redirectTo || '/teacher';
       } else if (googleAuthResult.hasCompleteProfile) {
         // User has complete profile, redirect to student dashboard
         window.location.href = '/dashboard';
