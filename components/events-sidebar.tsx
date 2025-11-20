@@ -75,10 +75,9 @@ export default function EventsSidebar({
   }
 
   useEffect(() => {
-    if (!level) return
-
     const fetchEvents = async () => {
       try {
+        setLoading(true)
         // Build API URL - if level is null, don't include it (API will return all events)
         const activeUrl = level ? `/api/events?level=${level}` : '/api/events'
         const upcomingUrl = level
@@ -114,6 +113,7 @@ export default function EventsSidebar({
         setEvents(allEvents)
       } catch (error) {
         console.error('Error fetching events:', error)
+        toast.error('Failed to load events')
       } finally {
         setLoading(false)
       }
