@@ -176,6 +176,7 @@ export async function POST(request: NextRequest) {
       enrollmentInfo.level = 'college'
     } else {
       enrollmentInfo.gradeLevel = String(gradeLevel)
+      enrollmentInfo.gradeId = gradeId // Store gradeId for high school enrollments
       enrollmentInfo.department = department
       // Only include strand if it has a value (for SHS) - Firestore doesn't allow undefined
       if (strand !== undefined && strand !== '') {

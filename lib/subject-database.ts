@@ -90,6 +90,18 @@ export interface SubjectData {
   updatedAt: string // ISO string (serialized from Firestore timestamp)
   createdBy: string // UID of the registrar who created it
 
+  // Denormalized enrolled students data (populated via sync)
+  enrolledStudents?: Array<{
+    userId: string
+    studentId?: string
+    studentName: string
+    studentSection: string
+    studentLevel: string
+    studentSemester: string
+  }>
+  enrolledStudentsCount?: number // Count for faster sorting/filtering
+  enrolledStudentsLastSynced?: string // ISO string of last sync time
+
   // Backward compatibility fields (optional)
   gradeLevel?: number // Legacy field for old subjects
 }
@@ -447,7 +459,12 @@ export class SubjectDatabase {
         updateData.courseCodes !== undefined ||
         updateData.courseSelections !== undefined
       ) {
-        if (!hasGradeLevels && !hasGradeIds && !hasCourseCodes && !hasCourseSelections) {
+        if (
+          !hasGradeLevels &&
+          !hasGradeIds &&
+          !hasCourseCodes &&
+          !hasCourseSelections
+        ) {
           throw new Error(
             'At least one grade level, grade ID, college course code, or course selection must be provided'
           )
@@ -646,7 +663,7 @@ export class SubjectSetDatabase {
       }
 
       // Validate grade level
-      if (subjectSetData.gradeLevel < 1 || subjectSetData.gradeLevel > 12) {
+      if (!subjectSetData.gradeLevel || subjectSetData.gradeLevel < 1 || subjectSetData.gradeLevel > 12) {
         throw new Error('Grade level must be between 1 and 12')
       }
 
@@ -665,7 +682,7 @@ export class SubjectSetDatabase {
 
       const subjectSetId = this.generateSubjectSetId(
         subjectSetData.name,
-        subjectSetData.gradeLevel
+        subjectSetData.gradeLevel!
       )
       const subjectSetRef = doc(
         collection(db, this.collectionName),
@@ -821,9 +838,9 @@ export class SubjectSetDatabase {
           }
         }
         // Deduplicate grade levels
-        updateData.gradeLevels = Array.from(new Set(updateData.gradeLevels)).sort(
-          (a, b) => a - b
-        )
+        updateData.gradeLevels = Array.from(
+          new Set(updateData.gradeLevels)
+        ).sort((a, b) => a - b)
       }
 
       // Validate subjects exist if provided

@@ -48,6 +48,7 @@ export interface EnrollmentData {
   }
   enrollmentInfo: {
     gradeLevel?: string // For high school
+    gradeId?: string // For high school - grade identifier (e.g., "grade-11-shs-stem")
     department?: string // For high school (JHS/SHS)
     strand?: string // For SHS
     semester?: 'first-sem' | 'second-sem' // For college and SHS
@@ -88,6 +89,36 @@ export interface SystemConfig {
   enrollmentEndPeriodHS?: string
   enrollmentStartPeriodCollege?: string
   enrollmentEndPeriodCollege?: string
+}
+
+// Utility function to get or derive gradeId from enrollment info
+// This ensures backward compatibility with legacy records that don't have gradeId stored
+export function getOrDeriveGradeId(enrollmentInfo: any): string | undefined {
+  // If gradeId already exists, return it
+  if (enrollmentInfo?.gradeId) {
+    return enrollmentInfo.gradeId
+  }
+
+  // Only derive for high school enrollments
+  if (enrollmentInfo?.level !== 'high-school') {
+    return undefined
+  }
+
+  const gradeLevel = enrollmentInfo?.gradeLevel
+  const department = enrollmentInfo?.department
+  const strand = enrollmentInfo?.strand
+
+  // Need at least gradeLevel and department to derive gradeId
+  if (!gradeLevel || !department) {
+    return undefined
+  }
+
+  // Reconstruct gradeId using same pattern as GradeDatabase.generateGradeId()
+  // Pattern: grade-{gradeLevel}-{department}-{strand} for SHS, grade-{gradeLevel}-{department} for JHS
+  if (department === 'SHS' && strand) {
+    return `grade-${gradeLevel}-${department.toLowerCase()}-${strand.toLowerCase()}`
+  }
+  return `grade-${gradeLevel}-${department.toLowerCase()}`
 }
 
 export class EnrollmentDatabase {
@@ -862,7 +893,7 @@ export class EnrollmentDatabase {
     } else {
       // High school
       const gradeLevel = enrollmentInfo.gradeLevel || ''
-      const gradeId = enrollmentInfo.gradeId
+      const gradeId = getOrDeriveGradeId(enrollmentInfo)
       let strand = ''
 
       // Fetch grade data to get strand for SHS

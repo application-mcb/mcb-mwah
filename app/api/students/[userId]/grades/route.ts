@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, getDocs, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase-server';
-import { EnrollmentDatabase } from '@/lib/enrollment-database';
+import { EnrollmentDatabase, getOrDeriveGradeId } from '@/lib/enrollment-database';
 import { SectionDatabase, GradeDatabase } from '@/lib/grade-section-database';
 
 // Helper function to refresh student metadata in studentGrades document
@@ -67,7 +67,8 @@ async function refreshStudentMetadata(userId: string, ayCode: string): Promise<v
       studentSemester = semester || '';
     } else {
       const gradeLevel = enrollmentInfo.gradeLevel || '';
-      const gradeId = enrollmentInfo.gradeId;
+      // Use backward compatible utility to get or derive gradeId
+      const gradeId = getOrDeriveGradeId(enrollmentInfo);
       let strand = '';
 
       if (gradeId) {

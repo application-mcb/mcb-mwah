@@ -26,6 +26,17 @@ export default function DebugKitPage() {
   const [conversionStats, setConversionStats] = useState<ConversionStats | null>(
     null
   )
+  const [gradeIdLoading, setGradeIdLoading] = useState(false)
+  const [gradeIdError, setGradeIdError] = useState('')
+  const [gradeIdStats, setGradeIdStats] = useState<{
+    total: number
+    collegeEnrollments?: number
+    highSchoolEnrollments?: number
+    updated: number
+    alreadyHasGradeId: number
+    errors: number
+    errorDetails?: string[]
+  } | null>(null)
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target
@@ -88,6 +99,35 @@ export default function DebugKitPage() {
       setConversionError(error.message || 'Conversion failed')
     } finally {
       setConversionLoading(false)
+    }
+  }
+
+  const handleFixGradeId = async () => {
+    setGradeIdLoading(true)
+    setGradeIdError('')
+    setGradeIdStats(null)
+
+    try {
+      const response = await fetch('/api/debugkit/fix-grade-id', {
+        method: 'POST',
+      })
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'GradeId fix failed')
+      }
+
+      setGradeIdStats({
+        total: data.total,
+        updated: data.updated,
+        alreadyHasGradeId: data.alreadyHasGradeId,
+        errors: data.errors,
+        errorDetails: data.errorDetails,
+      })
+    } catch (error: any) {
+      setGradeIdError(error.message || 'GradeId fix failed')
+    } finally {
+      setGradeIdLoading(false)
     }
   }
 
@@ -287,6 +327,91 @@ export default function DebugKitPage() {
               >
                 The conversion process may take several seconds. Keep this tab
                 open until it completes.
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 space-y-4">
+            <div>
+              <h2
+                className="text-xl font-light text-gray-900"
+                style={{ fontFamily: 'Poppins' }}
+              >
+                Fix Missing GradeId
+              </h2>
+              <p
+                className="text-xs text-gray-600"
+                style={{ fontFamily: 'Poppins' }}
+              >
+                Backfill gradeId for all existing high school enrollment records
+                that are missing this field
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Button
+                onClick={handleFixGradeId}
+                disabled={gradeIdLoading}
+                className="w-full"
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
+                {gradeIdLoading ? 'Fixing...' : 'Fix GradeId'}
+              </Button>
+
+              {gradeIdError && (
+                <div
+                  className="p-3 rounded bg-red-100 text-red-800 text-sm"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  {gradeIdError}
+                </div>
+              )}
+
+              {gradeIdStats && (
+                <div
+                  className="p-3 rounded bg-green-50 border border-green-200 text-sm space-y-1"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  <p className="text-green-900 font-medium">
+                    GradeId fix complete
+                  </p>
+                  <p>Total enrollments processed: {gradeIdStats.total}</p>
+                  {gradeIdStats.collegeEnrollments !== undefined && (
+                    <p>College enrollments (skipped): {gradeIdStats.collegeEnrollments}</p>
+                  )}
+                  {gradeIdStats.highSchoolEnrollments !== undefined && (
+                    <p>High school enrollments: {gradeIdStats.highSchoolEnrollments}</p>
+                  )}
+                  <p>Updated records: {gradeIdStats.updated}</p>
+                  <p>Already had gradeId: {gradeIdStats.alreadyHasGradeId}</p>
+                  {gradeIdStats.errors > 0 && (
+                    <>
+                      <p className="text-red-700">
+                        Errors: {gradeIdStats.errors}
+                      </p>
+                      {gradeIdStats.errorDetails && (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer text-red-700 text-xs">
+                            View error details
+                          </summary>
+                          <ul className="mt-1 space-y-1 text-xs text-red-600 max-h-32 overflow-y-auto">
+                            {gradeIdStats.errorDetails.map((detail, idx) => (
+                              <li key={idx}>{detail}</li>
+                            ))}
+                          </ul>
+                        </details>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div
+                className="text-xs text-gray-500"
+                style={{ fontFamily: 'Poppins' }}
+              >
+                The fix process may take several seconds. Keep this tab open
+                until it completes.
               </div>
             </div>
           </Card>

@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
 import { SubjectData } from '@/lib/subject-database'
 import { GradeData } from '@/lib/grade-section-database'
+import { SubjectEnrolledList } from './subject-enrolled-list'
 import {
   Plus,
   MagnifyingGlass,
@@ -22,6 +24,16 @@ import {
   MusicNote,
   Book,
   Books,
+  Table,
+  SquaresFour,
+  FunnelSimple,
+  X,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  Users,
+  ArrowsClockwise,
 } from '@phosphor-icons/react'
 
 interface SubjectListProps {
@@ -40,6 +52,7 @@ interface SubjectListProps {
   onGradeIdChange?: (gradeId: string | undefined) => void
   selectedCourses?: string[]
   onCourseToggle?: (courseCode: string) => void
+  registrarName?: string
 }
 
 const colorMap = {
@@ -305,6 +318,101 @@ const getSubjectIcon = (subject: SubjectData) => {
   return BookOpen
 }
 
+// Action Menu Component
+const ActionMenu = ({
+  subject,
+  onViewSubject,
+  onEditSubject,
+  onDeleteSubject,
+  onViewEnrolledList,
+}: {
+  subject: SubjectData
+  onViewSubject: (subject: SubjectData) => void
+  onEditSubject: (subject: SubjectData) => void
+  onDeleteSubject: (subject: SubjectData) => void
+  onViewEnrolledList?: (subject: SubjectData) => void
+}) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMenuOpen])
+
+  const handleMenuAction = (action: () => void) => {
+    action()
+    setIsMenuOpen(false)
+  }
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <Button
+        onClick={() => setIsMenuOpen(!isMenuOpen)}
+        size="sm"
+        variant="ghost"
+        className="rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+      >
+        <Gear size={16} weight="fill" className="text-blue-900" />
+      </Button>
+      {isMenuOpen && (
+        <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 shadow-lg rounded-lg z-50">
+          <div className="py-1">
+            <button
+              onClick={() => handleMenuAction(() => onViewSubject(subject))}
+              className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2 rounded-lg"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <Eye size={14} />
+              View Details
+            </button>
+            {onViewEnrolledList && (
+              <button
+                onClick={() =>
+                  handleMenuAction(() => onViewEnrolledList(subject))
+                }
+                className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2 rounded-lg"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                <Users size={14} />
+                View Enrolled List
+              </button>
+            )}
+            <button
+              onClick={() => handleMenuAction(() => onEditSubject(subject))}
+              className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2 rounded-lg"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <Pencil size={14} />
+              Edit Subject
+            </button>
+            <button
+              onClick={() => handleMenuAction(() => onDeleteSubject(subject))}
+              className="w-full px-4 py-2 text-left text-xs hover:bg-red-50 flex items-center gap-2 rounded-lg text-red-700"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <Trash size={14} />
+              Delete Subject
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function SubjectList({
   subjects,
   grades,
@@ -321,7 +429,45 @@ export default function SubjectList({
   onGradeIdChange = () => {},
   selectedCourses = [],
   onCourseToggle = () => {},
+  registrarName,
 }: SubjectListProps) {
+  // View mode state - default to 'table'
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
+  // Filter dropdown state
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
+  // Student enrollment data state
+  const [studentEnrollments, setStudentEnrollments] = useState<
+    Record<
+      string,
+      {
+        count: number
+        students: Array<{
+          userId: string
+          studentName: string
+          studentSection: string
+          studentLevel: string
+          studentSemester: string
+        }>
+      }
+    >
+  >({})
+  const [loadingStudents, setLoadingStudents] = useState<
+    Record<string, boolean>
+  >({})
+  // Sort state - default to most enrolled first
+  const [sortBy, setSortBy] = useState<'none' | 'count-asc' | 'count-desc'>(
+    'count-desc'
+  )
+  // Enrolled list modal state
+  const [viewingEnrolledList, setViewingEnrolledList] =
+    useState<SubjectData | null>(null)
+  // Sync state
+  const [syncing, setSyncing] = useState(false)
+  const [syncError, setSyncError] = useState<string | null>(null)
+
   // Filter subjects based on search query, grade level, and courses
   const filteredSubjects = useMemo(() => {
     let filtered = subjects
@@ -370,11 +516,280 @@ export default function SubjectList({
     return filtered
   }, [subjects, searchQuery, selectedGradeId, selectedCourses, grades])
 
+  // Sort filtered subjects based on sort option
+  // Use denormalized data from subject.enrolledStudentsCount if available, otherwise use studentEnrollments state
+  const sortedAndFilteredSubjects = useMemo(() => {
+    let sorted = [...filteredSubjects]
+
+    if (sortBy === 'count-asc' || sortBy === 'count-desc') {
+      sorted.sort((a, b) => {
+        // Prefer denormalized data from subject document
+        const countA =
+          a.enrolledStudentsCount ??
+          studentEnrollments[a.id]?.count ??
+          (Array.isArray(a.enrolledStudents) ? a.enrolledStudents.length : 0) ??
+          0
+        const countB =
+          b.enrolledStudentsCount ??
+          studentEnrollments[b.id]?.count ??
+          (Array.isArray(b.enrolledStudents) ? b.enrolledStudents.length : 0) ??
+          0
+
+        if (sortBy === 'count-asc') {
+          return countA - countB
+        } else {
+          return countB - countA
+        }
+      })
+    }
+
+    return sorted
+  }, [filteredSubjects, sortBy, studentEnrollments])
+
+  // Reset to page 1 when filters or sort change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, selectedGradeId, selectedCourses, sortBy])
+
+  // Paginate filtered subjects for table view
+  const paginatedSubjects = useMemo(() => {
+    if (viewMode !== 'table') return sortedAndFilteredSubjects
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return sortedAndFilteredSubjects.slice(startIndex, endIndex)
+  }, [sortedAndFilteredSubjects, currentPage, itemsPerPage, viewMode])
+
+  // Calculate total pages
+  const totalPages = Math.ceil(sortedAndFilteredSubjects.length / itemsPerPage)
+
+  // Ensure currentPage is valid
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages)
+    }
+    if (currentPage < 1 && totalPages > 0) {
+      setCurrentPage(1)
+    }
+  }, [currentPage, totalPages])
+
+  // Sync function to populate enrolledStudents in subject documents
+  const handleSync = async () => {
+    setSyncing(true)
+    setSyncError(null)
+
+    try {
+      const response = await fetch('/api/subjects/sync-students', {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        throw new Error(
+          `API returned ${response.status}: ${response.statusText}`
+        )
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        console.log('[SubjectList] Sync completed:', data.stats)
+        // Reload the page to get updated subject data with enrolledStudents
+        window.location.reload()
+      } else {
+        throw new Error(data.error || 'Sync failed')
+      }
+    } catch (error) {
+      console.error('[SubjectList] Error syncing students:', error)
+      setSyncError(
+        error instanceof Error ? error.message : 'Failed to sync students'
+      )
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  // Fetch student enrollment data (only if not using denormalized data)
+  useEffect(() => {
+    const fetchStudentEnrollments = async () => {
+      // Check if subjects already have denormalized enrolledStudents data
+      const hasDenormalizedData = sortedAndFilteredSubjects.some(
+        (subject) => subject.enrolledStudents !== undefined
+      )
+
+      // If denormalized data exists, use it instead of fetching
+      if (hasDenormalizedData) {
+        // Populate studentEnrollments from denormalized data
+        const enrollments: typeof studentEnrollments = {}
+        sortedAndFilteredSubjects.forEach((subject) => {
+          if (subject.enrolledStudents) {
+            enrollments[subject.id] = {
+              count:
+                subject.enrolledStudentsCount ??
+                subject.enrolledStudents.length,
+              students: subject.enrolledStudents,
+            }
+          }
+        })
+        setStudentEnrollments((prev) => ({ ...prev, ...enrollments }))
+        return
+      }
+
+      // If sorting by count, use the bulk endpoint (much faster - 1 API call instead of N)
+      if (sortBy === 'count-asc' || sortBy === 'count-desc') {
+        // Check if we already have counts for all subjects
+        const hasAllCounts = sortedAndFilteredSubjects.every(
+          (subject) => studentEnrollments[subject.id]?.count !== undefined
+        )
+
+        if (hasAllCounts) {
+          return // Already fetched
+        }
+
+        // Set loading for all subjects
+        const loadingMap: Record<string, boolean> = {}
+        sortedAndFilteredSubjects.forEach((subject) => {
+          if (!studentEnrollments[subject.id]) {
+            loadingMap[subject.id] = true
+          }
+        })
+        setLoadingStudents((prev) => ({ ...prev, ...loadingMap }))
+
+        try {
+          // Single API call to get counts for ALL subjects at once
+          const response = await fetch('/api/subjects/students-counts')
+
+          if (!response.ok) {
+            throw new Error(
+              `API returned ${response.status}: ${response.statusText}`
+            )
+          }
+
+          const data = await response.json()
+
+          if (data.success) {
+            console.log(
+              `[SubjectList] Loaded counts for ${
+                Object.keys(data.counts).length
+              } subjects in one query${data.cached ? ' (cached)' : ''}`
+            )
+
+            // Store ALL counts from API (not just filtered subjects)
+            // This way we don't need to refetch when filters change
+            const newEnrollments: typeof studentEnrollments = {}
+
+            // Store all counts from the API response
+            Object.keys(data.counts).forEach((subjectId) => {
+              const count = data.counts[subjectId] || 0
+              const students = data.students[subjectId] || []
+              newEnrollments[subjectId] = { count, students }
+            })
+
+            // Merge with existing data (preserve any we already have)
+            setStudentEnrollments((prev) => ({
+              ...prev,
+              ...newEnrollments,
+            }))
+          } else {
+            console.warn(
+              `[SubjectList] API returned success=false:`,
+              data.error
+            )
+          }
+        } catch (error) {
+          console.error(`[SubjectList] Error fetching subject counts:`, error)
+        } finally {
+          // Clear loading state
+          const clearLoading: Record<string, boolean> = {}
+          sortedAndFilteredSubjects.forEach((subject) => {
+            clearLoading[subject.id] = false
+          })
+          setLoadingStudents((prev) => ({ ...prev, ...clearLoading }))
+        }
+      } else {
+        // Not sorting by count - lazy load only visible subjects (per-subject API)
+        const subjectsToFetch = paginatedSubjects
+
+        if (subjectsToFetch.length === 0) return
+
+        // Fetch for visible subjects in parallel (per-subject API)
+        const fetchPromises = subjectsToFetch.map(async (subject) => {
+          // Check if already fetched
+          if (studentEnrollments[subject.id] || loadingStudents[subject.id]) {
+            return // Already fetched or currently loading
+          }
+
+          setLoadingStudents((prev) => ({ ...prev, [subject.id]: true }))
+
+          try {
+            const response = await fetch(`/api/subjects/${subject.id}/students`)
+
+            if (!response.ok) {
+              throw new Error(
+                `API returned ${response.status}: ${response.statusText}`
+              )
+            }
+
+            const data = await response.json()
+
+            if (data.success) {
+              console.log(
+                `[SubjectList] Loaded ${data.count} students for subject ${subject.id}`
+              )
+              setStudentEnrollments((prev) => ({
+                ...prev,
+                [subject.id]: {
+                  count: data.count || 0,
+                  students: data.students || [],
+                },
+              }))
+            } else {
+              console.warn(
+                `[SubjectList] API returned success=false for subject ${subject.id}:`,
+                data.error
+              )
+              setStudentEnrollments((prev) => ({
+                ...prev,
+                [subject.id]: {
+                  count: 0,
+                  students: [],
+                },
+              }))
+            }
+          } catch (error) {
+            console.error(
+              `[SubjectList] Error fetching students for subject ${subject.id}:`,
+              error
+            )
+            setStudentEnrollments((prev) => ({
+              ...prev,
+              [subject.id]: {
+                count: 0,
+                students: [],
+              },
+            }))
+          } finally {
+            setLoadingStudents((prev) => ({ ...prev, [subject.id]: false }))
+          }
+        })
+
+        await Promise.all(fetchPromises)
+      }
+    }
+
+    fetchStudentEnrollments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    sortBy === 'count-asc' || sortBy === 'count-desc'
+      ? sortedAndFilteredSubjects.map((s) => s.id).join(',')
+      : paginatedSubjects.map((s) => s.id).join(','),
+    currentPage,
+    sortBy,
+  ])
+
   // Group subjects by grade and course (supports both old and new data structure)
   const groupSubjectsByGrade = () => {
     const grouped: { [key: string]: SubjectData[] } = {}
 
-    filteredSubjects.forEach((subject: SubjectData) => {
+    sortedAndFilteredSubjects.forEach((subject: SubjectData) => {
       // If course filter is active, only group by selected courses
       if (selectedCourses.length > 0) {
         // Only group subjects that have the selected courses
@@ -543,6 +958,56 @@ export default function SubjectList({
     selectedCourses.forEach((courseCode) => onCourseToggle(courseCode))
   }
 
+  // Helper function to get grade/course display for a subject
+  const getSubjectGradeDisplay = (subject: SubjectData): string => {
+    // Check if subject has course codes (college level)
+    if (subject.courseCodes && subject.courseCodes.length > 0) {
+      // Show only first 2 courses, then "+X" if there are more
+      if (subject.courseCodes.length <= 2) {
+        return subject.courseCodes.join(', ')
+      } else {
+        const remainingCount = subject.courseCodes.length - 2
+        return `${subject.courseCodes
+          .slice(0, 2)
+          .join(', ')} +${remainingCount}`
+      }
+    }
+
+    // Check for grade IDs (specific grades/strands)
+    if (subject.gradeIds && subject.gradeIds.length > 0) {
+      const gradeInfo = grades.find((g) => subject.gradeIds.includes(g.id))
+      if (gradeInfo) {
+        return formatGradeLevel(gradeInfo)
+      }
+    }
+
+    // Check for grade levels
+    if (subject.gradeLevels && subject.gradeLevels.length > 0) {
+      const gradeLevel = subject.gradeLevels[0]
+      const gradeInfo = grades.find((g) => g.gradeLevel === gradeLevel)
+      if (gradeInfo) {
+        return formatGradeLevel(gradeInfo)
+      }
+      return gradeLevel >= 7 && gradeLevel <= 12
+        ? `G${gradeLevel}`
+        : `Grade ${gradeLevel}`
+    }
+
+    // Legacy support for old gradeLevel field
+    if ((subject as any).gradeLevel) {
+      const gradeLevel = (subject as any).gradeLevel
+      const gradeInfo = grades.find((g) => g.gradeLevel === gradeLevel)
+      if (gradeInfo) {
+        return formatGradeLevel(gradeInfo)
+      }
+      return gradeLevel >= 7 && gradeLevel <= 12
+        ? `G${gradeLevel}`
+        : `Grade ${gradeLevel}`
+    }
+
+    return 'N/A'
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -556,69 +1021,391 @@ export default function SubjectList({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-6">
-          {[...Array(6)].map((_, i) => (
-            <Card
-              key={i}
-              className="p-6 bg-white border border-gray-200 rounded-xl flex-[1_1_min(100%,_350px)]"
-            >
-              <div className="animate-pulse space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
-                  <div className="space-y-2 flex-1">
-                    <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+        {viewMode === 'table' ? (
+          <div className="border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gradient-to-br from-blue-800 to-blue-900">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
+                      Code
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
+                      Grade/Course
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
+                      Total Units
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {[...Array(5)].map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-200 rounded w-20"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 bg-gray-200 rounded w-32"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-200 rounded w-16"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 bg-gray-200 rounded w-12"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex gap-2">
+                          <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                          <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                          <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="p-6 bg-white border border-gray-200 rounded-xl flex-[1_1_min(100%,_350px)]"
+              >
+                <div className="animate-pulse space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                    <div className="space-y-2 flex-1">
+                      <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="h-4 bg-gray-100 rounded w-full"></div>
-                  <div className="h-4 bg-gray-100 rounded w-2/3"></div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div className="h-4 bg-gray-100 rounded w-20"></div>
-                  <div className="flex space-x-2">
-                    <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
-                    <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
-                    <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-100 rounded w-full"></div>
+                    <div className="h-4 bg-gray-100 rounded w-2/3"></div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 bg-gray-100 rounded w-20"></div>
+                    <div className="flex space-x-2">
+                      <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                      <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                      <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Search and Filters */}
+      {/* Search and Filter Controls */}
       <div className="bg-white p-6 border border-gray-200 rounded-xl shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <div className="flex items-center gap-4 flex-1">
+            <div className="flex-1">
               <Input
                 type="text"
                 placeholder="Search subjects..."
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="pr-4 py-2 border-1 shadow-sm border-blue-900 rounded-lg"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                className="pr-4 py-2 w-full border-blue-900 rounded-lg"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               />
             </div>
           </div>
-
-          <div className="flex items-center space-x-3">
-            {(searchQuery || selectedGradeId || selectedCourses.length > 0) && (
-              <Button
-                variant="ghost"
-                onClick={clearFilters}
-                className="text-gray-500 hover:text-gray-700"
-                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+          <div className="flex items-center gap-2">
+            {/* View Toggle Buttons */}
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('table')}
+                className={`px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                  viewMode === 'table'
+                    ? 'bg-blue-900 text-white shadow-lg'
+                    : 'text-gray-600 hover:bg-gray-200'
+                }`}
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                title="Table View"
               >
-                Clear Filters
-              </Button>
-            )}
+                <Table
+                  size={16}
+                  weight={viewMode === 'table' ? 'fill' : 'regular'}
+                />
+                <span className="text-xs">Table</span>
+              </button>
+              <button
+                onClick={() => setViewMode('card')}
+                className={`px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-2 ${
+                  viewMode === 'card'
+                    ? 'bg-blue-900 text-white shadow-lg'
+                    : 'text-gray-600 hover:bg-gray-200'
+                }`}
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                title="Card View"
+              >
+                <SquaresFour
+                  size={16}
+                  weight={viewMode === 'card' ? 'fill' : 'regular'}
+                />
+                <span className="text-xs">Card</span>
+              </button>
+            </div>
+
+            {/* Sync Button */}
+            <div className="relative">
+              <button
+                onClick={handleSync}
+                disabled={syncing}
+                className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 ${
+                  syncing
+                    ? 'bg-gray-400 text-white cursor-not-allowed'
+                    : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                }`}
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                title="Sync enrolled students data (this may take a while)"
+              >
+                <ArrowsClockwise
+                  size={16}
+                  weight="bold"
+                  className={syncing ? 'animate-spin' : ''}
+                />
+                <span>{syncing ? 'Syncing...' : 'Sync'}</span>
+              </button>
+              {syncError && (
+                <div className="absolute top-full left-0 mt-2 w-64 bg-red-50 border border-red-200 rounded-lg p-2 text-xs text-red-700 z-50">
+                  {syncError}
+                </div>
+              )}
+            </div>
+
+            {/* Filter Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 ${
+                  selectedGradeId || selectedCourses.length > 0 || sortBy !== 'none'
+                    ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                    : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                }`}
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                <FunnelSimple size={16} weight="bold" />
+                Filter
+                {(selectedGradeId || selectedCourses.length > 0 || sortBy !== 'none') && (
+                  <span className="w-2 h-2 bg-white rounded-full"></span>
+                )}
+              </button>
+
+              {/* Filter Dropdown */}
+              {showFilterDropdown && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowFilterDropdown(false)}
+                  ></div>
+                  <div className="absolute right-0 mt-2 w-96 bg-white border border-gray-200 shadow-lg rounded-xl z-20 p-6">
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <h3
+                          className="text-sm font-medium text-gray-900"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
+                          Filter Options
+                        </h3>
+                        <button
+                          onClick={() => setShowFilterDropdown(false)}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      {/* Grade Level Filter */}
+                      <div>
+                        <Label
+                          className="text-xs text-gray-700 mb-3 block"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
+                          Grade Level
+                        </Label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => onGradeIdChange(undefined)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                              !selectedGradeId
+                                ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                                : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                            }`}
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
+                            All Grades
+                          </button>
+                          {getSortedGrades(grades).map((grade) => {
+                            const isSelected = selectedGradeId === grade.id
+                            let displayText = ''
+                            if (
+                              grade.strand &&
+                              (grade.gradeLevel === 11 ||
+                                grade.gradeLevel === 12)
+                            ) {
+                              displayText = `G${grade.gradeLevel} ${grade.strand}`
+                            } else if (
+                              grade.gradeLevel >= 7 &&
+                              grade.gradeLevel <= 12
+                            ) {
+                              displayText = `G${grade.gradeLevel}`
+                            } else {
+                              displayText = `Grade ${grade.gradeLevel}`
+                            }
+                            return (
+                              <button
+                                key={grade.id}
+                                onClick={() =>
+                                  onGradeIdChange(
+                                    isSelected ? undefined : grade.id
+                                  )
+                                }
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                  isSelected
+                                    ? 'text-white shadow-md'
+                                    : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                                }`}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                  ...(isSelected && {
+                                    backgroundColor: getBgColor(grade.color),
+                                    borderColor: getBgColor(grade.color),
+                                  }),
+                                }}
+                                title={displayText}
+                              >
+                                {displayText}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* College Courses Filter */}
+                      {courses.length > 0 && (
+                        <div>
+                          <Label
+                            className="text-xs text-gray-700 mb-3 block"
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
+                            College Courses
+                          </Label>
+                          <div className="flex flex-wrap gap-2">
+                            {courses.map((course: any) => {
+                              const isSelected = selectedCourses.includes(
+                                course.code
+                              )
+                              const courseColor = course.color || 'emerald-800'
+                              return (
+                                <button
+                                  key={course.code}
+                                  onClick={() => onCourseToggle(course.code)}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                    isSelected
+                                      ? 'text-white shadow-md'
+                                      : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                                  }`}
+                                  style={{
+                                    fontFamily: 'Poppins',
+                                    fontWeight: 400,
+                                    ...(isSelected && {
+                                      backgroundColor: getBgColor(courseColor),
+                                      borderColor: getBgColor(courseColor),
+                                    }),
+                                  }}
+                                >
+                                  {course.code}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sort Options */}
+                      <div>
+                        <Label
+                          className="text-xs text-gray-700 mb-3 block"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
+                          Sort By Enrollment
+                        </Label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => setSortBy('none')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 ${
+                              sortBy === 'none'
+                                ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                                : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                            }`}
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
+                            Default
+                          </button>
+                          <button
+                            onClick={() => setSortBy('count-desc')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 ${
+                              sortBy === 'count-desc'
+                                ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                                : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                            }`}
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
+                            <ArrowDown size={14} weight="bold" />
+                            Most Enrolled
+                          </button>
+                          <button
+                            onClick={() => setSortBy('count-asc')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 ${
+                              sortBy === 'count-asc'
+                                ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                                : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                            }`}
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
+                            <ArrowUp size={14} weight="bold" />
+                            Least Enrolled
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Clear Filters */}
+                      {(selectedGradeId || selectedCourses.length > 0 || sortBy !== 'none') && (
+                        <button
+                          onClick={() => {
+                            clearFilters()
+                            setSortBy('none')
+                            setShowFilterDropdown(false)
+                          }}
+                          className="w-full px-3 py-2 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
+                          Clear All Filters
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             <Button
               onClick={onCreateNew}
               className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
@@ -629,116 +1416,9 @@ export default function SubjectList({
             </Button>
           </div>
         </div>
-
-        {/* Grade Level Filter - Always Visible */}
-        <div className="space-y-2 mb-4">
-          <label
-            className="block text-sm font-medium text-gray-700"
-            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-          >
-            Filter by Grade Level
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => onGradeIdChange(undefined)}
-              className={`px-3 py-1 text-xs font-medium rounded-lg border transition-all duration-200 transform hover:scale-105 ${
-                !selectedGradeId
-                  ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-900 shadow-lg'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-            >
-              All Grades
-            </button>
-            {getSortedGrades(grades).map((grade) => {
-              const isSelected = selectedGradeId === grade.id
-              // Format display text with strand: "G11 ABM" or "G11 STEM"
-              let displayText = ''
-              if (
-                grade.strand &&
-                (grade.gradeLevel === 11 || grade.gradeLevel === 12)
-              ) {
-                displayText = `G${grade.gradeLevel} ${grade.strand}`
-              } else if (grade.gradeLevel >= 7 && grade.gradeLevel <= 12) {
-                displayText = `G${grade.gradeLevel}`
-              } else {
-                displayText = `Grade ${grade.gradeLevel}`
-              }
-              return (
-                <button
-                  key={grade.id}
-                  onClick={() =>
-                    onGradeIdChange(isSelected ? undefined : grade.id)
-                  }
-                  className={`px-3 py-1 text-xs font-medium rounded-lg border transition-all duration-200 transform hover:scale-105 ${
-                    isSelected
-                      ? 'text-white shadow-lg opacity-100'
-                      : 'text-white hover:shadow-md opacity-40 hover:opacity-70'
-                  }`}
-                  style={{
-                    fontFamily: 'Poppins',
-                    fontWeight: 300,
-                    backgroundColor: getBgColor(grade.color),
-                    borderColor: getBgColor(grade.color),
-                  }}
-                  title={displayText}
-                >
-                  {displayText}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* College Courses Filter */}
-        {courses.length > 0 && (
-          <div className="space-y-2">
-            <label
-              className="block text-sm font-medium text-gray-700"
-              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-            >
-              Filter by College Courses
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {courses.map((course: any) => {
-                const isSelected = selectedCourses.includes(course.code)
-                const courseColor = course.color || 'emerald-800'
-                return (
-                  <button
-                    key={course.code}
-                    onClick={() => onCourseToggle(course.code)}
-                    className={`px-3 py-1 text-xs font-medium rounded-lg border transition-all duration-200 transform hover:scale-105 ${
-                      isSelected
-                        ? 'text-white shadow-lg'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                    }`}
-                    style={{
-                      fontFamily: 'Poppins',
-                      fontWeight: 300,
-                      ...(isSelected && {
-                        backgroundColor: getBgColor(courseColor),
-                        borderColor: getBgColor(courseColor),
-                      }),
-                    }}
-                  >
-                    {course.code}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Results Summary */}
-      <div className="flex items-center justify-between text-sm text-gray-600">
-        <span style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
-          Showing {filteredSubjects.length} of{' '}
-          {totalSubjectsCount || subjects.length} subjects
-        </span>
-      </div>
-
-      {/* Subject Grid */}
+      {/* Subject Display - Table or Card View */}
       {filteredSubjects.length === 0 ? (
         <Card className="w-full max-w-md mx-auto p-8 border border-gray-200 text-center bg-white border-1 shadow-sm rounded-xl">
           <div className="w-16 h-16 bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -770,10 +1450,282 @@ export default function SubjectList({
             Create Your First Subject
           </Button>
         </Card>
+      ) : viewMode === 'table' ? (
+        // Table View
+        <Card className="border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-br from-blue-800 to-blue-900">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
+                    Code
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
+                    Grade/Course
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
+                    Total Units
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
+                    Enrolled Students
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedSubjects.map((subject) => {
+                  const IconComponent = getSubjectIcon(subject)
+                  const totalUnits = subject.lectureUnits + subject.labUnits
+                  const gradeDisplay = getSubjectGradeDisplay(subject)
+
+                  return (
+                    <tr
+                      key={subject.id}
+                      className="hover:bg-gray-50 transition-colors duration-150"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{
+                              backgroundColor: getBgColor(subject.color),
+                            }}
+                          >
+                            <IconComponent
+                              size={16}
+                              className="text-white"
+                              weight="fill"
+                            />
+                          </div>
+                          <span
+                            className="text-sm font-medium text-gray-900"
+                            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                          >
+                            {subject.code}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className="text-sm text-gray-900"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
+                          {subject.name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className="text-sm text-gray-700"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
+                          {gradeDisplay}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <Calculator
+                            size={14}
+                            className="text-gray-500"
+                            weight="duotone"
+                          />
+                          <span
+                            className="text-sm text-gray-700"
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
+                            {totalUnits}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          {subject.enrolledStudents !== undefined ? (
+                            // Denormalized data available
+                            <>
+                              <Users
+                                size={14}
+                                weight="bold"
+                                className="text-blue-900"
+                              />
+                              <span
+                                className="text-sm text-gray-900"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {subject.enrolledStudentsCount ??
+                                  (Array.isArray(subject.enrolledStudents)
+                                    ? subject.enrolledStudents.length
+                                    : 0)}
+                              </span>
+                            </>
+                          ) : loadingStudents[subject.id] ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 border-2 border-blue-900 border-t-transparent rounded-full animate-spin"></div>
+                              <span
+                                className="text-xs text-gray-500"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 300,
+                                }}
+                              >
+                                Loading...
+                              </span>
+                            </div>
+                          ) : (
+                            <>
+                              <Users
+                                size={16}
+                                className="text-blue-900"
+                                weight="duotone"
+                              />
+                              <span
+                                className="text-sm text-gray-900"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {studentEnrollments[subject.id]?.count || 0}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <ActionMenu
+                          subject={subject}
+                          onViewSubject={onViewSubject}
+                          onEditSubject={onEditSubject}
+                          onDeleteSubject={onDeleteSubject}
+                          onViewEnrolledList={(subject) =>
+                            setViewingEnrolledList(subject)
+                          }
+                        />
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between px-5 py-4 bg-white/90 border-t border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-md bg-blue-900/80"></div>
+                <span
+                  className="text-xs text-gray-600"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
+                  {Math.min(
+                    currentPage * itemsPerPage,
+                    sortedAndFilteredSubjects.length
+                  )}{' '}
+                  of {sortedAndFilteredSubjects.length} subjects
+                </span>
+              </div>
+
+              <nav
+                className="flex flex-wrap items-center justify-end gap-2"
+                aria-label="Subject pagination"
+              >
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }
+                  disabled={currentPage === 1}
+                  className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border border-gray-200 hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    currentPage === 1
+                      ? 'bg-gray-50 text-gray-400'
+                      : 'bg-white text-blue-900 hover:-translate-y-0.5'
+                  }`}
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  aria-label="Previous page"
+                >
+                  <ArrowLeft size={14} />
+                  Previous
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                    let pageNum
+                    if (totalPages <= 7) {
+                      pageNum = i + 1
+                    } else if (currentPage <= 4) {
+                      pageNum = i + 1
+                    } else if (currentPage >= totalPages - 3) {
+                      pageNum = totalPages - 6 + i
+                    } else {
+                      pageNum = currentPage - 3 + i
+                    }
+                    return pageNum
+                  }).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 border ${
+                        currentPage === pageNum
+                          ? 'border-blue-900 bg-blue-900 text-white shadow-lg shadow-blue-900/30'
+                          : 'border-gray-200 bg-white text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
+                      }`}
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      aria-current={
+                        currentPage === pageNum ? 'page' : undefined
+                      }
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border border-gray-200 hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    currentPage === totalPages
+                      ? 'bg-gray-50 text-gray-400'
+                      : 'bg-white text-blue-900 hover:-translate-y-0.5'
+                  }`}
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  aria-label="Next page"
+                >
+                  Next
+                  <ArrowRight size={14} />
+                </button>
+              </nav>
+            </div>
+          )}
+        </Card>
       ) : (
+        // Card View (existing grouped card view)
         <div className="space-y-8">
           {getSortedKeys().map((key, keyIndex) => {
-            const gradeSubjects = groupSubjectsByGrade()[key]
+            // Apply sorting to grade subjects if sort by count is active
+            let gradeSubjects = groupSubjectsByGrade()[key]
+            if (
+              (sortBy === 'count-asc' || sortBy === 'count-desc') &&
+              gradeSubjects
+            ) {
+              gradeSubjects = [...gradeSubjects].sort((a, b) => {
+                const countA = studentEnrollments[a.id]?.count || 0
+                const countB = studentEnrollments[b.id]?.count || 0
+                if (sortBy === 'count-asc') {
+                  return countA - countB
+                } else {
+                  return countB - countA
+                }
+              })
+            }
 
             // Determine if this is a grade level or course code
             const isGradeLevel = key.startsWith('grade-')
@@ -1059,6 +2011,14 @@ export default function SubjectList({
           })}
         </div>
       )}
+
+      {/* Enrolled List Modal */}
+      <SubjectEnrolledList
+        subject={viewingEnrolledList}
+        registrarName={registrarName}
+        isOpen={viewingEnrolledList !== null}
+        onClose={() => setViewingEnrolledList(null)}
+      />
     </div>
   )
 }
