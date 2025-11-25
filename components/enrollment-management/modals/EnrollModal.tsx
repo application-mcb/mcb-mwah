@@ -38,6 +38,7 @@ interface Props {
     ext?: string
   ) => string
   getEnrollmentDisplayInfo: (enrollment: any) => { displayText: string }
+  zIndex?: number
 }
 
 const EnrollModal: React.FC<Props> = ({
@@ -57,9 +58,10 @@ const EnrollModal: React.FC<Props> = ({
   onConfirm,
   formatFullName,
   getEnrollmentDisplayInfo,
+  zIndex = 60,
 }) => {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Enroll Student" size="md" zIndex={60}>
+    <Modal isOpen={isOpen} onClose={onClose} title="Enroll Student" size="md" zIndex={zIndex}>
       <div className="p-6">
         {viewingEnrollment && (
           <>

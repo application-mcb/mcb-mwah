@@ -10,14 +10,10 @@ import {
 } from './types'
 import StudentInfoTab from './tabs/StudentInfoTab'
 import DocumentsTab from './tabs/DocumentsTab'
-import SubjectAssignmentTab from './tabs/SubjectAssignmentTab'
-import ProcessTab from './tabs/ProcessTab'
 import RegistrarGradesTab from '../grades/RegistrarGradesTab'
 import {
   User as UserIcon,
   FileText as FileTextIcon,
-  GraduationCap as GraduationCapIcon,
-  Gear,
   Calculator,
 } from '@phosphor-icons/react'
 
@@ -29,9 +25,7 @@ interface Args {
   subjects: Record<string, any>
   allSubjectSets: SubjectSetData[]
   subjectAssignments: any[]
-  selectedSubjectSets: string[]
   selectedSubjects: string[]
-  setSelectedSubjectSets: (updater: (prev: string[]) => string[]) => void
   setSelectedSubjects: (updater: (prev: string[]) => string[]) => void
   showOtherSets: boolean
   setShowOtherSets: (v: boolean) => void
@@ -55,7 +49,6 @@ interface Args {
   onOpenEnroll: () => void
   enrollingStudent: boolean
   onOpenAIChat: () => void
-  handleSubjectSetToggle: (subjectSetId: string, subjectIds: string[]) => void
   handleSubjectToggle: (subjectId: string) => void
   registrarUid: string
   onDocumentStatusChange?: () => void
@@ -70,9 +63,7 @@ export function buildEnrollmentTabs(args: Args): Tab[] {
     subjects,
     allSubjectSets,
     subjectAssignments,
-    selectedSubjectSets,
     selectedSubjects,
-    setSelectedSubjectSets,
     setSelectedSubjects,
     showOtherSets,
     setShowOtherSets,
@@ -91,7 +82,6 @@ export function buildEnrollmentTabs(args: Args): Tab[] {
     onOpenEnroll,
     enrollingStudent,
     onOpenAIChat,
-    handleSubjectSetToggle,
     handleSubjectToggle,
     registrarUid,
     onDocumentStatusChange,
@@ -150,32 +140,6 @@ export function buildEnrollmentTabs(args: Args): Tab[] {
       ),
     },
     {
-      id: 'subjects',
-      label: 'Subject Assignment',
-      icon: (
-        <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-          <GraduationCapIcon size={12} weight="fill" className="text-white" />
-        </div>
-      ),
-      content: (
-        <SubjectAssignmentTab
-          viewingEnrollment={viewingEnrollment}
-          subjects={subjects as any}
-          subjectSetsByGrade={subjectSets as any}
-          allSubjectSets={allSubjectSets as any}
-          subjectAssignments={subjectAssignments as any}
-          selectedSubjectSets={selectedSubjectSets}
-          selectedSubjects={selectedSubjects}
-          setSelectedSubjectSets={setSelectedSubjectSets}
-          setSelectedSubjects={setSelectedSubjects}
-          showOtherSets={showOtherSets}
-          setShowOtherSets={setShowOtherSets}
-          handleSubjectSetToggle={handleSubjectSetToggle}
-          handleSubjectToggle={handleSubjectToggle}
-        />
-      ),
-    },
-    {
       id: 'grades',
       label: 'Grades',
       icon: (
@@ -202,6 +166,7 @@ export function buildEnrollmentTabs(args: Args): Tab[] {
               viewingEnrollment.personalInfo?.lastName,
               viewingEnrollment.personalInfo?.nameExtension
             )}
+            studentNumber={viewingEnrollment.enrollmentInfo?.studentId}
           />
         </div>
       ) : (
@@ -211,33 +176,6 @@ export function buildEnrollmentTabs(args: Args): Tab[] {
         >
           Select a student to view grades.
         </div>
-      ),
-    },
-    {
-      id: 'process',
-      label: 'Process Enrollment',
-      icon: (
-        <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-          <Gear size={12} weight="fill" className="text-white" />
-        </div>
-      ),
-      content: (
-        <ProcessTab
-          viewingEnrollment={viewingEnrollment}
-          formatFullName={formatFullName}
-          formatBirthDate={formatBirthDate}
-          formatDate={formatDate}
-          getTimeAgoInfo={getTimeAgoInfo}
-          getEnrollmentDisplayInfo={getEnrollmentDisplayInfo as any}
-          getStatusColor={getStatusColor}
-          onCancel={onCancelProcess}
-          onPrint={onPrintProcess}
-          onRevoke={onRevoke}
-          revokingEnrollment={revokingEnrollment}
-          onOpenEnroll={onOpenEnroll}
-          enrollingStudent={enrollingStudent}
-          onOpenAIChat={onOpenAIChat}
-        />
       ),
     },
   ]

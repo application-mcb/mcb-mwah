@@ -107,6 +107,41 @@ import {
   FailedPrerequisite,
 } from './enrollment-management/utils/prerequisites'
 
+const GRADE_METADATA_FIELDS = new Set([
+  'studentName',
+  'studentSection',
+  'studentLevel',
+  'studentSemester',
+  'createdAt',
+  'updatedAt',
+  'gradeLevel',
+])
+
+const GRADE_VALUE_KEYS: Array<'period1' | 'period2' | 'period3' | 'period4'> = [
+  'period1',
+  'period2',
+  'period3',
+  'period4',
+]
+
+const subjectRecordIndicatesCompletion = (record: any): boolean => {
+  if (!record || typeof record !== 'object') return false
+
+  const hasGradeValue = GRADE_VALUE_KEYS.some((key) => {
+    const value = record[key]
+    if (typeof value === 'number' && !Number.isNaN(value)) return true
+    if (typeof value === 'string' && value.trim() !== '') return true
+    return false
+  })
+
+  if (hasGradeValue) {
+    return true
+  }
+
+  const statusValue = record?.specialStatus
+  return typeof statusValue === 'string' && statusValue.trim() !== ''
+}
+
 const EnrollmentManagementSkeleton = () => {
   return (
     <div className="p-6 space-y-6" style={{ fontFamily: 'Poppins' }}>
@@ -213,7 +248,6 @@ export default function EnrollmentManagement({
   const [subjects, setSubjects] = useState<Record<string, SubjectData>>({})
   const [grades, setGrades] = useState<Record<string, { color: string }>>({})
   const [courses, setCourses] = useState<Record<string, { color: string }>>({})
-  const [selectedSubjectSets, setSelectedSubjectSets] = useState<string[]>([])
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
   const [showOtherSets, setShowOtherSets] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -252,6 +286,27 @@ export default function EnrollmentManagement({
   const [enrollOrNumber, setEnrollOrNumber] = useState('')
   const [enrollScholarship, setEnrollScholarship] = useState('')
   const [enrollStudentId, setEnrollStudentId] = useState('')
+  const [showManualEnrollModal, setShowManualEnrollModal] = useState(false)
+  const [showManualConfirmModal, setShowManualConfirmModal] = useState(false)
+  const [manualEnrollment, setManualEnrollment] =
+    useState<ExtendedEnrollmentData | null>(null)
+  const [pendingManualEnroll, setPendingManualEnroll] = useState(false)
+  const [manualSelectedSubjects, setManualSelectedSubjects] = useState<
+    string[]
+  >([])
+  const [manualShowOtherSets, setManualShowOtherSets] = useState(false)
+  const [manualSubjectCheckId, setManualSubjectCheckId] = useState<
+    string | null
+  >(null)
+  const [manualBlockedSubjects, setManualBlockedSubjects] = useState<
+    Record<string, FailedPrerequisite[]>
+  >({})
+  const [manualInitialValidationDone, setManualInitialValidationDone] =
+    useState(false)
+  const [manualTakenLoading, setManualTakenLoading] = useState(false)
+  const [manualTakenSubjects, setManualTakenSubjects] = useState<
+    Record<string, boolean>
+  >({})
   const [showScholarshipModal, setShowScholarshipModal] = useState(false)
   const [scholarships, setScholarships] = useState<ScholarshipData[]>([])
   const [editingScholarship, setEditingScholarship] =
@@ -333,6 +388,11 @@ export default function EnrollmentManagement({
     return filtered
   }, [selectedSubjects, subjects, scholarships])
 
+  const manualModalLoading =
+    showManualEnrollModal &&
+    (manualTakenLoading ||
+      (!manualInitialValidationDone && manualSelectedSubjects.length > 0))
+
   // Subject Assignments
   const [subjectAssignments, setSubjectAssignments] = useState<
     SubjectAssignmentData[]
@@ -389,18 +449,15 @@ export default function EnrollmentManagement({
         setSelectedSubjects((currentSelected) => {
           // Only auto-select if selectedSubjects is empty to preserve user's custom selections
           if (currentSelected.length === 0) {
-            const { subjectIds, subjectSetId } = resolveAssignedSubjects(
+            const { subjectIds } = resolveAssignedSubjects(
               viewingEnrollment.enrollmentInfo,
               subjectAssignments,
               allSubjectSets
             )
             if (subjectIds.length > 0) {
-              setSelectedSubjectSets(subjectSetId ? [subjectSetId] : [])
               return subjectIds
-            } else {
-              setSelectedSubjectSets([])
-              return []
             }
+            return []
           }
           // Return current selection if not empty (preserve custom selections)
           return currentSelected
@@ -416,8 +473,7 @@ export default function EnrollmentManagement({
     fileFormat: string
   } | null>(null)
 
-  const { handleSubjectSetToggle, handleSubjectToggle } = useSubjectSelection({
-    setSelectedSubjectSets,
+  const { handleSubjectToggle } = useSubjectSelection({
     setSelectedSubjects,
   })
 
@@ -477,6 +533,184 @@ export default function EnrollmentManagement({
       enrollmentCache.release()
     }
   }, [])
+
+  useEffect(() => {
+    setManualSubjectCheckId(null)
+    setManualBlockedSubjects({})
+    setManualInitialValidationDone(false)
+    setManualTakenSubjects({})
+    setManualTakenLoading(false)
+  }, [manualEnrollment?.id])
+
+  useEffect(() => {
+    if (
+      !manualEnrollment ||
+      !showManualEnrollModal ||
+      manualInitialValidationDone
+    ) {
+      return
+    }
+
+    if (manualSelectedSubjects.length === 0) {
+      setManualBlockedSubjects({})
+      setManualInitialValidationDone(true)
+      return
+    }
+
+    let isCancelled = false
+
+    const validateInitialManualSubjects = async () => {
+      const validationResults = await Promise.all(
+        manualSelectedSubjects.map(async (subjectId) => {
+          try {
+            const failed = await checkPrerequisites(
+              manualEnrollment.userId,
+              [subjectId],
+              subjects,
+              manualEnrollment.enrollmentInfo
+            )
+            return { subjectId, failed }
+          } catch (error) {
+            console.error('Error validating prerequisites:', error)
+            return {
+              subjectId,
+              failed: [
+                {
+                  subjectId,
+                  subjectCode: subjects[subjectId]?.code || 'N/A',
+                  subjectName: subjects[subjectId]?.name || 'Unknown Subject',
+                  average: null,
+                  status: 'Validation Error',
+                  academicYear: 'N/A',
+                  reason: 'Unable to verify prerequisites at this time',
+                } as FailedPrerequisite,
+              ],
+            }
+          }
+        })
+      )
+
+      if (isCancelled) return
+
+      const blockedMap: Record<string, FailedPrerequisite[]> = {}
+      const validSubjects: string[] = []
+
+      validationResults.forEach(({ subjectId, failed }) => {
+        if (failed.length > 0) {
+          blockedMap[subjectId] = failed
+        } else {
+          validSubjects.push(subjectId)
+        }
+      })
+
+      setManualBlockedSubjects(blockedMap)
+      setManualInitialValidationDone(true)
+      setManualSelectedSubjects(validSubjects)
+    }
+
+    validateInitialManualSubjects()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [
+    manualEnrollment,
+    manualSelectedSubjects,
+    showManualEnrollModal,
+    manualInitialValidationDone,
+    subjects,
+  ])
+
+  useEffect(() => {
+    if (!manualEnrollment || !manualEnrollment.userId || !showManualEnrollModal) {
+      setManualTakenSubjects({})
+      setManualTakenLoading(false)
+      return
+    }
+
+    let isCancelled = false
+    setManualTakenLoading(true)
+
+    const loadManualTakenSubjects = async () => {
+      const ayCodes = new Set<string | undefined>()
+
+      try {
+        const periodsResponse = await fetch(
+          `/api/students/${manualEnrollment.userId}/grades?listPeriods=true`
+        )
+        if (periodsResponse.ok) {
+          const periodsData = await periodsResponse.json()
+          if (Array.isArray(periodsData?.periods)) {
+            periodsData.periods.forEach((period: any) => {
+              const code = period?.ayCode || period?.id
+              if (code) {
+                ayCodes.add(code)
+              }
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error listing grade documents:', error)
+      }
+
+      if (ayCodes.size === 0) {
+        ayCodes.add(undefined)
+      }
+
+      const takenSet = new Set<string>()
+
+      const fetchGradesForAy = async (ayCode?: string) => {
+        if (isCancelled) return
+        try {
+          const query = ayCode ? `?ayCode=${encodeURIComponent(ayCode)}` : ''
+          const gradesResponse = await fetch(
+            `/api/students/${manualEnrollment.userId}/grades${query}`
+          )
+          if (!gradesResponse.ok) return
+
+          const gradesData = await gradesResponse.json()
+          const grades = gradesData?.grades
+          if (!grades || typeof grades !== 'object') return
+
+          Object.entries(grades).forEach(([subjectId, record]) => {
+            if (GRADE_METADATA_FIELDS.has(subjectId)) return
+            if (subjectRecordIndicatesCompletion(record)) {
+              takenSet.add(subjectId)
+            }
+          })
+        } catch (error) {
+          console.error('Error fetching grades for AY', ayCode, error)
+        }
+      }
+
+      await Promise.all(Array.from(ayCodes).map((code) => fetchGradesForAy(code)))
+
+      if (isCancelled) {
+        setManualTakenLoading(false)
+        return
+      }
+
+      const takenMap: Record<string, boolean> = {}
+      takenSet.forEach((subjectId) => {
+        takenMap[subjectId] = true
+      })
+
+      setManualTakenSubjects(takenMap)
+      setManualTakenLoading(false)
+    }
+
+    loadManualTakenSubjects().catch((error) => {
+      console.error('Error loading taken subjects:', error)
+      if (!isCancelled) {
+        setManualTakenLoading(false)
+      }
+    })
+
+    return () => {
+      isCancelled = true
+      setManualTakenLoading(false)
+    }
+  }, [manualEnrollment?.userId, showManualEnrollModal])
 
   // Listen for enrollment submissions from enrollment-form
   useEffect(() => {
@@ -552,6 +786,12 @@ export default function EnrollmentManagement({
       loadScholarships()
     }
   }, [showEnrollModal])
+
+  useEffect(() => {
+    if (showManualEnrollModal) {
+      loadScholarships()
+    }
+  }, [showManualEnrollModal])
 
   // Load current settings when Settings modal opens
   useEffect(() => {
@@ -658,7 +898,6 @@ export default function EnrollmentManagement({
       viewingEnrollment?.userId !== enrollment.userId
     if (isDifferentEnrollment) {
       setSelectedSubjects([])
-      setSelectedSubjectSets([])
     }
 
     setViewingEnrollment(enrollment)
@@ -670,13 +909,12 @@ export default function EnrollmentManagement({
       // Only auto-select if selectedSubjects is empty to preserve user's custom selections
       // This ensures custom selections aren't overwritten when viewing the same enrollment
       if (selectedSubjects.length === 0) {
-        const { subjectIds, subjectSetId } = resolveAssignedSubjects(
+        const { subjectIds } = resolveAssignedSubjects(
           enrollment.enrollmentInfo,
           subjectAssignments,
           allSubjectSets
         )
         if (subjectIds.length > 0) {
-          if (subjectSetId) setSelectedSubjectSets([subjectSetId])
           setSelectedSubjects(subjectIds)
         }
       }
@@ -779,6 +1017,94 @@ export default function EnrollmentManagement({
     setShowQuickEnrollModal(true)
   }
 
+  const handleManualEnroll = async (enrollment: ExtendedEnrollmentData) => {
+    if (!enrollment) return
+
+    setManualEnrollment(enrollment)
+    closeManualConfirmModal()
+    const { subjectIds } = resolveAssignedSubjects(
+      enrollment.enrollmentInfo,
+      subjectAssignments,
+      allSubjectSets
+    )
+
+    setManualSelectedSubjects(subjectIds)
+    setManualShowOtherSets(false)
+    setPendingManualEnroll(false)
+    setManualBlockedSubjects({})
+    setManualSubjectCheckId(null)
+    setManualInitialValidationDone(false)
+    setManualTakenSubjects({})
+    setShowManualEnrollModal(true)
+  }
+
+  const clearManualBlockedSubject = (subjectId: string) => {
+    setManualBlockedSubjects((prev) => {
+      if (!prev[subjectId]) return prev
+      const { [subjectId]: _removed, ...rest } = prev
+      return rest
+    })
+  }
+
+  const handleManualSubjectToggle = async (subjectId: string) => {
+    if (!manualEnrollment) {
+      toast.error('Select a student before choosing subjects.', {
+        autoClose: 4000,
+      })
+      return
+    }
+
+    const isRemoving = manualSelectedSubjects.includes(subjectId)
+    if (isRemoving) {
+      setManualSelectedSubjects((prev) => prev.filter((id) => id !== subjectId))
+      clearManualBlockedSubject(subjectId)
+      return
+    }
+
+    setManualSubjectCheckId(subjectId)
+    clearManualBlockedSubject(subjectId)
+
+    try {
+      const failedPrereqs = await checkPrerequisites(
+        manualEnrollment.userId,
+        [subjectId],
+        subjects,
+        manualEnrollment.enrollmentInfo
+      )
+
+      if (failedPrereqs.length > 0) {
+        setManualBlockedSubjects((prev) => ({
+          ...prev,
+          [subjectId]: failedPrereqs,
+        }))
+        const firstFailure = failedPrereqs[0]
+        toast.error(
+          `${firstFailure.subjectCode || 'Subject'} prerequisites not met. ${
+            firstFailure.reason
+          }`,
+          { autoClose: 5000 }
+        )
+        return
+      }
+
+      setManualSelectedSubjects((prev) =>
+        prev.includes(subjectId) ? prev : [...prev, subjectId]
+      )
+    } catch (error) {
+      console.error('Error validating prerequisites:', error)
+      toast.error(
+        'Unable to validate prerequisites right now. Please try again.',
+        {
+          autoClose: 5000,
+        }
+      )
+    } finally {
+      setManualSubjectCheckId((current) =>
+        current === subjectId ? null : current
+      )
+    }
+  }
+
   const handlePrerequisiteOverride = async () => {
     setPrerequisiteOverride(true)
     setShowPrerequisiteWarning(false)
@@ -806,6 +1132,13 @@ export default function EnrollmentManagement({
       setQuickEnrollData(pendingQuickEnrollData)
       setPendingQuickEnrollData(null)
       setShowQuickEnrollModal(true)
+    } else if (
+      pendingManualEnroll &&
+      manualEnrollment &&
+      manualSelectedSubjects.length > 0
+    ) {
+      setPendingManualEnroll(false)
+      await handleOpenManualConfirmModal({ skipPrerequisiteCheck: true })
     } else if (viewingEnrollment && selectedSubjects.length > 0) {
       // Proceed with regular enroll modal
       openEnrollModalUtil({
@@ -825,6 +1158,7 @@ export default function EnrollmentManagement({
     setPrerequisiteWarnings([])
     setPrerequisiteOverride(false)
     setPendingQuickEnrollData(null)
+    setPendingManualEnroll(false)
   }
 
   const confirmQuickEnroll = async () => {
@@ -917,11 +1251,72 @@ export default function EnrollmentManagement({
     })
   }
 
-  const handleConfirmEnroll = async () => {
-    // optimistic: mark enrollment as enrolled in cache
-    if (viewingEnrollment) {
+  const handleOpenManualConfirmModal = async ({
+    skipPrerequisiteCheck = false,
+  }: { skipPrerequisiteCheck?: boolean } = {}) => {
+    if (!manualEnrollment) {
+      toast.error(
+        'Select a student before proceeding with manual enrollment.',
+        {
+          autoClose: 5000,
+        }
+      )
+      return
+    }
+
+    if (manualSelectedSubjects.length === 0) {
+      toast.warning(
+        'Please select at least one subject before enrolling the student.',
+        { autoClose: 5000 }
+      )
+      return
+    }
+
+    if (!skipPrerequisiteCheck) {
+      setCheckingPrerequisites(true)
+      try {
+        const failedPrereqs = await checkPrerequisites(
+          manualEnrollment.userId,
+          manualSelectedSubjects,
+          subjects,
+          manualEnrollment.enrollmentInfo
+        )
+
+        if (failedPrereqs.length > 0) {
+          setPrerequisiteWarnings(failedPrereqs)
+          setShowPrerequisiteWarning(true)
+          setPendingManualEnroll(true)
+          return
+        }
+      } catch (error) {
+        console.error('Error checking prerequisites:', error)
+        // continue to confirmation even if check fails unexpectedly
+      } finally {
+        setCheckingPrerequisites(false)
+      }
+    }
+
+    setPendingManualEnroll(false)
+    await openEnrollModalUtil({
+      viewingEnrollment: manualEnrollment,
+      studentProfiles,
+      setEnrollStudentId,
+      setShowEnrollModal: setShowManualConfirmModal,
+      setEnrollOrNumber,
+      setEnrollScholarship,
+      incrementStudentId,
+    })
+  }
+
+  const confirmEnrollmentProcess = async (
+    enrollment: ExtendedEnrollmentData | null,
+    subjectsForEnrollment: string[],
+    onClose: () => void,
+    setModalVisibility: (value: boolean) => void
+  ) => {
+    if (enrollment) {
       const updated = enrollments.map((e) =>
-        (e as any).id === (viewingEnrollment as any).id
+        (e as any).id === (enrollment as any).id
           ? {
               ...e,
               enrollmentInfo: { ...e.enrollmentInfo, status: 'enrolled' },
@@ -930,18 +1325,38 @@ export default function EnrollmentManagement({
       )
       enrollmentCache.setPartial({ enrollments: updated as any })
     }
+
     return handleConfirmEnrollUtil({
-      viewingEnrollment,
-      selectedSubjects,
+      viewingEnrollment: enrollment,
+      selectedSubjects: subjectsForEnrollment,
       enrollOrNumber,
       enrollScholarship,
       enrollStudentId,
       studentProfiles,
       setEnrollingStudent,
-      setShowEnrollModal,
-      closeViewModal,
+      setShowEnrollModal: setModalVisibility,
+      closeViewModal: onClose,
     })
   }
+
+  const handleConfirmEnroll = async () =>
+    confirmEnrollmentProcess(
+      viewingEnrollment,
+      selectedSubjects,
+      closeViewModal,
+      setShowEnrollModal
+    )
+
+  const handleConfirmManualEnroll = async () =>
+    confirmEnrollmentProcess(
+      manualEnrollment,
+      manualSelectedSubjects,
+      () => {
+        closeManualConfirmModal()
+        closeManualEnrollModal()
+      },
+      setShowManualConfirmModal
+    )
 
   const cancelEnrollModal = () =>
     cancelEnrollModalUtil({
@@ -1125,7 +1540,6 @@ export default function EnrollmentManagement({
       setShowViewModal,
       setViewingEnrollment,
       setActiveTab,
-      setSelectedSubjectSets,
       setSelectedSubjects,
       setShowOtherSets,
       setShowRevokeModal,
@@ -1139,6 +1553,27 @@ export default function EnrollmentManagement({
       setEnrollingStudent,
       setRevokingEnrollment,
     })
+
+  const closeManualConfirmModal = () => {
+    setShowManualConfirmModal(false)
+    setEnrollOrNumber('')
+    setEnrollScholarship('')
+    setEnrollStudentId('')
+    setPendingManualEnroll(false)
+  }
+
+  const closeManualEnrollModal = () => {
+    closeManualConfirmModal()
+    setShowManualEnrollModal(false)
+    setManualEnrollment(null)
+    setManualSelectedSubjects([])
+    setManualShowOtherSets(false)
+    setPendingManualEnroll(false)
+    setManualSubjectCheckId(null)
+    setManualBlockedSubjects({})
+    setManualInitialValidationDone(false)
+    setManualTakenSubjects({})
+  }
 
   const handleViewDocument = (doc: StudentDocument) =>
     viewDocumentUtil(doc as any, setViewingDocument, setShowDocumentModal)
@@ -1314,10 +1749,7 @@ export default function EnrollmentManagement({
         subjects,
         allSubjectSets,
         subjectAssignments,
-        selectedSubjectSets,
         selectedSubjects,
-        setSelectedSubjectSets: (updater) =>
-          setSelectedSubjectSets((prev) => updater(prev)),
         setSelectedSubjects: (updater) =>
           setSelectedSubjects((prev) => updater(prev)),
         showOtherSets,
@@ -1341,7 +1773,6 @@ export default function EnrollmentManagement({
             handleOpenAIChat(viewingEnrollment)
           }
         },
-        handleSubjectSetToggle,
         handleSubjectToggle,
         registrarUid,
         onDocumentStatusChange: async () => {
@@ -1358,7 +1789,6 @@ export default function EnrollmentManagement({
       subjects,
       allSubjectSets,
       subjectAssignments,
-      selectedSubjectSets,
       selectedSubjects,
       showOtherSets,
       getEnrollmentDisplayInfo,
@@ -1370,7 +1800,6 @@ export default function EnrollmentManagement({
       getTimeAgoInfo,
       revokingEnrollment,
       enrollingStudent,
-      handleSubjectSetToggle,
       handleSubjectToggle,
     ]
   )
@@ -1390,6 +1819,10 @@ export default function EnrollmentManagement({
   }
 
   const studentIdResolved = resolveStudentId(viewingEnrollment, studentProfiles)
+  const manualStudentIdResolved = resolveStudentId(
+    manualEnrollment,
+    studentProfiles
+  )
 
   return (
     <div className="p-6 space-y-6">
@@ -1449,6 +1882,7 @@ export default function EnrollmentManagement({
           })
         }
         onOpenAIChat={handleOpenAIChat}
+        onManualEnroll={handleManualEnroll}
         getEnrollmentDisplayInfo={getEnrollmentDisplayInfo}
         getBgColor={getBgColor}
         getStatusHexColor={getStatusHexColor}
@@ -1468,6 +1902,7 @@ export default function EnrollmentManagement({
         studentProfiles={studentProfiles}
         subjects={subjects as any}
         subjectSets={subjectSets as any}
+        allSubjectSets={allSubjectSets as any}
         registrarName={registrarName}
         activeTab={activeTab}
         onTabChange={handleTabChange}
@@ -1511,6 +1946,28 @@ export default function EnrollmentManagement({
         setEnrollStudentId={setEnrollStudentId}
         filteredEnrollScholarships={filteredEnrollScholarships as any}
         onConfirmEnroll={handleConfirmEnroll}
+        showManualEnrollModal={showManualEnrollModal}
+        manualEnrollment={manualEnrollment}
+        manualStudentIdResolved={manualStudentIdResolved}
+        onCloseManualEnroll={closeManualEnrollModal}
+        onManualEnrollProceed={handleOpenManualConfirmModal}
+        manualSelectedSubjects={manualSelectedSubjects}
+        setManualSelectedSubjects={(updater) =>
+          setManualSelectedSubjects((prev) => updater(prev))
+        }
+        manualShowOtherSets={manualShowOtherSets}
+        setManualShowOtherSets={setManualShowOtherSets}
+        handleManualSubjectToggle={handleManualSubjectToggle}
+        manualSubjectCheckId={manualSubjectCheckId}
+        manualBlockedSubjects={manualBlockedSubjects}
+        manualTakenSubjects={manualTakenSubjects}
+        manualModalLoading={manualModalLoading}
+        manualTakenLoading={manualTakenLoading}
+        manualInitialValidationDone={manualInitialValidationDone}
+        checkingPrerequisites={checkingPrerequisites}
+        showManualConfirmModal={showManualConfirmModal}
+        onCloseManualConfirm={closeManualConfirmModal}
+        onConfirmManualEnroll={handleConfirmManualEnroll}
         showDeleteModal={showDeleteModal}
         onCancelDelete={cancelDelete}
         onConfirmDelete={confirmDeleteEnrollment}
@@ -1575,7 +2032,6 @@ export default function EnrollmentManagement({
         prerequisiteWarnings={prerequisiteWarnings}
         onCancelPrerequisiteWarning={handleCancelPrerequisiteWarning}
         onProceedPrerequisiteWarning={handlePrerequisiteOverride}
-        checkingPrerequisites={checkingPrerequisites}
       />
 
       <ExportCSVModal

@@ -55,7 +55,7 @@ export default function DocumentStatusMessage({
             </h3>
             <p className="text-sm text-gray-600">
               You have uploaded {documentsStatus?.uploaded || 0} of{' '}
-              {documentsStatus?.required || 4} required documents. Complete document
+              {documentsStatus?.required || 3} required documents. Complete document
               upload to access the enrollment form.
             </p>
           </div>
@@ -77,7 +77,6 @@ export default function DocumentStatusMessage({
                   name: 'Certificate of Good Moral Character',
                 },
                 { key: 'birthCertificate', name: 'Birth Certificate' },
-                { key: 'idPicture', name: 'ID Picture' },
               ].map((doc) => {
                 const isUploaded =
                   documentsStatus?.uploadedDocuments?.some(

@@ -22,6 +22,7 @@ const METADATA_FIELDS = new Set([
   'createdAt',
   'updatedAt',
   'studentName',
+  'studentOfficialId',
   'studentSection',
   'studentLevel',
   'studentSemester',
@@ -94,31 +95,53 @@ export interface SystemConfig {
 // Utility function to get or derive gradeId from enrollment info
 // This ensures backward compatibility with legacy records that don't have gradeId stored
 export function getOrDeriveGradeId(enrollmentInfo: any): string | undefined {
-  // If gradeId already exists, return it
-  if (enrollmentInfo?.gradeId) {
+  if (!enrollmentInfo) {
+    return undefined
+  }
+
+  if (enrollmentInfo.gradeId) {
     return enrollmentInfo.gradeId
   }
 
-  // Only derive for high school enrollments
-  if (enrollmentInfo?.level !== 'high-school') {
+  const rawGradeLevel = enrollmentInfo.gradeLevel
+  const parsedGradeLevel =
+    typeof rawGradeLevel === 'number'
+      ? rawGradeLevel
+      : typeof rawGradeLevel === 'string'
+      ? parseInt(rawGradeLevel.replace(/[^\d]/g, ''), 10)
+      : undefined
+
+  const level = enrollmentInfo.level
+  const explicitDepartment = enrollmentInfo.department
+  const strand = enrollmentInfo.strand
+
+  const isHighSchool =
+    level === 'high-school' ||
+    (!level &&
+      typeof parsedGradeLevel === 'number' &&
+      parsedGradeLevel >= 7 &&
+      parsedGradeLevel <= 12)
+
+  if (!isHighSchool || !parsedGradeLevel) {
     return undefined
   }
 
-  const gradeLevel = enrollmentInfo?.gradeLevel
-  const department = enrollmentInfo?.department
-  const strand = enrollmentInfo?.strand
+  let department = explicitDepartment
+  if (!department) {
+    department = parsedGradeLevel >= 11 ? 'SHS' : 'JHS'
+  }
 
-  // Need at least gradeLevel and department to derive gradeId
-  if (!gradeLevel || !department) {
+  if (!department) {
     return undefined
   }
 
-  // Reconstruct gradeId using same pattern as GradeDatabase.generateGradeId()
-  // Pattern: grade-{gradeLevel}-{department}-{strand} for SHS, grade-{gradeLevel}-{department} for JHS
+  const gradeLevelSegment = parsedGradeLevel
+
   if (department === 'SHS' && strand) {
-    return `grade-${gradeLevel}-${department.toLowerCase()}-${strand.toLowerCase()}`
+    return `grade-${gradeLevelSegment}-${department.toLowerCase()}-${strand.toLowerCase()}`
   }
-  return `grade-${gradeLevel}-${department.toLowerCase()}`
+
+  return `grade-${gradeLevelSegment}-${department.toLowerCase()}`
 }
 
 export class EnrollmentDatabase {
@@ -1425,10 +1448,22 @@ export class EnrollmentDatabase {
       // Get system config for current AY code
       const systemConfig = await this.getSystemConfig()
       const ayCode = systemConfig.ayCode
-      const semester =
+      const systemSemester =
         systemConfig.semester && systemConfig.semester !== 'None'
           ? systemConfig.semester
           : undefined
+
+      // Convert system semester format ('1' or '2') to enrollment format ('first-sem' or 'second-sem')
+      const convertToEnrollmentSemester = (sem?: string): string | undefined => {
+        if (!sem) return undefined
+        if (sem === '1' || sem.toLowerCase().includes('first')) return 'first-sem'
+        if (sem === '2' || sem.toLowerCase().includes('second')) return 'second-sem'
+        // If already in correct format, return as-is
+        if (sem === 'first-sem' || sem === 'second-sem') return sem
+        return undefined
+      }
+
+      const enrollmentSemester = convertToEnrollmentSemester(systemSemester)
 
       const normalizeSemester = (value?: string) => {
         if (!value) return undefined
@@ -1439,22 +1474,41 @@ export class EnrollmentDatabase {
       }
 
       // Get current enrollment to check if student is already assigned to a different section
+      // Use the converted enrollment semester format
       const currentEnrollment = await this.getEnrollment(
         userId,
         ayCode,
-        semester
+        enrollmentSemester
       )
       let enrollmentInfo = currentEnrollment.data?.enrollmentInfo
 
       const targetSemester = normalizeSemester(
-        enrollmentInfo?.semester || semester
+        enrollmentInfo?.semester || enrollmentSemester
       )
 
       // Locate the exact enrollment document reference
-      let enrollmentDocRef = doc(db, 'students', userId, 'enrollment', ayCode)
+      // First, try to determine the document ID format from the enrollment info we have
+      let subcollectionDocId = ayCode // Default to just AY code
+      
+      if (currentEnrollment.success && currentEnrollment.data?.enrollmentInfo) {
+        // Generate the document ID using the same format as enrollment creation
+        subcollectionDocId = this.generateDocumentId(
+          ayCode,
+          currentEnrollment.data.enrollmentInfo
+        )
+      }
+      
+      let enrollmentDocRef = doc(db, 'students', userId, 'enrollment', subcollectionDocId)
       let enrollmentDocSnap = await getDoc(enrollmentDocRef)
 
       if (!enrollmentDocSnap.exists()) {
+        // Try with just AY code (legacy format)
+        enrollmentDocRef = doc(db, 'students', userId, 'enrollment', ayCode)
+        enrollmentDocSnap = await getDoc(enrollmentDocRef)
+      }
+
+      if (!enrollmentDocSnap.exists()) {
+        // Search through all documents in the subcollection to find the correct one
         const enrollmentSubcolRef = collection(
           db,
           'students',
@@ -1498,12 +1552,27 @@ export class EnrollmentDatabase {
           enrollmentDocSnap = fallbackDoc
           enrollmentInfo = fallbackDoc.data().enrollmentInfo
         }
+      } else if (enrollmentDocSnap.exists() && !enrollmentInfo) {
+        // Update enrollmentInfo from the found document
+        enrollmentInfo = enrollmentDocSnap.data()?.enrollmentInfo || enrollmentInfo
       }
 
       if (!enrollmentDocSnap.exists()) {
         return {
           success: false,
           error: `Enrollment document not found for student in academic year ${ayCode}. Please ensure the student is properly enrolled.`,
+        }
+      }
+
+      // Ensure we have the latest enrollmentInfo from the document
+      if (!enrollmentInfo) {
+        enrollmentInfo = enrollmentDocSnap.data()?.enrollmentInfo
+      }
+
+      if (!enrollmentInfo) {
+        return {
+          success: false,
+          error: `Enrollment info not found in document for student in academic year ${ayCode}.`,
         }
       }
 
@@ -1528,29 +1597,147 @@ export class EnrollmentDatabase {
         updatedAt: serverTimestamp(),
       }
       await updateDoc(enrollmentDocRef, enrollmentUpdate)
+      console.log(`  ✅ Updated subcollection enrollment document: ${enrollmentDocRef.id}`)
+      
+      // Verify the update worked
+      const verifyDoc = await getDoc(enrollmentDocRef)
+      if (verifyDoc.exists()) {
+        const verifiedSectionId = verifyDoc.data()?.enrollmentInfo?.sectionId
+        if (verifiedSectionId === sectionId) {
+          console.log(`  ✅ Verified: Section assignment saved in subcollection`)
+        } else {
+          console.error(`  ❌ Verification failed: Expected ${sectionId}, got ${verifiedSectionId}`)
+        }
+      }
 
       // Also update the top-level enrollments collection
-      // Check multiple possible document ID formats
+      // Generate the correct document ID using the same method used during enrollment creation
+      // Use the enrollmentInfo we found from the document (which should have all necessary fields)
+      const topLevelDocId = enrollmentInfo
+        ? this.generateEnrollmentDocumentId(userId, ayCode, enrollmentInfo)
+        : null
+      
+      // Check multiple possible document ID formats (legacy support)
       const possibleDocIds = [
-        `${userId}_${ayCode}`,
+        ...(topLevelDocId ? [topLevelDocId] : []), // Use the properly generated ID first
+        `${userId}_${ayCode}`, // Legacy format
+        `${userId}_${enrollmentDocSnap.id}`, // Subcollection doc ID format
         ...(enrollmentInfo?.semester
           ? [`${userId}_${ayCode}_${enrollmentInfo.semester}`]
           : []),
-        `${userId}_${enrollmentDocSnap.id}`,
       ]
 
+      // Update ALL top-level enrollment documents that match this user/AY/semester
+      // This ensures we update regardless of document ID format
+      let topLevelUpdated = false
+      
+      // First, try the generated document IDs
       for (const docId of possibleDocIds) {
         const topLevelEnrollmentRef = doc(db, 'enrollments', docId)
         const topLevelDoc = await getDoc(topLevelEnrollmentRef)
 
         if (topLevelDoc.exists()) {
-          const topLevelUpdate = {
-            'enrollmentData.enrollmentInfo.sectionId': sectionId,
-            updatedAt: serverTimestamp(),
+          const docData = topLevelDoc.data()
+          const docEnrollmentData = docData.enrollmentData
+          
+          // Verify this document matches our enrollment
+          // Compare semester values - both should be in 'first-sem'/'second-sem' format
+          const docSemester = docEnrollmentData?.enrollmentInfo?.semester
+          const expectedSemester = enrollmentInfo?.semester || enrollmentSemester
+          const semesterMatches = !expectedSemester || docSemester === expectedSemester
+          
+          if (
+            docEnrollmentData?.userId === userId &&
+            docEnrollmentData?.enrollmentInfo?.schoolYear === ayCode &&
+            semesterMatches
+          ) {
+            // Update using dot notation for nested fields
+            const topLevelUpdate = {
+              'enrollmentData.enrollmentInfo.sectionId': sectionId,
+              updatedAt: serverTimestamp(),
+            }
+            await updateDoc(topLevelEnrollmentRef, topLevelUpdate)
+            
+            // Verify the update
+            const verifyTopDoc = await getDoc(topLevelEnrollmentRef)
+            if (verifyTopDoc.exists()) {
+              const verifiedData = verifyTopDoc.data()
+              const verifiedSectionId = verifiedData?.enrollmentData?.enrollmentInfo?.sectionId
+              if (verifiedSectionId === sectionId) {
+                console.log(`  ✅ Updated and verified top-level enrollment document: ${docId}`)
+                topLevelUpdated = true
+                break
+              } else {
+                console.error(`  ❌ Verification failed for ${docId}: Expected ${sectionId}, got ${verifiedSectionId}`)
+              }
+            } else {
+              console.error(`  ❌ Document ${docId} no longer exists after update`)
+            }
           }
-          await updateDoc(topLevelEnrollmentRef, topLevelUpdate)
-          break // Found and updated, no need to check other formats
         }
+      }
+
+      // If we didn't find it, try querying the enrollments collection
+      if (!topLevelUpdated) {
+        console.log(`  🔍 Searching enrollments collection for user ${userId}...`)
+        const enrollmentsRef = collection(db, 'enrollments')
+        const enrollmentsQuery = query(
+          enrollmentsRef,
+          where('enrollmentData.userId', '==', userId)
+        )
+        const enrollmentsSnapshot = await getDocs(enrollmentsQuery)
+
+        for (const docSnapshot of enrollmentsSnapshot.docs) {
+          const docData = docSnapshot.data()
+          const enrollmentData = docData.enrollmentData
+          
+          const docSemester = enrollmentData?.enrollmentInfo?.semester
+          const expectedSemester = enrollmentInfo?.semester || enrollmentSemester
+          
+          // Check if this enrollment matches (same user, AY, and semester if applicable)
+          // Compare semester values directly (both should be in 'first-sem'/'second-sem' format)
+          const semesterMatches =
+            !expectedSemester ||
+            !docSemester ||
+            docSemester === expectedSemester
+          
+          if (
+            enrollmentData?.userId === userId &&
+            enrollmentData?.enrollmentInfo?.schoolYear === ayCode &&
+            semesterMatches
+          ) {
+            // Update using dot notation for nested fields
+            const topLevelUpdate = {
+              'enrollmentData.enrollmentInfo.sectionId': sectionId,
+              updatedAt: serverTimestamp(),
+            }
+            await updateDoc(docSnapshot.ref, topLevelUpdate)
+            
+            // Verify the update
+            const verifyQueryDoc = await getDoc(docSnapshot.ref)
+            if (verifyQueryDoc.exists()) {
+              const verifiedData = verifyQueryDoc.data()
+              const verifiedSectionId = verifiedData?.enrollmentData?.enrollmentInfo?.sectionId
+              if (verifiedSectionId === sectionId) {
+                console.log(`  ✅ Updated and verified top-level enrollment document via query: ${docSnapshot.id}`)
+                topLevelUpdated = true
+                break
+              } else {
+                console.error(`  ❌ Verification failed for ${docSnapshot.id}: Expected ${sectionId}, got ${verifiedSectionId}`)
+              }
+            }
+          }
+        }
+      }
+
+      if (!topLevelUpdated) {
+        console.warn(
+          `  ⚠️ Warning: Could not find top-level enrollment document for user ${userId} in AY ${ayCode}. Tried IDs: ${possibleDocIds.join(', ')}`
+        )
+        console.warn(
+          `  EnrollmentInfo used:`,
+          JSON.stringify(enrollmentInfo, null, 2)
+        )
       }
 
       // Add student to new section's students array

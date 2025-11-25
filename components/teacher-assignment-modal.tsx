@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Modal } from '@/components/ui/modal'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { toast } from 'react-toastify'
 import {
   GraduationCap,
@@ -18,6 +20,8 @@ import {
   Trash,
   ChalkboardSimple,
   MagnifyingGlass,
+  FunnelSimple,
+  Minus,
 } from '@phosphor-icons/react'
 
 interface TeacherAssignmentModalProps {
@@ -131,6 +135,11 @@ export default function TeacherAssignmentModal({
   const [loading, setLoading] = useState(false)
   const [assigning, setAssigning] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const [filterCourse, setFilterCourse] = useState<string>('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [currentGradePage, setCurrentGradePage] = useState(1)
+  const itemsPerPage = 5
 
   // Reset state and load grades/courses on modal open
   useEffect(() => {
@@ -148,6 +157,10 @@ export default function TeacherAssignmentModal({
       setSubjects([])
       setSubjectSets([])
       setSearchQuery('')
+      setShowFilterDropdown(false)
+      setFilterCourse('')
+      setCurrentPage(1)
+      setCurrentGradePage(1)
       loadGrades()
       loadCourses()
     }
@@ -447,24 +460,25 @@ export default function TeacherAssignmentModal({
     })
   }
 
-  const handleSubjectSetFilter = (subjectSetId: string | null) => {
-    setSelectedSubjectSetId(subjectSetId)
-  }
-
-  // Filter subjects based on selected subject set and search query
+  // Filter subjects based on selected course and search query
   const getFilteredSubjects = () => {
     let filtered = subjects
 
-    // Filter by subject set
-    if (selectedSubjectSetId) {
-      const selectedSet = subjectSets.find(
-        (set) => set.id === selectedSubjectSetId
-      )
-      if (selectedSet) {
-        filtered = filtered.filter((subject) =>
-          selectedSet.subjects.includes(subject.id)
-        )
-      }
+    // Filter by course (for college level)
+    if (selectedLevel === 'college' && filterCourse) {
+      filtered = filtered.filter((subject) => {
+        // Check if subject has courseCodes array
+        if (subject.courseCodes && subject.courseCodes.length > 0) {
+          return subject.courseCodes.includes(filterCourse)
+        }
+        // Check if subject has courseSelections
+        if (subject.courseSelections && subject.courseSelections.length > 0) {
+          return subject.courseSelections.some(
+            (selection) => selection.code === filterCourse
+          )
+        }
+        return false
+      })
     }
 
     // Filter by search query
@@ -480,6 +494,38 @@ export default function TeacherAssignmentModal({
 
     return filtered
   }
+
+  // Get paginated subjects
+  const getPaginatedSubjects = () => {
+    const filtered = getFilteredSubjects()
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return filtered.slice(startIndex, endIndex)
+  }
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, filterCourse])
+
+  // Get paginated grades
+  const getPaginatedGrades = () => {
+    const startIndex = (currentGradePage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return grades.slice(startIndex, endIndex)
+  }
+
+  // Get paginated courses
+  const getPaginatedCourses = () => {
+    const startIndex = (currentGradePage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return courses.slice(startIndex, endIndex)
+  }
+
+  // Reset grade page when level changes
+  useEffect(() => {
+    setCurrentGradePage(1)
+  }, [selectedLevel])
 
   const handleContinueToSections = () => {
     if (selectedSubjects.length === 0) {
@@ -1155,73 +1201,185 @@ export default function TeacherAssignmentModal({
                   </p>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {courses.map((course, index) => (
-                    <Card
-                      key={course.code}
-                      className={`group p-6 border border-gray-200 shadow-sm bg-white hover:border-blue-900 cursor-pointer animate-in fade-in slide-in-from-bottom-4 rounded-xl`}
-                      style={{
-                        backgroundColor: getColorValue(course.color),
-                        animationDelay: `${index * 150}ms`,
-                        animationFillMode: 'both',
-                      }}
-                      onClick={() => handleCourseSelect(course)}
-                    >
-                      <div className="space-y-4 flex flex-col justify-between h-full">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 flex items-center justify-center bg-white">
-                              <ChalkboardSimple
-                                size={20}
-                                weight="fill"
-                                style={{ color: getColorValue(course.color) }}
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3
-                                className="text-lg font-medium text-white"
-                                style={{
-                                  fontFamily: 'Poppins',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                {course.code}
-                              </h3>
-                              <p
-                                className="text-xs text-white"
-                                style={{
-                                  fontFamily: 'Poppins',
-                                  fontWeight: 300,
-                                }}
-                              >
-                                {course.name}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                <>
+                  <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200 text-xs">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-gray-500"
+                            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                          >
+                            Code
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-gray-500"
+                            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                          >
+                            Course Name
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-gray-500"
+                            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                          >
+                            Action
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {getPaginatedCourses().map((course) => {
+                          const isSelected = selectedCourse?.code === course.code
+                          const rowHighlightClass = isSelected
+                            ? 'bg-blue-50 border border-blue-100'
+                            : 'hover:bg-gray-50 cursor-pointer'
+                          const buttonClasses = isSelected
+                            ? 'border-blue-900 bg-blue-900 text-white'
+                            : 'border-blue-200 text-blue-900 hover:bg-blue-50'
 
-                        <p
-                          className="text-xs text-white line-clamp-3"
-                          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                        >
-                          {course.description}
-                        </p>
-
-                        <div className="pt-2 border-t border-gray-200">
-                          <div className="flex items-center justify-between">
-                            <span
-                              className="text-xs text-white"
-                              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                          return (
+                            <tr
+                              key={course.code}
+                              className={`transition-colors ${rowHighlightClass}`}
+                              onClick={() => handleCourseSelect(course)}
                             >
-                              Click to select
-                            </span>
-                            <div className="w-4 h-4 border-2 border-white transition-colors"></div>
+                              <td className="px-4 py-3 font-semibold text-gray-900">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="inline-block h-3 w-3 rounded"
+                                    style={{
+                                      backgroundColor: getColorValue(course.color),
+                                    }}
+                                    aria-hidden="true"
+                                  />
+                                  {course.code}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-black font-bold">
+                                {course.name}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleCourseSelect(course)
+                                  }}
+                                  className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-medium transition-colors ${buttonClasses}`}
+                                  aria-label={`Select ${course.name}`}
+                                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                                >
+                                  {isSelected ? (
+                                    <Check size={14} weight="bold" className="text-white" />
+                                  ) : (
+                                    <Plus size={14} weight="bold" />
+                                  )}
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+
+                    {/* Pagination for Courses */}
+                    {(() => {
+                      const totalPages = Math.ceil(courses.length / itemsPerPage)
+                      const startIndex = (currentGradePage - 1) * itemsPerPage
+                      const endIndex = Math.min(startIndex + itemsPerPage, courses.length)
+
+                      if (totalPages <= 1) return null
+
+                      const pageButtons = Array.from(
+                        { length: Math.min(totalPages, 7) },
+                        (_, i) => {
+                          let pageNum
+                          if (totalPages <= 7) {
+                            pageNum = i + 1
+                          } else if (currentGradePage <= 4) {
+                            pageNum = i + 1
+                          } else if (currentGradePage >= totalPages - 3) {
+                            pageNum = totalPages - 6 + i
+                          } else {
+                            pageNum = currentGradePage - 3 + i
+                          }
+                          return pageNum
+                        }
+                      )
+
+                      return (
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between px-5 py-4 bg-white/90 border-t border-gray-200">
+                          <div
+                            className="text-xs text-gray-600 flex items-center gap-3"
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
+                            <div className="w-3 h-3 rounded-md bg-blue-900/80"></div>
+                            Showing {startIndex + 1} to {endIndex} of{' '}
+                            {courses.length} courses
                           </div>
+
+                          <nav
+                            className="flex flex-wrap items-center justify-end gap-2"
+                            aria-label="Course pagination"
+                          >
+                            <button
+                              onClick={() =>
+                                setCurrentGradePage((prev) => Math.max(1, prev - 1))
+                              }
+                              disabled={currentGradePage === 1}
+                              className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border ${
+                                currentGradePage === 1
+                                  ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                                  : 'border-blue-100 text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
+                              }`}
+                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                              aria-label="Previous page"
+                            >
+                              <ArrowLeft size={14} />
+                              Previous
+                            </button>
+
+                            <div className="flex items-center gap-1">
+                              {pageButtons.map((pageNum) => (
+                                <button
+                                  key={pageNum}
+                                  onClick={() => setCurrentGradePage(() => pageNum)}
+                                  className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 border ${
+                                    currentGradePage === pageNum
+                                      ? 'border-blue-900 bg-blue-900 text-white shadow-lg shadow-blue-900/30'
+                                      : 'border-blue-100 bg-white text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
+                                  }`}
+                                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                                  aria-current={currentGradePage === pageNum ? 'page' : undefined}
+                                >
+                                  {pageNum}
+                                </button>
+                              ))}
+                            </div>
+
+                            <button
+                              onClick={() =>
+                                setCurrentGradePage((prev) => Math.min(totalPages, prev + 1))
+                              }
+                              disabled={currentGradePage === totalPages}
+                              className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border ${
+                                currentGradePage === totalPages
+                                  ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                                  : 'border-blue-100 text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
+                              }`}
+                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                              aria-label="Next page"
+                            >
+                              Next
+                              <ArrowRight size={14} />
+                            </button>
+                          </nav>
                         </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+                      )
+                    })()}
+                  </div>
+                </>
               )
             ) : grades.length === 0 ? (
               <Card className="p-12 text-center border-none bg-gray-50 border-1 shadow-sm border-blue-900">
@@ -1245,78 +1403,188 @@ export default function TeacherAssignmentModal({
                 </p>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {grades.map((grade, index) => (
-                  <Card
-                    key={grade.id}
-                    className={`group p-6 border border-gray-200 shadow-sm bg-white hover:border-blue-900 cursor-pointer animate-in fade-in slide-in-from-bottom-4 rounded-xl ${
-                      selectingGrade === grade.id
-                        ? 'shadow-lg border-blue-900'
-                        : ''
-                    }`}
-                    style={{
-                      backgroundColor: getColorValue(grade.color),
-                      animationDelay: `${index * 150}ms`,
-                      animationFillMode: 'both',
-                    }}
-                    onClick={() => handleGradeSelect(grade)}
-                  >
-                    <div className="space-y-4 flex flex-col justify-between h-full">
-                      {/* Header */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className={`w-10 h-10 flex items-center justify-center bg-white`}
-                          >
-                            <GraduationCap
-                              size={20}
-                              weight="fill"
-                              style={{ color: getColorValue(grade.color) }}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3
-                              className="text-lg font-medium text-white"
-                              style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                            >
-                              Grade {grade.gradeLevel} {grade.strand}
-                            </h3>
-                            <p
-                              className="text-xs text-white"
-                              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                            >
-                              {grade.department} Department
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+              <>
+                <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
+                  <table className="min-w-full divide-y divide-gray-200 text-xs">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-gray-500"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          Grade Level
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-gray-500"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          Department
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-gray-500"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {getPaginatedGrades().map((grade) => {
+                        const isSelected = selectedGrade?.id === grade.id
+                        const isSelecting = selectingGrade === grade.id
+                        const rowHighlightClass = isSelected
+                          ? 'bg-blue-50 border border-blue-100'
+                          : isSelecting
+                          ? 'bg-blue-100 border border-blue-200'
+                          : 'hover:bg-gray-50 cursor-pointer'
+                        const buttonClasses = isSelected
+                          ? 'border-blue-900 bg-blue-900 text-white'
+                          : 'border-blue-200 text-blue-900 hover:bg-blue-50'
 
-                      {/* Description */}
-                      <p
-                        className="text-xs text-white line-clamp-3"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
-                        {grade.description}
-                      </p>
-
-                      {/* Action */}
-                      <div className="pt-2 border-t border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <span
-                            className="text-xs text-white"
-                            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                        return (
+                          <tr
+                            key={grade.id}
+                            className={`transition-colors ${rowHighlightClass}`}
+                            onClick={() => handleGradeSelect(grade)}
                           >
-                            Click to select
-                          </span>
-                          <div
-                            className={`w-4 h-4 border-2 border-white transition-colors`}
-                          ></div>
+                            <td className="px-4 py-3 font-semibold text-gray-900">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="inline-block h-3 w-3 rounded"
+                                  style={{
+                                    backgroundColor: getColorValue(grade.color),
+                                  }}
+                                  aria-hidden="true"
+                                />
+                                Grade {grade.gradeLevel} {grade.strand || ''}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-black font-bold">
+                              {grade.department}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleGradeSelect(grade)
+                                }}
+                                className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-medium transition-colors ${buttonClasses}`}
+                                aria-label={`Select Grade ${grade.gradeLevel}`}
+                                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                              >
+                                {isSelected ? (
+                                  <Check size={14} weight="bold" className="text-white" />
+                                ) : (
+                                  <Plus size={14} weight="bold" />
+                                )}
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+
+                  {/* Pagination for Grades */}
+                  {(() => {
+                    const totalPages = Math.ceil(grades.length / itemsPerPage)
+                    const startIndex = (currentGradePage - 1) * itemsPerPage
+                    const endIndex = Math.min(startIndex + itemsPerPage, grades.length)
+
+                    if (totalPages <= 1) return null
+
+                    const pageButtons = Array.from(
+                      { length: Math.min(totalPages, 7) },
+                      (_, i) => {
+                        let pageNum
+                        if (totalPages <= 7) {
+                          pageNum = i + 1
+                        } else if (currentGradePage <= 4) {
+                          pageNum = i + 1
+                        } else if (currentGradePage >= totalPages - 3) {
+                          pageNum = totalPages - 6 + i
+                        } else {
+                          pageNum = currentGradePage - 3 + i
+                        }
+                        return pageNum
+                      }
+                    )
+
+                    return (
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between px-5 py-4 bg-white/90 border-t border-gray-200">
+                        <div
+                          className="text-xs text-gray-600 flex items-center gap-3"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
+                          <div className="w-3 h-3 rounded-md bg-blue-900/80"></div>
+                          Showing {startIndex + 1} to {endIndex} of{' '}
+                          {grades.length} grades
                         </div>
+
+                        <nav
+                          className="flex flex-wrap items-center justify-end gap-2"
+                          aria-label="Grade pagination"
+                        >
+                          <button
+                            onClick={() =>
+                              setCurrentGradePage((prev) => Math.max(1, prev - 1))
+                            }
+                            disabled={currentGradePage === 1}
+                            className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border ${
+                              currentGradePage === 1
+                                ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'border-blue-100 text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
+                            }`}
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            aria-label="Previous page"
+                          >
+                            <ArrowLeft size={14} />
+                            Previous
+                          </button>
+
+                          <div className="flex items-center gap-1">
+                            {pageButtons.map((pageNum) => (
+                              <button
+                                key={pageNum}
+                                onClick={() => setCurrentGradePage(() => pageNum)}
+                                className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 border ${
+                                  currentGradePage === pageNum
+                                    ? 'border-blue-900 bg-blue-900 text-white shadow-lg shadow-blue-900/30'
+                                    : 'border-blue-100 bg-white text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
+                                }`}
+                                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                                aria-current={currentGradePage === pageNum ? 'page' : undefined}
+                              >
+                                {pageNum}
+                              </button>
+                            ))}
+                          </div>
+
+                          <button
+                            onClick={() =>
+                              setCurrentGradePage((prev) => Math.min(totalPages, prev + 1))
+                            }
+                            disabled={currentGradePage === totalPages}
+                            className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border ${
+                              currentGradePage === totalPages
+                                ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'border-blue-100 text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
+                            }`}
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            aria-label="Next page"
+                          >
+                            Next
+                            <ArrowRight size={14} />
+                          </button>
+                        </nav>
                       </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                    )
+                  })()}
+                </div>
+              </>
             )}
           </div>
         )}
@@ -1335,176 +1603,333 @@ export default function TeacherAssignmentModal({
               </h4>
             </div>
 
-            {/* Search Bar */}
-            <div className="mb-6">
-              <div className="relative">
-                <MagnifyingGlass
-                  size={18}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  weight="regular"
-                />
-                <input
-                  type="text"
-                  placeholder="Search subjects by code or name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-900 transition-colors"
-                  style={{
-                    fontFamily: 'Poppins',
-                    fontWeight: 300,
-                    color: '#000',
-                  }}
-                />
-                {searchQuery && (
+            {/* Search and Filter Section */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="flex-1 relative">
+                  <MagnifyingGlass
+                    size={18}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    weight="regular"
+                  />
+                  <Input
+                    type="text"
+                    placeholder="Search subjects by code or name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 pr-4 w-full border-gray-200 rounded-lg focus:border-blue-900 focus:ring-2 focus:ring-blue-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
                   <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                    className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 ${
+                      filterCourse
+                        ? 'bg-gradient-to-br from-blue-900 to-blue-800 text-white shadow-md'
+                        : 'bg-white text-gray-700 border border-gray-200 hover:border-blue-300 hover:text-blue-900'
+                    }`}
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
-                    <X size={16} />
+                    <FunnelSimple size={16} weight="bold" />
+                    Filter
+                    {filterCourse && (
+                      <span className="w-2 h-2 bg-white rounded-full"></span>
+                    )}
                   </button>
-                )}
+
+                  {/* Filter Dropdown */}
+                  {showFilterDropdown && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowFilterDropdown(false)}
+                      ></div>
+                      <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 shadow-lg rounded-xl z-20 p-6">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h3
+                              className="text-sm font-medium text-gray-900"
+                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            >
+                              Filter Subjects
+                            </h3>
+                            <button
+                              onClick={() => setShowFilterDropdown(false)}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+
+                          {/* Course Filter (for college level) */}
+                          {selectedLevel === 'college' && (
+                            <div>
+                              <Label
+                                className="text-xs text-gray-700 mb-2 block"
+                                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                              >
+                                Course
+                              </Label>
+                              <select
+                                value={filterCourse}
+                                onChange={(e) => setFilterCourse(e.target.value)}
+                                className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+                                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                              >
+                                <option value="">All Courses</option>
+                                {courses.map((course) => (
+                                  <option key={course.code} value={course.code}>
+                                    {course.code} - {course.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {/* Clear Filters */}
+                          {filterCourse && (
+                            <button
+                              onClick={() => {
+                                setFilterCourse('')
+                              }}
+                              className="w-full px-3 py-2 text-xs text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            >
+                              Clear Filters
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Subject Set Filters */}
-            {subjectSets.length > 0 && (
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <span
-                    className="text-xs font-medium text-gray-700"
-                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                  >
-                    Filter by Subject Set:
-                  </span>
+            {/* Subjects Table */}
+            <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200">
+              {getFilteredSubjects().length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-xs text-gray-500">
+                  No subjects match the current filters.
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => handleSubjectSetFilter(null)}
-                    className={`flex items-center gap-2 px-3 py-2 border-2 rounded-lg transition-all duration-200 hover:scale-105 ${
-                      !selectedSubjectSetId
-                        ? 'bg-gradient-to-br from-blue-800 to-blue-900 border-blue-900 shadow-lg'
-                        : 'bg-white border-gray-300 hover:border-blue-300'
-                    }`}
-                  >
-                    <div
-                      className={`w-3 h-3 rounded ${
-                        !selectedSubjectSetId ? 'bg-white' : 'bg-gray-600'
-                      }`}
-                    ></div>
-                    <span
-                      className={`text-xs font-mono font-medium ${
-                        !selectedSubjectSetId ? 'text-white' : 'text-gray-700'
-                      }`}
-                    >
-                      All Subjects
-                    </span>
-                  </button>
-                  {subjectSets.map((subjectSet) => (
-                    <button
-                      key={subjectSet.id}
-                      onClick={() => handleSubjectSetFilter(subjectSet.id)}
-                      className={`flex items-center gap-2 px-3 py-2 border-2 rounded-lg transition-all duration-200 hover:scale-105 ${
-                        selectedSubjectSetId === subjectSet.id
-                          ? 'shadow-lg'
-                          : 'hover:shadow-md'
-                      }`}
-                      style={{
-                        backgroundColor:
-                          selectedSubjectSetId === subjectSet.id
-                            ? getColorValue(subjectSet.color)
-                            : 'white',
-                        borderColor: getColorValue(subjectSet.color),
-                      }}
-                    >
-                      <div
-                        className="w-3 h-3 rounded"
-                        style={{
-                          backgroundColor: getColorValue(subjectSet.color),
-                        }}
-                      ></div>
-                      <span
-                        className={`text-xs font-medium font-mono ${
-                          selectedSubjectSetId === subjectSet.id
-                            ? 'text-white'
-                            : 'text-gray-700'
-                        }`}
-                      >
-                        {subjectSet.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {getFilteredSubjects().map((subject, index) => {
-                const isSelected = selectedSubjects.some(
-                  (s) => s.id === subject.id
-                )
-                const currentSubject = selectedSubjects[currentSubjectIndex]
-                const assignedSections = getAssignedSections()
-                const hasAssignments = assignedSections.length > 0
-
-                return (
-                  <button
-                    key={subject.id}
-                    onClick={() => handleSubjectToggle(subject)}
-                    className={`p-4 border-2 rounded-none transition-all duration-200 text-left animate-in fade-in slide-in-from-bottom-4 ${
-                      isSelected
-                        ? 'border-blue-500 shadow-lg'
-                        : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
-                    }`}
-                    style={{
-                      backgroundColor: getColorValue(subject.color),
-                      animationDelay: `${index * 75}ms`,
-                      animationFillMode: 'both',
-                    }}
-                    disabled={loading}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                        <BookOpen
-                          size={16}
-                          style={{ color: getColorValue(subject.color) }}
-                          weight="fill"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <h5
-                          className="text-xs font-medium text-white"
+              ) : (
+                <>
+                  <table className="min-w-full divide-y divide-gray-200 text-xs">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-gray-500"
                           style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                         >
-                          {subject.code} - {subject.name}
-                        </h5>
-                        <p
-                          className="text-xs text-white/90"
-                          style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                          Code
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-gray-500"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                         >
-                          {subject.lectureUnits + subject.labUnits} units
-                        </p>
-                        {hasAssignments && (
-                          <p
-                            className="text-xs text-white mt-1"
+                          Subject
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-gray-500"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          Total Units
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-gray-500"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {getPaginatedSubjects().map((subject) => {
+                      const isSelected = selectedSubjects.some(
+                        (s) => s.id === subject.id
+                      )
+                      const assignedSections = getAssignedSectionsForSubject(
+                        subject
+                      )
+                      const totalUnits =
+                        subject.totalUnits ||
+                        (subject.lectureUnits || 0) + (subject.labUnits || 0)
+                      const rowHighlightClass = isSelected
+                        ? 'bg-blue-50 border border-blue-100'
+                        : 'hover:bg-gray-50'
+                      const buttonClasses = isSelected
+                        ? 'border-blue-900 bg-blue-900 text-white'
+                        : 'border-blue-200 text-blue-900 hover:bg-blue-50'
+
+                      return (
+                        <tr
+                          key={subject.id}
+                          className={`transition-colors ${rowHighlightClass}`}
+                        >
+                          <td className="px-4 py-3 font-semibold text-gray-900">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="inline-block h-3 w-3 rounded"
+                                style={{
+                                  backgroundColor: getColorValue(subject.color),
+                                }}
+                                aria-hidden="true"
+                              />
+                              {subject.code || 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-black font-bold">
+                            {subject.name}
+                            {assignedSections.length > 0 && (
+                              <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-blue-600">
+                                {assignedSections.length} section(s) assigned
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-gray-900">
+                            {totalUnits} units
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                handleSubjectToggle(subject)
+                              }}
+                              className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-medium transition-colors ${buttonClasses}`}
+                              aria-label={
+                                isSelected
+                                  ? `Remove ${subject.name}`
+                                  : `Add ${subject.name}`
+                              }
+                              disabled={loading}
+                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            >
+                              {isSelected ? (
+                                <Minus size={14} weight="bold" className="text-white" />
+                              ) : (
+                                <Plus size={14} weight="bold" />
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                    </tbody>
+                  </table>
+
+                  {/* Pagination */}
+                  {(() => {
+                    const filteredSubjects = getFilteredSubjects()
+                    const totalPages = Math.ceil(filteredSubjects.length / itemsPerPage)
+                    const startIndex = (currentPage - 1) * itemsPerPage
+                    const endIndex = Math.min(startIndex + itemsPerPage, filteredSubjects.length)
+
+                    if (totalPages <= 1) return null
+
+                    const pageButtons = Array.from(
+                      { length: Math.min(totalPages, 7) },
+                      (_, i) => {
+                        let pageNum
+                        if (totalPages <= 7) {
+                          pageNum = i + 1
+                        } else if (currentPage <= 4) {
+                          pageNum = i + 1
+                        } else if (currentPage >= totalPages - 3) {
+                          pageNum = totalPages - 6 + i
+                        } else {
+                          pageNum = currentPage - 3 + i
+                        }
+                        return pageNum
+                      }
+                    )
+
+                    return (
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between px-5 py-4 bg-white/90 border-t border-gray-200">
+                        <div
+                          className="text-xs text-gray-600 flex items-center gap-3"
+                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                        >
+                          <div className="w-3 h-3 rounded-md bg-blue-900/80"></div>
+                          Showing {startIndex + 1} to {endIndex} of{' '}
+                          {filteredSubjects.length} subjects
+                        </div>
+
+                        <nav
+                          className="flex flex-wrap items-center justify-end gap-2"
+                          aria-label="Subject pagination"
+                        >
+                          <button
+                            onClick={() =>
+                              setCurrentPage((prev) => Math.max(1, prev - 1))
+                            }
+                            disabled={currentPage === 1}
+                            className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border ${
+                              currentPage === 1
+                                ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'border-blue-100 text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
+                            }`}
                             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            aria-label="Previous page"
                           >
-                            {assignedSections.length} section(s) assigned
-                          </p>
-                        )}
+                            <ArrowLeft size={14} />
+                            Previous
+                          </button>
+
+                          <div className="flex items-center gap-1">
+                            {pageButtons.map((pageNum) => (
+                              <button
+                                key={pageNum}
+                                onClick={() => setCurrentPage(() => pageNum)}
+                                className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 border ${
+                                  currentPage === pageNum
+                                    ? 'border-blue-900 bg-blue-900 text-white shadow-lg shadow-blue-900/30'
+                                    : 'border-blue-100 bg-white text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
+                                }`}
+                                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                                aria-current={currentPage === pageNum ? 'page' : undefined}
+                              >
+                                {pageNum}
+                              </button>
+                            ))}
+                          </div>
+
+                          <button
+                            onClick={() =>
+                              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                            }
+                            disabled={currentPage === totalPages}
+                            className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border ${
+                              currentPage === totalPages
+                                ? 'border-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'border-blue-100 text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
+                            }`}
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            aria-label="Next page"
+                          >
+                            Next
+                            <ArrowRight size={14} />
+                          </button>
+                        </nav>
                       </div>
-                      <div
-                        className={`w-5 h-5 border-2 border-white flex items-center justify-center ${
-                          isSelected ? 'bg-white' : 'bg-white/20'
-                        }`}
-                      >
-                        {isSelected && (
-                          <Check size={12} className="text-gray-800" />
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
+                    )
+                  })()}
+                </>
+              )}
             </div>
 
             <div className="flex gap-3 mt-6">

@@ -143,7 +143,6 @@ export default function EnrollmentForm({
           'reportCard',
           'certificateOfGoodMoral',
           'birthCertificate',
-          'idPicture',
         ]
         const uploadedRequired = requiredTypes.filter((type) =>
           documents.some((doc: any) => doc.type === type)
@@ -158,7 +157,7 @@ export default function EnrollmentForm({
       } else {
         state.setDocumentsStatus({
           uploaded: 0,
-          required: 4,
+          required: 3,
           isComplete: false,
           uploadedDocuments: [],
         })
@@ -167,7 +166,7 @@ export default function EnrollmentForm({
       console.error('Error checking documents status:', error)
       state.setDocumentsStatus({
         uploaded: 0,
-        required: 4,
+        required: 3,
         isComplete: false,
         uploadedDocuments: [],
       })

@@ -10,6 +10,7 @@ import DeleteEnrollmentModal from './modals/DeleteEnrollmentModal'
 import ScholarshipModal from './modals/ScholarshipModal'
 import SettingsModal from './modals/SettingsModal'
 import ViewEnrollmentModal from './modals/ViewEnrollmentModal'
+import ManualEnrollModal from './modals/ManualEnrollModal'
 import AIChatModal from '@/components/student-management/AIChatModal'
 import PrerequisiteWarningModal from './modals/PrerequisiteWarningModal'
 import { FailedPrerequisite } from './utils/prerequisites'
@@ -20,6 +21,7 @@ interface Props {
   studentProfiles: Record<string, any>
   subjects: Record<string, any>
   subjectSets: any
+  allSubjectSets: any[]
   registrarName?: string
 
   // Tabs and helpers
@@ -80,6 +82,25 @@ interface Props {
   setEnrollStudentId: (v: string) => void
   filteredEnrollScholarships: any[]
   onConfirmEnroll: () => void
+  showManualEnrollModal: boolean
+  manualEnrollment: any
+  manualStudentIdResolved: string
+  onCloseManualEnroll: () => void
+  onManualEnrollProceed: () => void
+  manualSelectedSubjects: string[]
+  setManualSelectedSubjects: (updater: (prev: string[]) => string[]) => void
+  manualShowOtherSets: boolean
+  setManualShowOtherSets: (value: boolean) => void
+  handleManualSubjectToggle: (subjectId: string) => void
+  manualSubjectCheckId: string | null
+  manualBlockedSubjects: Record<string, FailedPrerequisite[]>
+  manualTakenSubjects: Record<string, boolean>
+  manualModalLoading: boolean
+  manualTakenLoading: boolean
+  manualInitialValidationDone: boolean
+  showManualConfirmModal: boolean
+  onCloseManualConfirm: () => void
+  onConfirmManualEnroll: () => void
 
   // Delete
   showDeleteModal: boolean
@@ -149,6 +170,7 @@ const EnrollmentModals: React.FC<Props> = (props) => {
     studentProfiles,
     subjects,
     subjectSets,
+    allSubjectSets,
     registrarName,
     activeTab,
     onTabChange,
@@ -192,6 +214,25 @@ const EnrollmentModals: React.FC<Props> = (props) => {
     setEnrollStudentId,
     filteredEnrollScholarships,
     onConfirmEnroll,
+    showManualEnrollModal,
+    manualEnrollment,
+    manualStudentIdResolved,
+    onCloseManualEnroll,
+    onManualEnrollProceed,
+    manualSelectedSubjects,
+    setManualSelectedSubjects,
+    manualShowOtherSets,
+    setManualShowOtherSets,
+    handleManualSubjectToggle,
+    manualSubjectCheckId,
+    manualBlockedSubjects,
+    manualTakenSubjects,
+    manualModalLoading,
+    manualTakenLoading,
+    manualInitialValidationDone,
+    showManualConfirmModal,
+    onCloseManualConfirm,
+    onConfirmManualEnroll,
     showDeleteModal,
     onCancelDelete,
     onConfirmDelete,
@@ -314,6 +355,54 @@ const EnrollmentModals: React.FC<Props> = (props) => {
         onConfirm={onConfirmEnroll}
         formatFullName={formatFullName}
         getEnrollmentDisplayInfo={getEnrollmentDisplayInfo as any}
+      />
+
+      <ManualEnrollModal
+        isOpen={showManualEnrollModal}
+        onClose={onCloseManualEnroll}
+        enrollment={manualEnrollment}
+        studentProfile={
+          manualEnrollment ? studentProfiles[manualEnrollment.userId] : null
+        }
+        subjects={subjects as any}
+        subjectSetsByGrade={subjectSets as any}
+        allSubjectSets={allSubjectSets as any}
+        subjectAssignments={subjectAssignments as any}
+        selectedSubjects={manualSelectedSubjects}
+        setSelectedSubjects={setManualSelectedSubjects}
+        showOtherSets={manualShowOtherSets}
+        setShowOtherSets={setManualShowOtherSets}
+        handleSubjectToggle={handleManualSubjectToggle}
+        checkingPrerequisites={checkingPrerequisites}
+        onProceed={onManualEnrollProceed}
+        formatFullName={formatFullName}
+        getEnrollmentDisplayInfo={getEnrollmentDisplayInfo as any}
+        manualSubjectCheckId={manualSubjectCheckId}
+        manualBlockedSubjects={manualBlockedSubjects}
+        takenSubjects={manualTakenSubjects}
+        isLoading={manualModalLoading}
+        takenLoading={manualTakenLoading}
+        validationDone={manualInitialValidationDone}
+      />
+
+      <EnrollModal
+        isOpen={showManualConfirmModal}
+        onClose={onCloseManualConfirm}
+        viewingEnrollment={manualEnrollment}
+        selectedSubjectsCount={manualSelectedSubjects.length}
+        studentIdResolved={manualStudentIdResolved}
+        enrollOrNumber={enrollOrNumber}
+        setEnrollOrNumber={setEnrollOrNumber}
+        enrollScholarship={enrollScholarship}
+        setEnrollScholarship={setEnrollScholarship}
+        enrollStudentId={enrollStudentId}
+        setEnrollStudentId={setEnrollStudentId}
+        filteredEnrollScholarships={filteredEnrollScholarships as any}
+        enrollingStudent={enrollingStudent}
+        onConfirm={onConfirmManualEnroll}
+        formatFullName={formatFullName}
+        getEnrollmentDisplayInfo={getEnrollmentDisplayInfo as any}
+        zIndex={80}
       />
 
       <DeleteEnrollmentModal

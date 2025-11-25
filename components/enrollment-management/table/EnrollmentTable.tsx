@@ -26,6 +26,7 @@ interface Props {
   onDelete: (enrollment: any) => void
   onPrint: (enrollment: any) => Promise<void> | void
   onOpenAIChat: (enrollment: any) => void
+  onManualEnroll: (enrollment: any) => void
   // utils
   getEnrollmentDisplayInfo: (e: any) => any
   getBgColor: (c: string) => string
@@ -54,6 +55,7 @@ const EnrollmentTable: React.FC<Props> = ({
   onDelete,
   onPrint,
   onOpenAIChat,
+  onManualEnroll,
   getEnrollmentDisplayInfo,
   getBgColor,
   getStatusHexColor,
@@ -119,6 +121,7 @@ const EnrollmentTable: React.FC<Props> = ({
                     onDelete={onDelete}
                     onPrint={onPrint}
                     onOpenAIChat={onOpenAIChat}
+                    onManualEnroll={onManualEnroll}
                     enrollingStudent={enrollingStudent}
                     subjectAssignments={subjectAssignments}
                     subjectSets={subjectSets}

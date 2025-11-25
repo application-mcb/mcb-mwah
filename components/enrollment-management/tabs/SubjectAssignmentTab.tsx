@@ -14,10 +14,15 @@ import {
   BookOpen,
   Flask,
   Calculator,
+  Plus,
+  Minus,
+  XCircle,
+  CheckCircle,
 } from '@phosphor-icons/react'
 import { getBgColor } from '../utils/color'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { FailedPrerequisite } from '../utils/prerequisites'
 
 interface SubjectData {
   id: string
@@ -39,14 +44,15 @@ interface Props {
   subjectSetsByGrade: Record<number, SubjectSetData[]>
   allSubjectSets: SubjectSetData[]
   subjectAssignments: SubjectAssignmentData[]
-  selectedSubjectSets: string[]
   selectedSubjects: string[]
-  setSelectedSubjectSets: (updater: (prev: string[]) => string[]) => void
   setSelectedSubjects: (updater: (prev: string[]) => string[]) => void
   showOtherSets: boolean
   setShowOtherSets: (value: boolean) => void
-  handleSubjectSetToggle: (subjectSetId: string, subjectIds: string[]) => void
   handleSubjectToggle: (subjectId: string) => void
+  showSelectedSummary?: boolean
+  pendingSubjectId?: string | null
+  blockedSubjects?: Record<string, FailedPrerequisite[]>
+  takenSubjects?: Record<string, boolean>
 }
 
 const SubjectAssignmentTab: React.FC<Props> = ({
@@ -55,14 +61,15 @@ const SubjectAssignmentTab: React.FC<Props> = ({
   subjectSetsByGrade,
   allSubjectSets,
   subjectAssignments,
-  selectedSubjectSets,
   selectedSubjects,
-  setSelectedSubjectSets,
   setSelectedSubjects,
   showOtherSets,
   setShowOtherSets,
-  handleSubjectSetToggle,
   handleSubjectToggle,
+  showSelectedSummary = true,
+  pendingSubjectId,
+  blockedSubjects,
+  takenSubjects,
 }) => {
   const [searchQuery, setSearchQuery] = React.useState('')
   const [showFilterDropdown, setShowFilterDropdown] = React.useState(false)
@@ -70,6 +77,83 @@ const SubjectAssignmentTab: React.FC<Props> = ({
   const [filterGrade, setFilterGrade] = React.useState<string>('')
 
   if (!viewingEnrollment) return null
+
+  const enrollmentInfo = viewingEnrollment.enrollmentInfo
+
+  const relevantSubjectSets = React.useMemo(() => {
+    if (!enrollmentInfo) return []
+
+    const resolveSubjectSet = (subjectSetId?: string) =>
+      allSubjectSets.find((set) => set.id === subjectSetId)
+
+    if (enrollmentInfo.level === 'college') {
+      const courseCode = enrollmentInfo.courseCode
+      const yearLevel = parseInt(enrollmentInfo.yearLevel || '1')
+      const semester = enrollmentInfo.semester
+
+      const matchingAssignments = subjectAssignments.filter(
+        (assignment) =>
+          assignment.level === 'college' &&
+          assignment.courseCode === courseCode &&
+          assignment.yearLevel === yearLevel &&
+          assignment.semester === semester
+      )
+
+      const setsFromAssignments = matchingAssignments
+        .map((assignment) => resolveSubjectSet(assignment.subjectSetId))
+        .filter(Boolean) as SubjectSetData[]
+
+      const setsFromCourseSelections = allSubjectSets.filter((set) =>
+        (set.courseSelections || []).some(
+          (selection) => selection.code === courseCode
+        )
+      )
+
+      const combined = [...setsFromAssignments, ...setsFromCourseSelections]
+      const uniqueSetsMap = new Map<string, SubjectSetData>()
+      combined.forEach((set) => {
+        if (!uniqueSetsMap.has(set.id)) {
+          uniqueSetsMap.set(set.id, set)
+        }
+      })
+
+      return Array.from(uniqueSetsMap.values())
+    }
+
+    const gradeLevel = parseInt(enrollmentInfo.gradeLevel || '0')
+    const department = enrollmentInfo.department
+    const strand = enrollmentInfo.strand
+    const semester = enrollmentInfo.semester
+
+    const matchingAssignments = subjectAssignments.filter((assignment) => {
+      if (assignment.level !== 'high-school') return false
+      if (assignment.gradeLevel !== gradeLevel) return false
+
+      if (department === 'SHS') {
+        if (assignment.strand !== strand) return false
+        if (assignment.semester !== semester) return false
+      }
+
+      return true
+    })
+
+    const setsFromAssignments = matchingAssignments
+      .map((assignment) => resolveSubjectSet(assignment.subjectSetId))
+      .filter(Boolean) as SubjectSetData[]
+
+    if (setsFromAssignments.length > 0) {
+      return setsFromAssignments
+    }
+
+    const gradeFilteredSets = allSubjectSets.filter((subjectSet) => {
+      if (subjectSet.gradeLevel === gradeLevel) return true
+      if (subjectSet.gradeLevels && subjectSet.gradeLevels.includes(gradeLevel))
+        return true
+      return false
+    })
+
+    return gradeFilteredSets
+  }, [enrollmentInfo, allSubjectSets, subjectAssignments])
 
   // Helper function to create gradient from color
   const getGradientBackground = (color: string): string => {
@@ -123,6 +207,167 @@ const SubjectAssignmentTab: React.FC<Props> = ({
 
       return true
     })
+  }
+
+  const renderSubjectTable = (subjectIds: string[]) => {
+    const filteredIds = filterSubjects(subjectIds)
+
+    if (filteredIds.length === 0) {
+      return (
+        <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-500 font-mono">
+          No subjects match the current filters.
+        </div>
+      )
+    }
+
+    return (
+      <div className="mt-4 overflow-x-auto rounded-xl border border-gray-200 font-mono">
+        <table className="min-w-full divide-y divide-gray-200 text-xs font-mono">
+          <thead className="bg-gray-50">
+            <tr>
+              <th
+                scope="col"
+                className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Code
+              </th>
+              <th
+                scope="col"
+                className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Subject
+              </th>
+              <th
+                scope="col"
+                className="px-4 py-3 text-left font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Total Units
+              </th>
+              <th
+                scope="col"
+                className="px-4 py-3 text-center font-semibold uppercase tracking-wide text-gray-500"
+              >
+                Action
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 bg-white">
+            {filteredIds.map((subjectId) => {
+              const subject = subjects[subjectId]
+              if (!subject) return null
+              const totalUnits =
+                subject.totalUnits ||
+                (subject.lectureUnits || 0) + (subject.labUnits || 0)
+              const isSelected = selectedSubjects.includes(subjectId)
+              const isPending = pendingSubjectId === subjectId
+              const blockedInfo = blockedSubjects?.[subjectId]
+              const isBlocked = !!blockedInfo?.length
+              const isTaken = !!takenSubjects?.[subjectId]
+              const rowHighlightClass = isBlocked
+                ? 'bg-red-50 border border-red-200'
+                : isSelected
+                ? 'bg-blue-50 border border-blue-100'
+                : isTaken
+                ? 'bg-green-50 border border-green-100'
+                : 'hover:bg-gray-50'
+              const buttonDisabled = isPending || isBlocked || isTaken
+              const buttonClasses = (() => {
+                if (isBlocked) {
+                  return 'border-red-600 bg-red-600 text-white'
+                }
+                if (isTaken) {
+                  return 'border-green-700 bg-green-600 text-white'
+                }
+                if (isSelected) {
+                  return 'border-blue-900 bg-blue-900 text-white'
+                }
+                return 'border-blue-200 text-blue-900 hover:bg-blue-50'
+              })()
+
+              return (
+                <tr
+                  key={subjectId}
+                  className={`transition-colors ${rowHighlightClass}`}
+                >
+                  <td className="px-4 py-3 font-semibold text-gray-900 font-mono">
+                    <div className="flex items-center gap-2 font-mono">
+                      <span
+                        className="inline-block h-3 w-3 rounded"
+                        style={{ backgroundColor: getBgColor(subject.color) }}
+                        aria-hidden="true"
+                      />
+                      {subject.code || 'N/A'}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-black font-bold font-mono">
+                    {subject.name}
+                    {isBlocked && (
+                      <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-red-600">
+                        Prerequisite not met
+                      </span>
+                    )}
+                    {isBlocked && blockedInfo?.[0]?.reason && (
+                      <span className="mt-0.5 block text-[11px] text-red-500">
+                        {blockedInfo[0].reason}
+                      </span>
+                    )}
+                    {!isBlocked && isTaken && (
+                      <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-green-700">
+                        Already taken
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-gray-900 font-mono">
+                    {totalUnits} units
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        handleSubjectToggle(subjectId)
+                      }}
+                      className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-medium transition-colors font-mono ${buttonClasses} ${
+                        buttonDisabled
+                          ? isPending
+                            ? 'opacity-60 cursor-not-allowed'
+                            : 'cursor-not-allowed'
+                          : ''
+                      }`}
+                      aria-label={
+                        isSelected
+                          ? `Remove ${subject.name}`
+                          : `Add ${subject.name}`
+                      }
+                      disabled={buttonDisabled}
+                    >
+                      {isPending ? (
+                        <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                      ) : isBlocked ? (
+                        <XCircle
+                          size={14}
+                          weight="bold"
+                          className="text-white"
+                        />
+                      ) : isTaken ? (
+                        <CheckCircle
+                          size={14}
+                          weight="bold"
+                          className="text-white"
+                        />
+                      ) : isSelected ? (
+                        <Minus size={14} weight="bold" className="text-white" />
+                      ) : (
+                        <Plus size={14} weight="bold" />
+                      )}
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    )
   }
 
   return (
@@ -274,7 +519,7 @@ const SubjectAssignmentTab: React.FC<Props> = ({
         </div>
       </div>
 
-      {selectedSubjects.length > 0 && (
+      {showSelectedSummary && selectedSubjects.length > 0 && (
         <div className="bg-white border border-blue-200 rounded-xl p-4 mb-4">
           <div className="flex items-center justify-between mb-2">
             <h4
@@ -285,7 +530,6 @@ const SubjectAssignmentTab: React.FC<Props> = ({
             </h4>
             <button
               onClick={() => {
-                setSelectedSubjectSets(() => [])
                 setSelectedSubjects(() => [])
                 toast.info('All selected subjects have been cleared.', {
                   autoClose: 4000,
@@ -372,10 +616,7 @@ const SubjectAssignmentTab: React.FC<Props> = ({
                   >
                     <div className="flex items-center gap-2 mb-1.5">
                       <div className="w-2 h-2 bg-white rounded-full"></div>
-                      <span
-                        className="font-medium"
-                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
-                      >
+                      <span className="font-medium font-mono">
                         {subject.code} {subject.name}
                       </span>
                     </div>
@@ -543,30 +784,10 @@ const SubjectAssignmentTab: React.FC<Props> = ({
         const enrollmentInfo = viewingEnrollment?.enrollmentInfo
 
         if (enrollmentInfo?.level === 'college') {
-          const courseCode = enrollmentInfo.courseCode
-          const yearLevel = parseInt(enrollmentInfo.yearLevel || '1')
           const semester = enrollmentInfo.semester
+          const primarySubjectSets = relevantSubjectSets
 
-          const assignment = subjectAssignments.find(
-            (assignment) =>
-              assignment.level === 'college' &&
-              assignment.courseCode === courseCode &&
-              assignment.yearLevel === yearLevel &&
-              assignment.semester === semester
-          )
-
-          const assignedSubjectSetId = assignment?.subjectSetId
-          const assignedSet = allSubjectSets.find(
-            (set) => set.id === assignedSubjectSetId
-          )
-          const otherSets = allSubjectSets.filter(
-            (set) => set.id !== assignedSubjectSetId
-          )
-          const sortedSubjectSets = assignedSet
-            ? [assignedSet, ...otherSets]
-            : allSubjectSets
-
-          if (sortedSubjectSets.length === 0) {
+          if (primarySubjectSets.length === 0) {
             return (
               <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
                 <p
@@ -579,261 +800,30 @@ const SubjectAssignmentTab: React.FC<Props> = ({
             )
           }
 
-          const semesterDisplay =
-            semester === 'first-sem'
-              ? 'Q1'
-              : semester === 'second-sem'
-              ? 'Q2'
-              : ''
           return (
             <div className="space-y-4">
-              {sortedSubjectSets.map((subjectSet) => {
-                const isSubjectSetSelected = selectedSubjectSets.includes(
-                  subjectSet.id
-                )
-                return (
-                  <div
-                    key={subjectSet.id}
-                    className={`bg-white border-2 p-4 cursor-pointer transition-all duration-300 animate-fadeInUp hover:scale-[1.02] rounded-xl ${
-                      isSubjectSetSelected
-                        ? 'border-blue-900 bg-blue-50 shadow-lg'
-                        : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                    }`}
-                  >
+              {primarySubjectSets.map((subjectSet) => (
+                <div
+                  key={subjectSet.id}
+                  className="bg-white border border-gray-200 p-4 rounded-xl transition-all duration-300 animate-fadeInUp hover:border-blue-200 hover:shadow-md"
+                >
+                  <div className="flex items-center gap-3 mb-3">
                     <div
-                      className="flex items-center gap-3 mb-3"
-                      onClick={() =>
-                        handleSubjectSetToggle(
-                          subjectSet.id,
-                          subjectSet.subjects
-                        )
-                      }
-                    >
-                      <div
-                        className={`w-5 h-5 border-2 flex items-center justify-center rounded ${
-                          isSubjectSetSelected
-                            ? 'border-blue-900 bg-gradient-to-br from-blue-900 to-blue-800'
-                            : 'border-gray-300'
-                        }`}
-                      >
-                        {isSubjectSetSelected && (
-                          <div className="w-2 h-2 bg-white"></div>
-                        )}
-                      </div>
-                      <div
-                        className="w-4 h-4 flex items-center justify-center rounded"
-                        style={{
-                          backgroundColor: getBgColor(subjectSet.color),
-                        }}
-                      >
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      </div>
-                      <h4
-                        className="text-md font-medium text-gray-900"
-                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                      >
-                        {subjectSet.name}
-                      </h4>
-                    </div>
-                    <p
-                      className="text-xs text-gray-600 mb-3"
+                      className="w-4 h-4 rounded"
+                      style={{
+                        backgroundColor: getBgColor(subjectSet.color),
+                      }}
+                    ></div>
+                    <h4
+                      className="text-md font-medium text-gray-900"
                       style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                     >
-                      {subjectSet.description}
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {filterSubjects(subjectSet.subjects).length === 0 ? (
-                        <div
-                          className="col-span-full py-4 text-center text-xs text-gray-500"
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                        >
-                          No subjects match the current filters.
-                        </div>
-                      ) : (
-                        filterSubjects(subjectSet.subjects).map((subjectId) => {
-                          const subject = subjects[subjectId]
-                          if (!subject) return null
-                          const isSubjectSelected =
-                            selectedSubjects.includes(subjectId)
-                          const subjectColor = getBgColor(subject.color)
-                          return (
-                            <div
-                              key={subjectId}
-                              className={`p-3 border cursor-pointer transition-colors rounded-lg ${
-                                isSubjectSelected
-                                  ? 'border-gray-300'
-                                  : 'bg-white border-gray-200 hover:bg-gray-50'
-                              }`}
-                              style={
-                                isSubjectSelected
-                                  ? {
-                                      background: getGradientBackground(
-                                        subject.color
-                                      ),
-                                    }
-                                  : {}
-                              }
-                              onClick={() => handleSubjectToggle(subjectId)}
-                            >
-                              <div className="flex items-center gap-2 mb-2">
-                                <div
-                                  className="w-3 h-3 rounded"
-                                  style={{
-                                    backgroundColor: subjectColor,
-                                  }}
-                                ></div>
-                                <span
-                                  className={`text-xs ${
-                                    isSubjectSelected
-                                      ? 'text-white font-medium'
-                                      : 'text-gray-700'
-                                  }`}
-                                  style={{
-                                    fontFamily: 'Poppins',
-                                    fontWeight: 400,
-                                  }}
-                                >
-                                  {subject.code} {subject.name}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                    isSubjectSelected ? '' : 'bg-gray-700'
-                                  }`}
-                                  style={
-                                    isSubjectSelected
-                                      ? {
-                                          backgroundColor:
-                                            'rgba(255, 255, 255, 0.2)',
-                                        }
-                                      : {}
-                                  }
-                                >
-                                  <BookOpen
-                                    size={12}
-                                    className={
-                                      isSubjectSelected
-                                        ? 'text-white'
-                                        : 'text-white'
-                                    }
-                                  />
-                                  <span
-                                    className="text-xs"
-                                    style={{
-                                      fontFamily: 'Poppins',
-                                      fontWeight: 400,
-                                      color: '#ffffff',
-                                    }}
-                                  >
-                                    Lecture
-                                  </span>
-                                  <span
-                                    className="text-xs font-medium"
-                                    style={{
-                                      fontFamily: 'Poppins',
-                                      fontWeight: 400,
-                                      color: '#ffffff',
-                                    }}
-                                  >
-                                    {subject.lectureUnits || 0}
-                                  </span>
-                                </div>
-                                <div
-                                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                    isSubjectSelected ? '' : 'bg-gray-700'
-                                  }`}
-                                  style={
-                                    isSubjectSelected
-                                      ? {
-                                          backgroundColor:
-                                            'rgba(255, 255, 255, 0.2)',
-                                        }
-                                      : {}
-                                  }
-                                >
-                                  <Flask
-                                    size={12}
-                                    className={
-                                      isSubjectSelected
-                                        ? 'text-white'
-                                        : 'text-white'
-                                    }
-                                  />
-                                  <span
-                                    className="text-xs"
-                                    style={{
-                                      fontFamily: 'Poppins',
-                                      fontWeight: 400,
-                                      color: '#ffffff',
-                                    }}
-                                  >
-                                    Lab
-                                  </span>
-                                  <span
-                                    className="text-xs font-medium"
-                                    style={{
-                                      fontFamily: 'Poppins',
-                                      fontWeight: 400,
-                                      color: '#ffffff',
-                                    }}
-                                  >
-                                    {subject.labUnits || 0}
-                                  </span>
-                                </div>
-                                <div
-                                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                    isSubjectSelected ? '' : 'bg-gray-700'
-                                  }`}
-                                  style={
-                                    isSubjectSelected
-                                      ? {
-                                          backgroundColor:
-                                            'rgba(255, 255, 255, 0.2)',
-                                        }
-                                      : {}
-                                  }
-                                >
-                                  <Calculator
-                                    size={12}
-                                    className={
-                                      isSubjectSelected
-                                        ? 'text-white'
-                                        : 'text-white'
-                                    }
-                                  />
-                                  <span
-                                    className="text-xs"
-                                    style={{
-                                      fontFamily: 'Poppins',
-                                      fontWeight: 400,
-                                      color: '#ffffff',
-                                    }}
-                                  >
-                                    Total
-                                  </span>
-                                  <span
-                                    className="text-xs font-medium"
-                                    style={{
-                                      fontFamily: 'Poppins',
-                                      fontWeight: 400,
-                                      color: '#ffffff',
-                                    }}
-                                  >
-                                    {subject.totalUnits ||
-                                      (subject.lectureUnits || 0) +
-                                        (subject.labUnits || 0)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })
-                      )}
-                    </div>
+                      {subjectSet.name}
+                    </h4>
                   </div>
-                )
-              })}
+                  {renderSubjectTable(subjectSet.subjects)}
+                </div>
+              ))}
             </div>
           )
         }
@@ -852,48 +842,9 @@ const SubjectAssignmentTab: React.FC<Props> = ({
             </div>
           )
         }
-        const gradeLevelNum = parseInt(gradeLevel)
-        const hsEnrollmentInfo = viewingEnrollment?.enrollmentInfo
-        const isSHS = hsEnrollmentInfo?.department === 'SHS'
+        const gradeSubjectSets = relevantSubjectSets
 
-        // Find assignment - for SHS, also match semester and strand
-        const assignment = subjectAssignments.find((assignment) => {
-          if (assignment.level !== 'high-school') return false
-          if (assignment.gradeLevel !== gradeLevelNum) return false
-
-          // For SHS, also check semester and strand
-          if (isSHS) {
-            return (
-              assignment.semester === hsEnrollmentInfo?.semester &&
-              assignment.strand === hsEnrollmentInfo?.strand
-            )
-          }
-          // For JHS, no semester/strand check
-          return true
-        })
-        const assignedSubjectSetId = assignment?.subjectSetId
-
-        const gradeSubjectSets = allSubjectSets.filter((subjectSet) => {
-          if (subjectSet.gradeLevel === gradeLevelNum) return true
-          if (
-            subjectSet.gradeLevels &&
-            subjectSet.gradeLevels.includes(gradeLevelNum)
-          )
-            return true
-          return false
-        })
-
-        const assignedSet = gradeSubjectSets.find(
-          (set) => set.id === assignedSubjectSetId
-        )
-        const otherSets = gradeSubjectSets.filter(
-          (set) => set.id !== assignedSubjectSetId
-        )
-        const sortedSubjectSets = assignedSet
-          ? [assignedSet, ...otherSets]
-          : gradeSubjectSets
-
-        if (sortedSubjectSets.length === 0) {
+        if (gradeSubjectSets.length === 0) {
           return (
             <div className="bg-gray-50 border border-gray-200 p-4 text-center">
               <p
@@ -908,226 +859,26 @@ const SubjectAssignmentTab: React.FC<Props> = ({
 
         return (
           <div className="space-y-4">
-            {sortedSubjectSets.map((subjectSet) => {
-              const isSubjectSetSelected = selectedSubjectSets.includes(
-                subjectSet.id
-              )
-              return (
-                <div
-                  key={subjectSet.id}
-                  className={`bg-white border-2 p-4 cursor-pointer transition-all duration-300 animate-fadeInUp hover:scale-[1.02] rounded-xl ${
-                    isSubjectSetSelected
-                      ? 'border-blue-900 bg-blue-50 shadow-lg'
-                      : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                  }`}
-                >
+            {gradeSubjectSets.map((subjectSet) => (
+              <div
+                key={subjectSet.id}
+                className="bg-white border border-gray-200 p-4 rounded-xl transition-all duration-300 animate-fadeInUp hover:border-blue-200 hover:shadow-md"
+              >
+                <div className="flex items-center gap-3 mb-3">
                   <div
-                    className="flex items-center gap-3 mb-3"
-                    onClick={() =>
-                      handleSubjectSetToggle(subjectSet.id, subjectSet.subjects)
-                    }
-                  >
-                    <div
-                      className={`w-5 h-5 border-2 flex items-center justify-center rounded ${
-                        isSubjectSetSelected
-                          ? 'border-blue-900 bg-gradient-to-br from-blue-900 to-blue-800'
-                          : 'border-gray-300'
-                      }`}
-                    >
-                      {isSubjectSetSelected && (
-                        <div className="w-2 h-2 bg-white"></div>
-                      )}
-                    </div>
-                    <div
-                      className="w-4 h-4 flex items-center justify-center rounded"
-                      style={{ backgroundColor: getBgColor(subjectSet.color) }}
-                    >
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                    </div>
-                    <h4
-                      className="text-md font-medium text-gray-900"
-                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                    >
-                      {subjectSet.name}
-                    </h4>
-                  </div>
-                  <p
-                    className="text-xs text-gray-600 mb-3"
+                    className="w-4 h-4 rounded"
+                    style={{ backgroundColor: getBgColor(subjectSet.color) }}
+                  ></div>
+                  <h4
+                    className="text-md font-medium text-gray-900"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
-                    {subjectSet.description}
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {filterSubjects(subjectSet.subjects).length === 0 ? (
-                      <div
-                        className="col-span-full py-4 text-center text-xs text-gray-500"
-                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                      >
-                        No subjects match the current filters.
-                      </div>
-                    ) : (
-                      filterSubjects(subjectSet.subjects).map((subjectId) => {
-                        const subject = subjects[subjectId]
-                        if (!subject) return null
-                        const isSubjectSelected =
-                          selectedSubjects.includes(subjectId)
-                        return (
-                          <div
-                            key={subjectId}
-                            className={`p-3 border cursor-pointer transition-colors rounded-lg ${
-                              isSubjectSelected
-                                ? 'bg-gray-100 border-gray-300'
-                                : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                            }`}
-                            onClick={() => handleSubjectToggle(subjectId)}
-                          >
-                            <div className="flex items-center gap-2 mb-2">
-                              <div
-                                className="w-3 h-3 rounded"
-                                style={{
-                                  backgroundColor: getBgColor(subject.color),
-                                }}
-                              ></div>
-                              <span
-                                className={`text-xs ${
-                                  isSubjectSelected
-                                    ? 'text-gray-900 font-medium'
-                                    : 'text-gray-700'
-                                }`}
-                                style={{
-                                  fontFamily: 'Poppins',
-                                  fontWeight: 400,
-                                }}
-                              >
-                                {subject.name}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                  isSubjectSelected ? 'bg-white' : 'bg-gray-700'
-                                }`}
-                              >
-                                <BookOpen
-                                  size={12}
-                                  className={
-                                    isSubjectSelected
-                                      ? 'text-gray-600'
-                                      : 'text-white'
-                                  }
-                                />
-                                <span
-                                  className="text-xs"
-                                  style={{
-                                    fontFamily: 'Poppins',
-                                    fontWeight: 400,
-                                    color: isSubjectSelected
-                                      ? '#4b5563'
-                                      : '#ffffff',
-                                  }}
-                                >
-                                  Lecture
-                                </span>
-                                <span
-                                  className="text-xs font-medium"
-                                  style={{
-                                    fontFamily: 'Poppins',
-                                    fontWeight: 400,
-                                    color: isSubjectSelected
-                                      ? '#4b5563'
-                                      : '#ffffff',
-                                  }}
-                                >
-                                  {subject.lectureUnits || 0}
-                                </span>
-                              </div>
-                              <div
-                                className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                  isSubjectSelected ? 'bg-white' : 'bg-gray-700'
-                                }`}
-                              >
-                                <Flask
-                                  size={12}
-                                  className={
-                                    isSubjectSelected
-                                      ? 'text-gray-600'
-                                      : 'text-white'
-                                  }
-                                />
-                                <span
-                                  className="text-xs"
-                                  style={{
-                                    fontFamily: 'Poppins',
-                                    fontWeight: 400,
-                                    color: isSubjectSelected
-                                      ? '#4b5563'
-                                      : '#ffffff',
-                                  }}
-                                >
-                                  Lab
-                                </span>
-                                <span
-                                  className="text-xs font-medium"
-                                  style={{
-                                    fontFamily: 'Poppins',
-                                    fontWeight: 400,
-                                    color: isSubjectSelected
-                                      ? '#4b5563'
-                                      : '#ffffff',
-                                  }}
-                                >
-                                  {subject.labUnits || 0}
-                                </span>
-                              </div>
-                              <div
-                                className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                  isSubjectSelected ? 'bg-white' : 'bg-gray-700'
-                                }`}
-                              >
-                                <Calculator
-                                  size={12}
-                                  className={
-                                    isSubjectSelected
-                                      ? 'text-gray-600'
-                                      : 'text-white'
-                                  }
-                                />
-                                <span
-                                  className="text-xs"
-                                  style={{
-                                    fontFamily: 'Poppins',
-                                    fontWeight: 400,
-                                    color: isSubjectSelected
-                                      ? '#4b5563'
-                                      : '#ffffff',
-                                  }}
-                                >
-                                  Total
-                                </span>
-                                <span
-                                  className="text-xs font-medium"
-                                  style={{
-                                    fontFamily: 'Poppins',
-                                    fontWeight: 400,
-                                    color: isSubjectSelected
-                                      ? '#4b5563'
-                                      : '#ffffff',
-                                  }}
-                                >
-                                  {subject.totalUnits ||
-                                    (subject.lectureUnits || 0) +
-                                      (subject.labUnits || 0)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })
-                    )}
-                  </div>
+                    {subjectSet.name}
+                  </h4>
                 </div>
-              )
-            })}
+                {renderSubjectTable(subjectSet.subjects)}
+              </div>
+            ))}
           </div>
         )
       })()}
@@ -1203,243 +954,28 @@ const SubjectAssignmentTab: React.FC<Props> = ({
 
               return (
                 <div className="space-y-3">
-                  {otherSets.map((subjectSet) => {
-                    const isSubjectSetSelected = selectedSubjectSets.includes(
-                      subjectSet.id
-                    )
-                    return (
-                      <div
-                        key={subjectSet.id}
-                        className={`bg-white border-2 p-4 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-xl ${
-                          isSubjectSetSelected
-                            ? 'border-blue-900 bg-blue-50 shadow-lg'
-                            : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                        }`}
-                      >
+                  {otherSets.map((subjectSet) => (
+                    <div
+                      key={subjectSet.id}
+                      className="bg-white border border-gray-200 p-4 rounded-xl transition-all duration-300 hover:border-blue-200 hover:shadow-md"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
                         <div
-                          className="flex items-center gap-3 mb-3"
-                          onClick={() =>
-                            handleSubjectSetToggle(
-                              subjectSet.id,
-                              subjectSet.subjects
-                            )
-                          }
-                        >
-                          <div
-                            className={`w-5 h-5 border-2 flex items-center justify-center rounded ${
-                              isSubjectSetSelected
-                                ? 'border-blue-900 bg-gradient-to-br from-blue-900 to-blue-800'
-                                : 'border-gray-300'
-                            }`}
-                          >
-                            {isSubjectSetSelected && (
-                              <div className="w-2 h-2 bg-white"></div>
-                            )}
-                          </div>
-                          <div
-                            className="w-4 h-4 flex items-center justify-center rounded"
-                            style={{
-                              backgroundColor: getBgColor(subjectSet.color),
-                            }}
-                          >
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                          </div>
-                          <h4
-                            className="text-md font-medium text-gray-900"
-                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                          >
-                            {subjectSet.name}
-                          </h4>
-                        </div>
-                        <p
-                          className="text-xs text-gray-600 mb-3"
+                          className="w-4 h-4 rounded"
+                          style={{
+                            backgroundColor: getBgColor(subjectSet.color),
+                          }}
+                        ></div>
+                        <h4
+                          className="text-md font-medium text-gray-900"
                           style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                         >
-                          {subjectSet.description}
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                          {filterSubjects(subjectSet.subjects).length === 0 ? (
-                            <div
-                              className="col-span-full py-4 text-center text-xs text-gray-500"
-                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                            >
-                              No subjects match the current filters.
-                            </div>
-                          ) : (
-                            filterSubjects(subjectSet.subjects).map(
-                              (subjectId) => {
-                                const subject = subjects[subjectId]
-                                if (!subject) return null
-                                const isSubjectSelected =
-                                  selectedSubjects.includes(subjectId)
-                                return (
-                                  <div
-                                    key={subjectId}
-                                    className={`p-3 border cursor-pointer transition-colors rounded-lg ${
-                                      isSubjectSelected
-                                        ? 'bg-gray-100 border-gray-300'
-                                        : 'bg-white border-gray-200 hover:bg-gray-50'
-                                    }`}
-                                    onClick={() =>
-                                      handleSubjectToggle(subjectId)
-                                    }
-                                  >
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <div
-                                        className="w-3 h-3 rounded"
-                                        style={{
-                                          backgroundColor: getBgColor(
-                                            subject.color
-                                          ),
-                                        }}
-                                      ></div>
-                                      <span
-                                        className={`text-xs ${
-                                          isSubjectSelected
-                                            ? 'text-gray-900 font-medium'
-                                            : 'text-gray-700'
-                                        }`}
-                                        style={{
-                                          fontFamily: 'Poppins',
-                                          fontWeight: 400,
-                                        }}
-                                      >
-                                        {subject.code} {subject.name}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <div
-                                        className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                          isSubjectSelected
-                                            ? 'bg-white'
-                                            : 'bg-gray-700'
-                                        }`}
-                                      >
-                                        <BookOpen
-                                          size={12}
-                                          className={
-                                            isSubjectSelected
-                                              ? 'text-gray-600'
-                                              : 'text-white'
-                                          }
-                                        />
-                                        <span
-                                          className="text-xs"
-                                          style={{
-                                            fontFamily: 'Poppins',
-                                            fontWeight: 400,
-                                            color: isSubjectSelected
-                                              ? '#4b5563'
-                                              : '#ffffff',
-                                          }}
-                                        >
-                                          Lecture
-                                        </span>
-                                        <span
-                                          className="text-xs font-medium"
-                                          style={{
-                                            fontFamily: 'Poppins',
-                                            fontWeight: 400,
-                                            color: isSubjectSelected
-                                              ? '#4b5563'
-                                              : '#ffffff',
-                                          }}
-                                        >
-                                          {subject.lectureUnits || 0}
-                                        </span>
-                                      </div>
-                                      <div
-                                        className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                          isSubjectSelected
-                                            ? 'bg-white'
-                                            : 'bg-gray-700'
-                                        }`}
-                                      >
-                                        <Flask
-                                          size={12}
-                                          className={
-                                            isSubjectSelected
-                                              ? 'text-gray-600'
-                                              : 'text-white'
-                                          }
-                                        />
-                                        <span
-                                          className="text-xs"
-                                          style={{
-                                            fontFamily: 'Poppins',
-                                            fontWeight: 400,
-                                            color: isSubjectSelected
-                                              ? '#4b5563'
-                                              : '#ffffff',
-                                          }}
-                                        >
-                                          Lab
-                                        </span>
-                                        <span
-                                          className="text-xs font-medium"
-                                          style={{
-                                            fontFamily: 'Poppins',
-                                            fontWeight: 400,
-                                            color: isSubjectSelected
-                                              ? '#4b5563'
-                                              : '#ffffff',
-                                          }}
-                                        >
-                                          {subject.labUnits || 0}
-                                        </span>
-                                      </div>
-                                      <div
-                                        className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                          isSubjectSelected
-                                            ? 'bg-white'
-                                            : 'bg-gray-700'
-                                        }`}
-                                      >
-                                        <Calculator
-                                          size={12}
-                                          className={
-                                            isSubjectSelected
-                                              ? 'text-gray-600'
-                                              : 'text-white'
-                                          }
-                                        />
-                                        <span
-                                          className="text-xs"
-                                          style={{
-                                            fontFamily: 'Poppins',
-                                            fontWeight: 400,
-                                            color: isSubjectSelected
-                                              ? '#4b5563'
-                                              : '#ffffff',
-                                          }}
-                                        >
-                                          Total
-                                        </span>
-                                        <span
-                                          className="text-xs font-medium"
-                                          style={{
-                                            fontFamily: 'Poppins',
-                                            fontWeight: 400,
-                                            color: isSubjectSelected
-                                              ? '#4b5563'
-                                              : '#ffffff',
-                                          }}
-                                        >
-                                          {subject.totalUnits ||
-                                            (subject.lectureUnits || 0) +
-                                              (subject.labUnits || 0)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )
-                              }
-                            )
-                          )}
-                        </div>
+                          {subjectSet.name}
+                        </h4>
                       </div>
-                    )
-                  })}
+                      {renderSubjectTable(subjectSet.subjects)}
+                    </div>
+                  ))}
                 </div>
               )
             }
@@ -1503,247 +1039,28 @@ const SubjectAssignmentTab: React.FC<Props> = ({
                     Grade {grade}
                   </h5>
                   <div className="space-y-3">
-                    {filteredSets.map((subjectSet) => {
-                      const isSubjectSetSelected = selectedSubjectSets.includes(
-                        subjectSet.id
-                      )
-                      return (
-                        <div
-                          key={subjectSet.id}
-                          className={`bg-white border-2 p-4 cursor-pointer transition-all duration-300 hover:scale-[1.02] rounded-xl ${
-                            isSubjectSetSelected
-                              ? 'border-blue-900 bg-blue-50 shadow-lg'
-                              : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                          }`}
-                        >
+                    {filteredSets.map((subjectSet) => (
+                      <div
+                        key={subjectSet.id}
+                        className="bg-white border border-gray-200 p-4 rounded-xl transition-all duration-300 hover:border-blue-200 hover:shadow-md"
+                      >
+                        <div className="flex items-center gap-3 mb-3">
                           <div
-                            className="flex items-center gap-3 mb-3"
-                            onClick={() =>
-                              handleSubjectSetToggle(
-                                subjectSet.id,
-                                subjectSet.subjects
-                              )
-                            }
-                          >
-                            <div
-                              className={`w-5 h-5 border-2 flex items-center justify-center rounded ${
-                                isSubjectSetSelected
-                                  ? 'border-blue-900 bg-gradient-to-br from-blue-900 to-blue-800'
-                                  : 'border-gray-300'
-                              }`}
-                            >
-                              {isSubjectSetSelected && (
-                                <div className="w-2 h-2 bg-white"></div>
-                              )}
-                            </div>
-                            <div
-                              className="w-4 h-4 flex items-center justify-center rounded"
-                              style={{
-                                backgroundColor: getBgColor(subjectSet.color),
-                              }}
-                            >
-                              <div className="w-2 h-2 bg-white rounded-full"></div>
-                            </div>
-                            <h4
-                              className="text-md font-medium text-gray-900"
-                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                            >
-                              {subjectSet.name}
-                            </h4>
-                          </div>
-                          <p
-                            className="text-xs text-gray-600 mb-3"
+                            className="w-4 h-4 rounded"
+                            style={{
+                              backgroundColor: getBgColor(subjectSet.color),
+                            }}
+                          ></div>
+                          <h4
+                            className="text-md font-medium text-gray-900"
                             style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                           >
-                            {subjectSet.description}
-                          </p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                            {filterSubjects(subjectSet.subjects).length ===
-                            0 ? (
-                              <div
-                                className="col-span-full py-4 text-center text-xs text-gray-500"
-                                style={{
-                                  fontFamily: 'Poppins',
-                                  fontWeight: 400,
-                                }}
-                              >
-                                No subjects match the current filters.
-                              </div>
-                            ) : (
-                              filterSubjects(subjectSet.subjects).map(
-                                (subjectId) => {
-                                  const subject = subjects[subjectId]
-                                  if (!subject) return null
-                                  const isSubjectSelected =
-                                    selectedSubjects.includes(subjectId)
-                                  return (
-                                    <div
-                                      key={subjectId}
-                                      className={`p-3 border cursor-pointer transition-colors rounded-lg ${
-                                        isSubjectSelected
-                                          ? 'bg-gray-100 border-gray-300'
-                                          : 'bg-white border-gray-200 hover:bg-gray-50'
-                                      }`}
-                                      onClick={() =>
-                                        handleSubjectToggle(subjectId)
-                                      }
-                                    >
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <div
-                                          className="w-3 h-3 rounded"
-                                          style={{
-                                            backgroundColor: getBgColor(
-                                              subject.color
-                                            ),
-                                          }}
-                                        ></div>
-                                        <span
-                                          className={`text-xs ${
-                                            isSubjectSelected
-                                              ? 'text-gray-900 font-medium'
-                                              : 'text-gray-700'
-                                          }`}
-                                          style={{
-                                            fontFamily: 'Poppins',
-                                            fontWeight: 400,
-                                          }}
-                                        >
-                                          {subject.code} {subject.name}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <div
-                                          className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                            isSubjectSelected
-                                              ? 'bg-white'
-                                              : 'bg-gray-700'
-                                          }`}
-                                        >
-                                          <BookOpen
-                                            size={12}
-                                            className={
-                                              isSubjectSelected
-                                                ? 'text-gray-600'
-                                                : 'text-white'
-                                            }
-                                          />
-                                          <span
-                                            className="text-xs"
-                                            style={{
-                                              fontFamily: 'Poppins',
-                                              fontWeight: 400,
-                                              color: isSubjectSelected
-                                                ? '#4b5563'
-                                                : '#ffffff',
-                                            }}
-                                          >
-                                            Lecture
-                                          </span>
-                                          <span
-                                            className="text-xs font-medium"
-                                            style={{
-                                              fontFamily: 'Poppins',
-                                              fontWeight: 400,
-                                              color: isSubjectSelected
-                                                ? '#4b5563'
-                                                : '#ffffff',
-                                            }}
-                                          >
-                                            {subject.lectureUnits || 0}
-                                          </span>
-                                        </div>
-                                        <div
-                                          className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                            isSubjectSelected
-                                              ? 'bg-white'
-                                              : 'bg-gray-700'
-                                          }`}
-                                        >
-                                          <Flask
-                                            size={12}
-                                            className={
-                                              isSubjectSelected
-                                                ? 'text-gray-600'
-                                                : 'text-white'
-                                            }
-                                          />
-                                          <span
-                                            className="text-xs"
-                                            style={{
-                                              fontFamily: 'Poppins',
-                                              fontWeight: 400,
-                                              color: isSubjectSelected
-                                                ? '#4b5563'
-                                                : '#ffffff',
-                                            }}
-                                          >
-                                            Lab
-                                          </span>
-                                          <span
-                                            className="text-xs font-medium"
-                                            style={{
-                                              fontFamily: 'Poppins',
-                                              fontWeight: 400,
-                                              color: isSubjectSelected
-                                                ? '#4b5563'
-                                                : '#ffffff',
-                                            }}
-                                          >
-                                            {subject.labUnits || 0}
-                                          </span>
-                                        </div>
-                                        <div
-                                          className={`flex items-center gap-1.5 px-2 py-1.5 rounded ${
-                                            isSubjectSelected
-                                              ? 'bg-white'
-                                              : 'bg-gray-700'
-                                          }`}
-                                        >
-                                          <Calculator
-                                            size={12}
-                                            className={
-                                              isSubjectSelected
-                                                ? 'text-gray-600'
-                                                : 'text-white'
-                                            }
-                                          />
-                                          <span
-                                            className="text-xs"
-                                            style={{
-                                              fontFamily: 'Poppins',
-                                              fontWeight: 400,
-                                              color: isSubjectSelected
-                                                ? '#4b5563'
-                                                : '#ffffff',
-                                            }}
-                                          >
-                                            Total
-                                          </span>
-                                          <span
-                                            className="text-xs font-medium"
-                                            style={{
-                                              fontFamily: 'Poppins',
-                                              fontWeight: 400,
-                                              color: isSubjectSelected
-                                                ? '#4b5563'
-                                                : '#ffffff',
-                                            }}
-                                          >
-                                            {subject.totalUnits ||
-                                              (subject.lectureUnits || 0) +
-                                                (subject.labUnits || 0)}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )
-                                }
-                              )
-                            )}
-                          </div>
+                            {subjectSet.name}
+                          </h4>
                         </div>
-                      )
-                    })}
+                        {renderSubjectTable(subjectSet.subjects)}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )

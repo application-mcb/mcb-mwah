@@ -670,8 +670,6 @@ export async function GET(request: NextRequest) {
   // Get enrolled subjects for a student
   if (getEnrolledSubjects === 'true' && userId) {
     try {
-      console.log('CONSOLE :: API: Getting enrolled subjects for user:', userId)
-
       // Get system config for current AY and semester
       const systemConfig = await EnrollmentDatabase.getSystemConfig()
       const ayCode = systemConfig.ayCode
@@ -958,15 +956,41 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if explicit AY and/or semester is provided
-  const semester = searchParams.get('semester')
+  let semester = searchParams.get('semester')
+
+  // If semester not provided, try to get current semester from system config
+  // This is needed for college/SHS students who require semester-based enrollments
+  if (!semester) {
+    try {
+      const systemConfig = await EnrollmentDatabase.getSystemConfig()
+      const currentSemester = systemConfig.semester
+      // Convert system semester format ('1' or '2') to enrollment format ('first-sem' or 'second-sem')
+      if (currentSemester === '1') {
+        semester = 'first-sem'
+      } else if (currentSemester === '2') {
+        semester = 'second-sem'
+      }
+    } catch (error) {
+      console.warn('Failed to get system config for semester:', error)
+    }
+  }
 
   try {
-    // First try using the database method
-    const enrollmentResult = await EnrollmentDatabase.getEnrollment(
+    // First try using the database method with semester (if provided)
+    let enrollmentResult = await EnrollmentDatabase.getEnrollment(
       userId,
       ayParam || undefined,
       semester || undefined
     )
+
+    // If not found and we have a semester, also try without semester (for JHS students)
+    if (!enrollmentResult.success && semester) {
+      enrollmentResult = await EnrollmentDatabase.getEnrollment(
+        userId,
+        ayParam || undefined,
+        undefined
+      )
+    }
 
     if (enrollmentResult.success) {
       return NextResponse.json({
@@ -1007,6 +1031,7 @@ export async function GET(request: NextRequest) {
         const enrollmentAY = enrollmentData.enrollmentInfo?.schoolYear
         const enrollmentSemester = enrollmentData.enrollmentInfo?.semester
         const enrollmentLevel = enrollmentData.enrollmentInfo?.level
+        const enrollmentDept = enrollmentData.enrollmentInfo?.department
 
         // For college: must match AY + semester
         if (semester && enrollmentLevel === 'college') {
@@ -1017,11 +1042,25 @@ export async function GET(request: NextRequest) {
             })
           }
         }
-        // For high school: must match AY only (no semester)
+        // For SHS: must match AY + semester + department
+        else if (
+          semester &&
+          enrollmentLevel === 'high-school' &&
+          enrollmentDept === 'SHS'
+        ) {
+          if (enrollmentAY === ayCode && enrollmentSemester === semester) {
+            return NextResponse.json({
+              success: true,
+              data: enrollmentData,
+            })
+          }
+        }
+        // For JHS: must match AY only (no semester)
         else if (
           !semester &&
           (enrollmentLevel === 'high-school' ||
-            (!enrollmentLevel && !enrollmentSemester))
+            (!enrollmentLevel && !enrollmentSemester)) &&
+          enrollmentDept !== 'SHS'
         ) {
           if (enrollmentAY === ayCode) {
             return NextResponse.json({
@@ -1034,11 +1073,14 @@ export async function GET(request: NextRequest) {
     }
 
     // If no enrollment found after all checks
-    // Return 200 with success: false (not 404) so frontend doesn't treat it as an error
-    return NextResponse.json({
-      success: false,
-      error: 'No enrollment found for this user',
-    })
+    // Return 404 to match what components expect
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'No enrollment found for this user',
+      },
+      { status: 404 }
+    )
   } catch (error) {
     console.error('Error fetching enrollment:', error)
     return NextResponse.json(

@@ -176,7 +176,7 @@ export default function SectionList({
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const itemsPerPage = 5
   // Filter dropdown state
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   // Student count filter state

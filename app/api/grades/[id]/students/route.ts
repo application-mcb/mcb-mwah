@@ -168,7 +168,54 @@ export async function GET(
     )
 
     // Build the final enrolled students array
-    // Filter by gradeId in code
+    // Filter by gradeId in code and deduplicate per student
+    const studentEntries = new Map<
+      string,
+      {
+        userId: string
+        studentId?: string
+        studentName: string
+        studentSection: string
+      }
+    >()
+
+    const pickBetterEntry = (
+      currentEntry:
+        | {
+            userId: string
+            studentId?: string
+            studentName: string
+            studentSection: string
+          }
+        | undefined,
+      candidate: {
+        userId: string
+        studentId?: string
+        studentName: string
+        studentSection: string
+      }
+    ) => {
+      if (!currentEntry) {
+        return candidate
+      }
+
+      const currentHasSection = !!currentEntry.studentSection
+      const candidateHasSection = !!candidate.studentSection
+
+      if (!currentHasSection && candidateHasSection) {
+        return candidate
+      }
+
+      const currentHasId = !!currentEntry.studentId
+      const candidateHasId = !!candidate.studentId
+
+      if (!currentHasId && candidateHasId) {
+        return candidate
+      }
+
+      return currentEntry
+    }
+
     for (const enrollmentDoc of enrollmentsSnapshot.docs) {
       const enrollmentData = enrollmentDoc.data()
       const enrollmentInfo = enrollmentData?.enrollmentData
@@ -207,24 +254,29 @@ export async function GET(
         ? sectionNameMap.get(sectionId) || sectionId
         : ''
 
-      enrolledStudents.push({
+      const candidate = {
         userId,
         studentId: studentIdMap.get(userId),
         studentName: studentName,
         studentSection: sectionName,
-      })
+      }
+
+      const bestEntry = pickBetterEntry(studentEntries.get(userId), candidate)
+      studentEntries.set(userId, bestEntry)
     }
 
+    const dedupedStudents = Array.from(studentEntries.values())
+
     console.log(
-      `[Grade Students API] Stats - Grade ${gradeId}, AY ${ayCode}, Final count: ${enrolledStudents.length}`
+      `[Grade Students API] Stats - Grade ${gradeId}, AY ${ayCode}, Final count: ${dedupedStudents.length}`
     )
 
     return NextResponse.json({
       success: true,
       gradeId,
       ayCode,
-      count: enrolledStudents.length,
-      students: enrolledStudents,
+      count: dedupedStudents.length,
+      students: dedupedStudents,
     })
   } catch (error) {
     console.error('Error fetching students for grade:', error)

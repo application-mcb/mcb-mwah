@@ -57,8 +57,6 @@ interface DocumentInfo {
     | 'reportCard'
     | 'certificateOfGoodMoral'
     | 'birthCertificate'
-    | 'idPicture'
-    | 'form137'
     | 'certificateOfCompletion'
     | 'marriageCertificate'
   fileName: string
@@ -103,20 +101,6 @@ const REQUIRED_DOCUMENTS = [
     description: 'PSA-issued birth certificate',
     required: true,
     icon: IdentificationCard,
-  },
-  {
-    key: 'idPicture' as const,
-    name: 'ID Picture',
-    description: 'Recent Formal Photo (2x2)',
-    required: true,
-    icon: User,
-  },
-  {
-    key: 'form137' as const,
-    name: 'Form 137',
-    description: 'Permanent Record',
-    required: true,
-    icon: BookOpen,
   },
   {
     key: 'certificateOfCompletion' as const,
@@ -484,7 +468,7 @@ export default function DocumentsManager({
 
         {/* Documents Grid Skeleton */}
         <div className="flex flex-wrap gap-3 sm:gap-4 lg:gap-6">
-          {Array.from({ length: 7 }).map((_, index) => (
+          {Array.from({ length: 5 }).map((_, index) => (
             <div
               key={index}
               className="flex-[1_1_min(100%,_320px)] sm:flex-[1_1_min(100%,_360px)] max-w-full flex"

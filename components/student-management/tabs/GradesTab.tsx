@@ -30,6 +30,7 @@ export default function GradesTab({ viewingEnrollment }: GradesTabProps) {
           viewingEnrollment.personalInfo?.lastName,
           viewingEnrollment.personalInfo?.nameExtension
         )}
+        studentNumber={viewingEnrollment.enrollmentInfo?.studentId}
       />
     </div>
   ) : (

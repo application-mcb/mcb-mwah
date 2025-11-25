@@ -169,6 +169,12 @@ export default function GradeSectionManagement({
     return filtered
   }, [grades, gradeSearchQuery, selectedDepartments])
 
+  const totalJuniorHighGrades = useMemo(() => {
+    return grades.filter(
+      (grade) => grade.gradeLevel >= 7 && grade.gradeLevel <= 10
+    ).length
+  }, [grades])
+
   // Filter sections based on search query and selected ranks
   const filteredSections = useMemo(() => {
     let filtered = sections
@@ -723,159 +729,123 @@ export default function GradeSectionManagement({
         <div className="mb-8">
           {/* Header Section */}
           <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-                <MemberOfIcon
-                  size={24}
-                  className="text-blue-900"
-                  weight="fill"
-                />
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
+                  <MemberOfIcon
+                    size={24}
+                    className="text-blue-900"
+                    weight="fill"
+                  />
+                </div>
+                <h1
+                  className="text-3xl font-medium text-white"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Grade & Section Management
+                </h1>
               </div>
-              <h1
-                className="text-3xl font-medium text-white"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Grade & Section Management
-              </h1>
-            </div>
-          </div>
 
-          {/* Navigation Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Grade Levels Card */}
-            <div
-              onClick={() => setViewMode('grades')}
-              className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] transform ${
-                viewMode === 'grades'
-                  ? 'bg-white border-2 border-blue-900 shadow-lg'
-                  : 'bg-white border border-gray-200 hover:border-blue-300'
-              } rounded-xl shadow-sm`}
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div
-                      className={`w-12 h-12 flex items-center justify-center rounded-xl ${
-                        viewMode === 'grades'
-                          ? 'bg-gradient-to-br from-blue-900 to-blue-800'
-                          : 'bg-gray-100'
-                      }`}
-                    >
-                      <GraduationCap
-                        size={24}
-                        className={
-                          viewMode === 'grades' ? 'text-white' : 'text-gray-600'
-                        }
-                        weight="duotone"
-                      />
-                    </div>
-                    <div>
-                      <h3
-                        className={`text-lg font-medium ${
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {/* Grade Levels Tab */}
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grades')}
+                  className={`rounded-2xl p-3 text-left transition-all duration-300 ${
+                    viewMode === 'grades'
+                      ? 'bg-white border-2 border-blue-900 shadow-2xl'
+                      : 'bg-white/95 border border-white/20 hover:border-white/40 hover:bg-white'
+                  }`}
+                  style={{ fontFamily: 'Poppins' }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
                           viewMode === 'grades'
-                            ? 'text-blue-900'
-                            : 'text-gray-900'
+                            ? 'bg-gradient-to-br from-blue-900 to-blue-700 text-white'
+                            : 'bg-blue-50 text-blue-900'
                         }`}
-                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                       >
-                        Grade Levels
-                      </h3>
-                      <p
-                        className="text-sm text-gray-600"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
-                        Create and manage grade levels
-                      </p>
+                        <GraduationCap size={24} weight="duotone" />
+                      </div>
+                      <div>
+                        <p
+                          className={`text-base font-medium ${
+                            viewMode === 'grades'
+                              ? 'text-blue-900'
+                              : 'text-gray-900'
+                          }`}
+                        >
+                          Grade Levels
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Create and manage grade levels
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div
-                    className={`text-3xl font-bold ${
-                      viewMode === 'grades' ? 'text-blue-900' : 'text-gray-400'
-                    }`}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    {grades.length}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Sections Card */}
-            <div
-              onClick={() => setViewMode('sections')}
-              className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] transform ${
-                viewMode === 'sections'
-                  ? 'bg-white border-2 border-blue-900 shadow-lg'
-                  : 'bg-white border border-gray-200 hover:border-blue-300'
-              } rounded-xl shadow-sm`}
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
                     <div
-                      className={`w-12 h-12 flex items-center justify-center rounded-xl ${
-                        viewMode === 'sections'
-                          ? 'bg-gradient-to-br from-blue-900 to-blue-800'
-                          : 'bg-gray-100'
+                      className={`text-2xl font-semibold ${
+                        viewMode === 'grades'
+                          ? 'text-blue-900'
+                          : 'text-gray-400'
                       }`}
                     >
-                      <Users
-                        size={24}
-                        className={
-                          viewMode === 'sections'
-                            ? 'text-white'
-                            : 'text-gray-600'
-                        }
-                        weight="duotone"
-                      />
+                      {grades.length}
                     </div>
-                    <div>
-                      <h3
-                        className={`text-lg font-medium ${
+                  </div>
+                </button>
+
+                {/* Sections Tab */}
+                <button
+                  type="button"
+                  onClick={() => setViewMode('sections')}
+                  className={`rounded-2xl p-3 text-left transition-all duration-300 ${
+                    viewMode === 'sections'
+                      ? 'bg-white border-2 border-blue-900 shadow-2xl'
+                      : 'bg-white/95 border border-white/20 hover:border-white/40 hover:bg-white'
+                  }`}
+                  style={{ fontFamily: 'Poppins' }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
                           viewMode === 'sections'
-                            ? 'text-blue-900'
-                            : 'text-gray-900'
+                            ? 'bg-gradient-to-br from-blue-900 to-blue-700 text-white'
+                            : 'bg-blue-50 text-blue-900'
                         }`}
-                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                       >
-                        Sections
-                      </h3>
-                      <p
-                        className="text-sm text-gray-600"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
-                        Manage class sections and rankings
-                      </p>
+                        <Users size={24} weight="duotone" />
+                      </div>
+                      <div>
+                        <p
+                          className={`text-base font-medium ${
+                            viewMode === 'sections'
+                              ? 'text-blue-900'
+                              : 'text-gray-900'
+                          }`}
+                        >
+                          Sections
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Manage class sections and rankings
+                        </p>
+                      </div>
+                    </div>
+                    <div
+                      className={`text-2xl font-semibold ${
+                        viewMode === 'sections'
+                          ? 'text-blue-900'
+                          : 'text-gray-400'
+                      }`}
+                    >
+                      {sections.length}
                     </div>
                   </div>
-                  <div
-                    className={`text-3xl font-bold ${
-                      viewMode === 'sections'
-                        ? 'text-blue-900'
-                        : 'text-gray-400'
-                    }`}
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    {sections.length}
-                  </div>
-                </div>
+                </button>
               </div>
             </div>
-          </div>
-
-          {/* Active View Indicator */}
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-blue-900 rounded-full"></div>
-              <span
-                className="text-sm font-medium text-gray-900"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Currently viewing:{' '}
-                {viewMode === 'grades' ? 'Grade Levels' : 'Sections'}
-              </span>
-            </div>
-            <div className="flex-1 border-t border-gray-200"></div>
           </div>
         </div>
 
@@ -892,6 +862,7 @@ export default function GradeSectionManagement({
             searchQuery={gradeSearchQuery}
             onSearchChange={setGradeSearchQuery}
             totalGradesCount={grades.length}
+            totalJuniorHighCount={totalJuniorHighGrades}
             selectedDepartments={selectedDepartments}
             onDepartmentToggle={handleDepartmentToggle}
           />

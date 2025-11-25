@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import Print from '@/components/print'
 import { toast } from 'react-toastify'
+import { useAuth } from '@/lib/auth-context'
 import {
   GraduationCap,
   BookOpen,
@@ -15,19 +17,25 @@ import {
   FloppyDisk,
   XCircle,
   NotePencil,
+  PlusCircle,
 } from '@phosphor-icons/react'
-
-type SpecialStatus = 'INC' | 'FA' | 'FW' | 'W' | null
-
-type SubjectGrade = {
-  subjectName: string
-  subjectCode?: string
-  period1: number | null
-  period2: number | null
-  period3: number | null
-  period4: number | null
-  specialStatus?: SpecialStatus
-}
+import TransfereeRecordModal from '@/components/grades/TransfereeRecordModal'
+import { SCHOOL_NAME_FORMAL } from '@/lib/constants'
+import {
+  METADATA_FIELDS,
+  SPECIAL_STATUSES,
+  SpecialStatus,
+  SubjectGrade,
+  calculateAverage,
+  convertToNumericMode,
+  convertNumericToPercentage,
+  getDescriptiveMode,
+  getGradeStatus,
+  getIndividualGradeStatus,
+  getStatusLabel,
+  isValidSpecialStatus,
+  toNumberOrNull,
+} from '@/lib/grades-utils'
 
 type GradesDocument = Record<string, SubjectGrade | any>
 
@@ -40,161 +48,13 @@ type GradesPeriod = {
 type RegistrarGradesTabProps = {
   studentId: string
   studentName?: string
+  studentNumber?: string
 }
 
 type EditableGrade = SubjectGrade & {
   subjectId: string
   subjectCode?: string
-}
-
-const METADATA_FIELDS = new Set([
-  'studentName',
-  'studentSection',
-  'studentLevel',
-  'studentSemester',
-  'createdAt',
-  'updatedAt',
-])
-
-const SPECIAL_STATUSES: Exclude<SpecialStatus, null>[] = [
-  'INC',
-  'FA',
-  'FW',
-  'W',
-]
-
-const isValidSpecialStatus = (
-  value: unknown
-): value is Exclude<SpecialStatus, null> =>
-  typeof value === 'string' &&
-  SPECIAL_STATUSES.includes(value as Exclude<SpecialStatus, null>)
-
-const toNumberOrNull = (value: unknown): number | null => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-
-  return null
-}
-
-const calculateAverage = (
-  grades: SubjectGrade,
-  isCollege: boolean = false,
-  isSHS: boolean = false
-): number | null => {
-  // If there's a special status, don't calculate average
-  if (grades.specialStatus) return null
-
-  let validGrades: number[]
-
-  if (isCollege) {
-    // College: only use period1 (Prelim), period2 (Midterm), period3 (Finals)
-    validGrades = [grades.period1, grades.period2, grades.period3].filter(
-      (grade) => grade !== null && grade !== undefined
-    ) as number[]
-  } else {
-    // High School (JHS and SHS): use all 4 periods (quarters)
-    validGrades = [
-      grades.period1,
-      grades.period2,
-      grades.period3,
-      grades.period4,
-    ].filter((grade) => grade !== null && grade !== undefined) as number[]
-  }
-
-  if (validGrades.length === 0) return null
-
-  const sum = validGrades.reduce((acc, grade) => acc + grade, 0)
-  return Math.round((sum / validGrades.length) * 100) / 100
-}
-
-const convertToNumericMode = (percentage: number | null): number | null => {
-  if (percentage === null || percentage === undefined || percentage === 0)
-    return null
-
-  if (percentage >= 98) return 1.0
-  if (percentage >= 95) return 1.25
-  if (percentage >= 92) return 1.5
-  if (percentage >= 89) return 1.75
-  if (percentage >= 86) return 2.0
-  if (percentage >= 83) return 2.25
-  if (percentage >= 80) return 2.5
-  if (percentage >= 77) return 2.75
-  if (percentage >= 75) return 3.0
-  return 5.0 // 74 and below
-}
-
-const getDescriptiveMode = (percentage: number | null): string => {
-  if (percentage === null || percentage === undefined || percentage === 0)
-    return 'Incomplete'
-
-  if (percentage >= 98) return 'Excellent'
-  if (percentage >= 92) return 'Superior'
-  if (percentage >= 86) return 'Very Good'
-  if (percentage >= 83) return 'Good'
-  if (percentage >= 80) return 'Fair'
-  if (percentage >= 75) return 'Passed'
-  return 'Failed'
-}
-
-const getGradeStatus = (average: number): { status: string; color: string } => {
-  if (average === 0) return { status: 'No Grades', color: 'text-gray-800' }
-  if (average >= 98) return { status: 'Excellent', color: 'text-green-800' }
-  if (average >= 92) return { status: 'Superior', color: 'text-green-800' }
-  if (average >= 86) return { status: 'Very Good', color: 'text-blue-900' }
-  if (average >= 83) return { status: 'Good', color: 'text-yellow-800' }
-  if (average >= 80) return { status: 'Fair', color: 'text-yellow-800' }
-  if (average >= 75) return { status: 'Passed', color: 'text-orange-800' }
-  return { status: 'Failed', color: 'text-red-800' }
-}
-
-const getIndividualGradeStatus = (
-  grade: number | null
-): { status: string; color: string; bgColor: string } => {
-  if (grade === null || grade === undefined || grade === 0)
-    return { status: '', color: 'text-gray-700', bgColor: 'bg-gray-600' }
-  if (grade >= 98)
-    return {
-      status: 'Excellent',
-      color: 'text-green-800',
-      bgColor: 'bg-green-700',
-    }
-  if (grade >= 92)
-    return {
-      status: 'Superior',
-      color: 'text-green-700',
-      bgColor: 'bg-green-600',
-    }
-  if (grade >= 86)
-    return {
-      status: 'Very Good',
-      color: 'text-blue-900',
-      bgColor: 'bg-blue-900',
-    }
-  if (grade >= 83)
-    return {
-      status: 'Good',
-      color: 'text-yellow-800',
-      bgColor: 'bg-yellow-700',
-    }
-  if (grade >= 80)
-    return {
-      status: 'Fair',
-      color: 'text-yellow-700',
-      bgColor: 'bg-yellow-600',
-    }
-  if (grade >= 75)
-    return {
-      status: 'Passed',
-      color: 'text-orange-800',
-      bgColor: 'bg-orange-700',
-    }
-  return { status: 'Failed', color: 'text-red-800', bgColor: 'bg-red-800' }
+  collegeAverage?: number | null
 }
 
 const normalizeSubjectEntry = (
@@ -248,27 +108,17 @@ const normalizeSubjectEntry = (
     normalized.specialStatus = null
   }
 
-  return normalized
-}
+  normalized.collegeAverage = convertToNumericMode(
+    typeof normalized.period1 === 'number' ? normalized.period1 : null
+  )
 
-const getStatusLabel = (status: Exclude<SpecialStatus, null>) => {
-  switch (status) {
-    case 'INC':
-      return 'Incomplete'
-    case 'FA':
-      return 'Failed (Absent)'
-    case 'FW':
-      return 'Failed (Withdrawn)'
-    case 'W':
-      return 'Withdrawn'
-    default:
-      return status
-  }
+  return normalized
 }
 
 const RegistrarGradesTab = ({
   studentId,
   studentName,
+  studentNumber,
 }: RegistrarGradesTabProps) => {
   const [loading, setLoading] = useState(true)
   const [periods, setPeriods] = useState<GradesPeriod[]>([])
@@ -287,6 +137,11 @@ const RegistrarGradesTab = ({
   const [subjectInfoById, setSubjectInfoById] = useState<
     Record<string, { name: string; code?: string; color?: string }>
   >({})
+  const [showTransfereeModal, setShowTransfereeModal] = useState(false)
+  const [showTranscriptPrint, setShowTranscriptPrint] = useState(false)
+  const [studentProfileId, setStudentProfileId] = useState<string | null>(null)
+  const [registrarName, setRegistrarName] = useState<string>('Registrar')
+  const { user } = useAuth()
   const pendingSubjectRequests = useRef<Set<string>>(new Set())
 
   const loadSubjectInfo = useCallback(
@@ -369,31 +224,113 @@ const RegistrarGradesTab = ({
     [subjectInfoById]
   )
 
-  const refetchAcademicYear = async (ayCode: string) => {
-    try {
-      const response = await fetch(
-        `/api/students/${studentId}/grades?ayCode=${encodeURIComponent(
-          ayCode
-        )}&includeMetadata=true`
-      )
-      if (!response.ok) {
-        throw new Error('Failed to refresh grades')
+  const refetchAcademicYear = useCallback(
+    async (ayCode: string) => {
+      try {
+        const response = await fetch(
+          `/api/students/${studentId}/grades?ayCode=${encodeURIComponent(
+            ayCode
+          )}&includeMetadata=true`
+        )
+        if (!response.ok) {
+          throw new Error('Failed to refresh grades')
+        }
+
+        const data = await response.json()
+        setGradesByAy((prev) => ({
+          ...prev,
+          [ayCode]: data.grades || {},
+        }))
+        setMetadataByAy((prev) => ({
+          ...prev,
+          [ayCode]: data.metadata || {},
+        }))
+      } catch (error) {
+        console.error(`Failed to refresh grades for ${ayCode}:`, error)
+        toast.error(`Unable to refresh grades for ${ayCode}.`)
+      }
+    },
+    [studentId]
+  )
+
+  const handleTransfereeRecordSaved = useCallback(
+    async (newAyCode: string) => {
+      await refetchAcademicYear(newAyCode)
+      setPeriods((prev) => {
+        if (prev.some((period) => period.ayCode === newAyCode)) {
+          return prev
+        }
+        const updated = [
+          ...prev,
+          { id: newAyCode, label: newAyCode, ayCode: newAyCode },
+        ]
+        updated.sort((a, b) => (a.id < b.id ? 1 : -1))
+        return updated
+      })
+      setSelectedAy(newAyCode)
+      setShowTransfereeModal(false)
+    },
+    [refetchAcademicYear]
+  )
+
+  useEffect(() => {
+    const loadStudentProfile = async () => {
+      try {
+        const response = await fetch(`/api/user/profile?uids=${studentId}`)
+        const data = await response.json()
+        if (
+          response.ok &&
+          data.success &&
+          data.users &&
+          data.users.length > 0
+        ) {
+          const user = data.users[0]
+          if (user && user.studentId) {
+            setStudentProfileId(user.studentId)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load student profile:', error)
+      }
+    }
+    void loadStudentProfile()
+  }, [studentId])
+
+  useEffect(() => {
+    const loadRegistrarName = async () => {
+      if (!user) {
+        return
       }
 
-      const data = await response.json()
-      setGradesByAy((prev) => ({
-        ...prev,
-        [ayCode]: data.grades || {},
-      }))
-      setMetadataByAy((prev) => ({
-        ...prev,
-        [ayCode]: data.metadata || {},
-      }))
-    } catch (error) {
-      console.error(`Failed to refresh grades for ${ayCode}:`, error)
-      toast.error(`Unable to refresh grades for ${ayCode}.`)
+      try {
+        const response = await fetch('/api/registrar/check-role', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.registrar) {
+            const fullName = `${data.registrar.firstName || ''} ${
+              data.registrar.lastName || ''
+            }`.trim()
+            if (fullName) {
+              setRegistrarName(fullName)
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error loading registrar name:', err)
+      }
     }
-  }
+    void loadRegistrarName()
+  }, [user])
 
   useEffect(() => {
     let isMounted = true
@@ -562,7 +499,7 @@ const RegistrarGradesTab = ({
   const handleGradeChange = (
     ayCode: string,
     subjectId: string,
-    period: keyof SubjectGrade,
+    period: keyof SubjectGrade | 'collegeAverage',
     value: string
   ) => {
     if (editingAy !== ayCode) return
@@ -606,7 +543,20 @@ const RegistrarGradesTab = ({
 
       const parsedValue = value === '' ? null : Number(value)
 
-      currentSubject[period] = Number.isNaN(parsedValue) ? null : parsedValue
+      if (period === 'collegeAverage' && isCollegeDoc(ayCode)) {
+        const numericGrade =
+          parsedValue === null || Number.isNaN(parsedValue) ? null : parsedValue
+        const percentValue = convertNumericToPercentage(numericGrade)
+
+        currentSubject.period1 = percentValue
+        currentSubject.period2 = percentValue
+        currentSubject.period3 = percentValue
+        currentSubject.collegeAverage = numericGrade
+      } else {
+        currentSubject[period as keyof SubjectGrade] = Number.isNaN(parsedValue)
+          ? null
+          : parsedValue
+      }
       currentAy[subjectId] = currentSubject
 
       return {
@@ -829,6 +779,19 @@ const RegistrarGradesTab = ({
     return null
   }
 
+  const formatSemesterLabel = (semester?: string | null): string | null => {
+    if (!semester) return null
+    if (semester === 'first-sem') return 'First Semester'
+    if (semester === 'second-sem') return 'Second Semester'
+    return semester
+  }
+
+  const extractAyCode = (documentId: string): string => {
+    // Extract AY code from document ID (e.g., "AY2526" from "AY2526_first_semester_BSIT_2")
+    const match = documentId.match(/^(AY\d{4})/)
+    return match ? match[1] : documentId
+  }
+
   const sortedPeriods = useMemo(() => {
     return [...periods].sort((a, b) => (a.id < b.id ? 1 : -1))
   }, [periods])
@@ -861,6 +824,176 @@ const RegistrarGradesTab = ({
 
     return ayCode
   }
+
+  const transcriptSections = useMemo(() => {
+    return sortedPeriods.map((period) => {
+      const ayCode = period.ayCode
+      const metadata = metadataByAy[ayCode] || {}
+      const source =
+        editingAy === ayCode ? editedGrades[ayCode] : gradesByAy[ayCode]
+      const docIsCollege = isCollegeDoc(ayCode)
+      const docIsSHS = isSHSDoc(ayCode)
+
+      const rows: {
+        subjectId: string
+        code: string
+        name: string
+        average: string
+        remarks: string
+      }[] = []
+
+      if (source) {
+        Object.entries(source).forEach(([subjectId, value]) => {
+          if (METADATA_FIELDS.has(subjectId)) {
+            return
+          }
+
+          const normalized = normalizeSubjectEntry(
+            subjectId,
+            value,
+            subjectInfoById[subjectId]
+          )
+
+          if (!normalized) {
+            return
+          }
+
+          const average = calculateAverage(normalized, docIsCollege, docIsSHS)
+          const currentStatus = (normalized.specialStatus ??
+            null) as SpecialStatus
+          const remarks = currentStatus
+            ? getStatusLabel(currentStatus as Exclude<SpecialStatus, null>)
+            : average !== null
+            ? getDescriptiveMode(average)
+            : ''
+
+          const numericAverage =
+            docIsCollege && average !== null
+              ? convertToNumericMode(average)
+              : null
+
+          const formattedAverage =
+            average !== null
+              ? docIsCollege
+                ? numericAverage !== null
+                  ? numericAverage.toFixed(2)
+                  : average.toFixed(2)
+                : `${average.toFixed(2)}%`
+              : ''
+
+          rows.push({
+            subjectId,
+            code:
+              normalized.subjectCode && normalized.subjectCode.trim() !== ''
+                ? normalized.subjectCode
+                : subjectInfoById[subjectId]?.code || '—',
+            name: normalized.subjectName || 'Unknown Subject',
+            average: formattedAverage,
+            remarks,
+          })
+        })
+      }
+
+      return {
+        ayCode,
+        label:
+          (metadata?.ayDisplayLabel as string | undefined) ||
+          (metadata?.studentLevel as string | undefined) ||
+          ayCode,
+        semester: (metadata?.studentSemester as string | undefined) || '',
+        section: (metadata?.studentSection as string | undefined) || '',
+        rows,
+      }
+    })
+  }, [
+    sortedPeriods,
+    metadataByAy,
+    editingAy,
+    editedGrades,
+    gradesByAy,
+    subjectInfoById,
+  ])
+
+  const transcriptHasData = useMemo(
+    () => transcriptSections.some((section) => section.rows.length > 0),
+    [transcriptSections]
+  )
+
+  const populatedTranscriptSections = useMemo(() => {
+    const filtered = transcriptSections.filter(
+      (section) => section.rows.length > 0
+    )
+
+    return filtered.sort((a, b) => {
+      // Extract year level from label (e.g., "BSIT 1" -> 1, "BSIT 2" -> 2, "Grade 7" -> 7)
+      const extractYearLevel = (label: string): number => {
+        // Try to find a number after common prefixes
+        const patterns = [
+          /(?:BSIT|BS|BSCS|BSBA|BSED|BSE|BSN|BSA)\s+(\d+)/i, // College: "BSIT 1" -> 1
+          /Grade\s+(\d+)/i, // High school: "Grade 7" -> 7
+          /(\d+)/, // Fallback: any number
+        ]
+
+        for (const pattern of patterns) {
+          const match = label.match(pattern)
+          if (match && match[1]) {
+            return parseInt(match[1], 10)
+          }
+        }
+        return 0
+      }
+
+      const yearLevelA = extractYearLevel(a.label)
+      const yearLevelB = extractYearLevel(b.label)
+
+      // First sort by year level
+      if (yearLevelA !== yearLevelB) {
+        return yearLevelA - yearLevelB
+      }
+
+      // Then sort by semester (first-sem before second-sem)
+      const semesterOrder = (sem: string): number => {
+        if (sem === 'first-sem') return 1
+        if (sem === 'second-sem') return 2
+        return 0
+      }
+
+      return semesterOrder(a.semester) - semesterOrder(b.semester)
+    })
+  }, [transcriptSections])
+
+  const metadataStudentId = useMemo(() => {
+    for (const meta of Object.values(metadataByAy)) {
+      if (
+        meta &&
+        typeof meta.studentOfficialId === 'string' &&
+        meta.studentOfficialId.trim() !== ''
+      ) {
+        return meta.studentOfficialId.trim()
+      }
+      if (
+        meta &&
+        typeof meta.studentId === 'string' &&
+        meta.studentId.trim() !== ''
+      ) {
+        return meta.studentId.trim()
+      }
+    }
+    return null
+  }, [metadataByAy])
+
+  const displayStudentId = useMemo(() => {
+    if (studentProfileId && studentProfileId.trim() !== '') {
+      return studentProfileId.trim()
+    }
+    if (studentNumber && studentNumber.trim() !== '') {
+      return studentNumber.trim()
+    }
+    if (metadataStudentId) {
+      return metadataStudentId
+    }
+    return studentId
+  }, [studentProfileId, studentNumber, metadataStudentId, studentId])
 
   if (loading) {
     return (
@@ -908,6 +1041,50 @@ const RegistrarGradesTab = ({
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p
+            className="text-xs text-gray-600"
+            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+          >
+            Need to encode a transferee&apos;s historical record? Create a
+            custom academic year document.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTranscriptPrint(true)}
+            disabled={!transcriptHasData}
+            className={`rounded-md border-blue-900 text-blue-900 hover:bg-blue-50 ${
+              !transcriptHasData ? 'opacity-60 cursor-not-allowed' : ''
+            }`}
+          >
+            <div
+              className="flex items-center gap-2"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <FileText size={16} weight="bold" />
+              <span>Print Transcript</span>
+            </div>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTransfereeModal(true)}
+            className="border-blue-900 text-blue-900 hover:bg-blue-50 rounded-md"
+          >
+            <div
+              className="flex items-center gap-2"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <PlusCircle size={16} weight="bold" />
+              <span>Add Custom Record</span>
+            </div>
+          </Button>
+        </div>
+      </div>
       {sortedPeriods.length > 1 && (
         <div className="flex flex-wrap gap-2">
           {sortedPeriods.map((period) => {
@@ -1051,9 +1228,42 @@ const RegistrarGradesTab = ({
                 const docIsSHS = isSHSDoc(ayCode)
                 const shsSemester = getSHSSemester(ayCode)
 
+                const gradeColumns = docIsCollege
+                  ? [
+                      {
+                        key: 'collegeAverage' as const,
+                        label: 'Average',
+                      },
+                    ]
+                  : docIsSHS
+                  ? shsSemester === 'second-sem'
+                    ? [
+                        { key: 'period1' as const, label: 'Q3' },
+                        { key: 'period2' as const, label: 'Q4' },
+                      ]
+                    : [
+                        { key: 'period1' as const, label: 'Q1' },
+                        { key: 'period2' as const, label: 'Q2' },
+                      ]
+                  : [
+                      { key: 'period1' as const, label: 'Q1' },
+                      { key: 'period2' as const, label: 'Q2' },
+                      { key: 'period3' as const, label: 'Q3' },
+                      { key: 'period4' as const, label: 'Q4' },
+                    ]
+
                 return (
                   <div className="">
-                    <table className="w-full rounded-lg overflow-hidden">
+                    <table className="w-full rounded-lg overflow-hidden table-fixed">
+                      <colgroup>
+                        <col className="w-[32%]" />
+                        {gradeColumns.map((_, index) => (
+                          <col key={`grade-col-${index}`} className="w-[12%]" />
+                        ))}
+                        <col className="w-[12%]" />
+                        {docIsCollege && <col className="w-[10%]" />}
+                        <col className="w-[12%]" />
+                      </colgroup>
                       <thead className="bg-blue-900 border-b border-blue-900">
                         <tr>
                           <th className="p-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-900">
@@ -1066,98 +1276,21 @@ const RegistrarGradesTab = ({
                               Subject
                             </div>
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-900">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 bg-blue-900 flex items-center justify-center rounded-md">
-                                <div className="w-5 h-5 bg-white text-blue-900 flex items-center justify-center aspect-square rounded-md">
-                                  <Calculator size={12} weight="bold" />
-                                </div>
-                              </div>
-                              {docIsCollege
-                                ? 'Prelim'
-                                : docIsSHS && shsSemester === 'first-sem'
-                                ? 'Q1'
-                                : docIsSHS && shsSemester === 'second-sem'
-                                ? 'Q3'
-                                : 'Q1'}
-                            </div>
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-900">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 bg-blue-900 flex items-center justify-center rounded-md">
-                                <div className="w-5 h-5 bg-white text-blue-900 flex items-center justify-center aspect-square rounded-md">
-                                  <Calculator size={12} weight="bold" />
-                                </div>
-                              </div>
-                              {docIsCollege
-                                ? 'Midterm'
-                                : docIsSHS && shsSemester === 'first-sem'
-                                ? 'Q2'
-                                : docIsSHS && shsSemester === 'second-sem'
-                                ? 'Q4'
-                                : 'Q2'}
-                            </div>
-                          </th>
-                          {docIsCollege && (
-                            <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-900">
-                              <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-                                  <div className="w-5 h-5 bg-white text-blue-900 flex items-center justify-center aspect-square">
-                                    <Calculator size={12} weight="bold" />
-                                  </div>
-                                </div>
-                                Finals
-                              </div>
-                            </th>
-                          )}
-                          {docIsSHS && shsSemester === 'first-sem' && (
-                            <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-900">
+                          {gradeColumns.map((column) => (
+                            <th
+                              key={column.key}
+                              className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-900"
+                            >
                               <div className="flex items-center gap-2">
                                 <div className="w-5 h-5 bg-blue-900 flex items-center justify-center rounded-md">
                                   <div className="w-5 h-5 bg-white text-blue-900 flex items-center justify-center aspect-square rounded-md">
                                     <Calculator size={12} weight="bold" />
                                   </div>
                                 </div>
-                                Q2
+                                {column.label}
                               </div>
                             </th>
-                          )}
-                          {docIsSHS && shsSemester === 'second-sem' && (
-                            <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-900">
-                              <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 bg-blue-900 flex items-center justify-center rounded-md">
-                                  <div className="w-5 h-5 bg-white text-blue-900 flex items-center justify-center aspect-square rounded-md">
-                                    <Calculator size={12} weight="bold" />
-                                  </div>
-                                </div>
-                                Q4
-                              </div>
-                            </th>
-                          )}
-                          {!docIsCollege && !docIsSHS && (
-                            <>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-900">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-5 h-5 bg-blue-900 flex items-center justify-center">
-                                    <div className="w-5 h-5 bg-white text-blue-900 flex items-center justify-center aspect-square">
-                                      <Calculator size={12} weight="bold" />
-                                    </div>
-                                  </div>
-                                  Q3
-                                </div>
-                              </th>
-                              <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-900">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-5 h-5 bg-blue-900 flex items-center justify-center rounded-md">
-                                    <div className="w-5 h-5 bg-white text-blue-900 flex items-center justify-center aspect-square rounded-md">
-                                      <Calculator size={12} weight="bold" />
-                                    </div>
-                                  </div>
-                                  Q4
-                                </div>
-                              </th>
-                            </>
-                          )}
+                          ))}
                           <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-900">
                             <div className="flex items-center gap-2">
                               <div className="w-5 h-5 bg-blue-900 flex items-center justify-center rounded-md">
@@ -1240,13 +1373,20 @@ const RegistrarGradesTab = ({
                                         ?.color || 'Unknown color'
                                     }
                                   />
-                                  <div>
+                                  <div className="min-w-0">
                                     <div
-                                      className="text-sm font-medium text-gray-900"
+                                      className="text-sm font-medium text-gray-900 truncate"
                                       style={{
                                         fontFamily: 'Poppins',
                                         fontWeight: 400,
+                                        maxWidth: '30ch',
                                       }}
+                                      title={
+                                        subjectInfoById[subject.subjectId]
+                                          ?.name ||
+                                        subject.subjectName ||
+                                        'Unknown Subject'
+                                      }
                                     >
                                       {subjectInfoById[subject.subjectId]
                                         ?.name ||
@@ -1271,25 +1411,21 @@ const RegistrarGradesTab = ({
                                 </div>
                               </td>
                               {(docIsCollege
-                                ? ([
-                                    'period1',
-                                    'period2',
-                                    'period3',
-                                  ] as (keyof SubjectGrade)[])
-                                : docIsSHS
-                                ? ([
-                                    'period1',
-                                    'period2',
-                                  ] as (keyof SubjectGrade)[])
-                                : ([
-                                    'period1',
-                                    'period2',
-                                    'period3',
-                                  ] as (keyof SubjectGrade)[])
+                                ? gradeColumns.map((column) => column.key)
+                                : gradeColumns.map((column) => column.key)
                               ).map((periodKey) => {
-                                const gradeValue = currentData?.[periodKey] as
-                                  | number
-                                  | null
+                                const gradeValue = docIsCollege
+                                  ? (currentData?.period1 as number | null)
+                                  : (currentData?.[
+                                      periodKey as keyof SubjectGrade
+                                    ] as number | null) ?? null
+                                const collegeNumericValue = docIsCollege
+                                  ? convertToNumericMode(
+                                      typeof currentData?.period1 === 'number'
+                                        ? currentData?.period1
+                                        : null
+                                    )
+                                  : null
                                 const gradeStatus =
                                   getIndividualGradeStatus(gradeValue)
                                 return (
@@ -1300,20 +1436,26 @@ const RegistrarGradesTab = ({
                                     <div className="flex flex-col items-center gap-1">
                                       <input
                                         type="number"
-                                        min="0"
-                                        max="100"
-                                        step="0.1"
+                                        min={docIsCollege ? 1 : 0}
+                                        max={docIsCollege ? 5 : 100}
+                                        step={docIsCollege ? 0.25 : 0.1}
                                         value={
-                                          (currentData?.[periodKey] ?? '') as
-                                            | number
-                                            | ''
+                                          docIsCollege
+                                            ? ((collegeNumericValue ?? '') as
+                                                | number
+                                                | '')
+                                            : ((currentData?.[
+                                                periodKey as keyof SubjectGrade
+                                              ] ?? '') as number | '')
                                         }
                                         disabled={!isEditing}
                                         onChange={(event) =>
                                           handleGradeChange(
                                             ayCode,
                                             subject.subjectId,
-                                            periodKey,
+                                            docIsCollege
+                                              ? 'collegeAverage'
+                                              : (periodKey as keyof SubjectGrade),
                                             event.target.value
                                           )
                                         }
@@ -1322,12 +1464,17 @@ const RegistrarGradesTab = ({
                                             ? 'border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
                                             : 'border-transparent bg-gray-100 cursor-not-allowed'
                                         }`}
-                                        placeholder="0-100"
+                                        placeholder={
+                                          docIsCollege
+                                            ? 'Average (1.0–5.0)'
+                                            : '0-100'
+                                        }
                                         style={{
                                           fontFamily: 'Poppins',
                                           fontWeight: 400,
                                         }}
                                       />
+
                                       {gradeValue && gradeValue > 0 && (
                                         <div className="flex items-center justify-center gap-1">
                                           <div
@@ -1348,67 +1495,6 @@ const RegistrarGradesTab = ({
                                   </td>
                                 )
                               })}
-                              {!docIsCollege &&
-                                !docIsSHS &&
-                                (() => {
-                                  const gradeValue = currentData?.period4 as
-                                    | number
-                                    | null
-                                  const gradeStatus =
-                                    getIndividualGradeStatus(gradeValue)
-                                  return (
-                                    <td className="p-3 whitespace-nowrap border-r border-gray-200 bg-white">
-                                      <div className="flex flex-col items-center gap-1">
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          max="100"
-                                          step="0.1"
-                                          value={
-                                            (currentData?.period4 ?? '') as
-                                              | number
-                                              | ''
-                                          }
-                                          disabled={!isEditing}
-                                          onChange={(event) =>
-                                            handleGradeChange(
-                                              ayCode,
-                                              subject.subjectId,
-                                              'period4',
-                                              event.target.value
-                                            )
-                                          }
-                                          className={`w-full px-2 py-1 text-xs border rounded-md ${
-                                            isEditing
-                                              ? 'border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
-                                              : 'border-transparent bg-gray-100 cursor-not-allowed'
-                                          }`}
-                                          placeholder="0-100"
-                                          style={{
-                                            fontFamily: 'Poppins',
-                                            fontWeight: 400,
-                                          }}
-                                        />
-                                        {gradeValue && gradeValue > 0 && (
-                                          <div className="flex items-center justify-center gap-1">
-                                            <div
-                                              className={`w-3 h-3 ${gradeStatus.bgColor} rounded-md`}
-                                            />
-                                            <div
-                                              className={`text-xs font-medium ${gradeStatus.color}`}
-                                              style={{
-                                                fontFamily: 'Poppins',
-                                                fontWeight: 400,
-                                              }}
-                                            >
-                                              {gradeStatus.status}
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </td>
-                                  )
-                                })()}
 
                               {/* Average Column */}
                               <td className="p-3 whitespace-nowrap border-r border-gray-200">
@@ -1548,6 +1634,199 @@ const RegistrarGradesTab = ({
         Changes are saved per academic year. Use the Edit button on the desired
         academic year to modify grades.
       </p>
+
+      <TransfereeRecordModal
+        isOpen={showTransfereeModal}
+        onClose={() => setShowTransfereeModal(false)}
+        studentId={studentId}
+        studentName={studentName}
+        existingAyCodes={periods.map((period) => period.ayCode)}
+        onSuccess={handleTransfereeRecordSaved}
+      />
+      {showTranscriptPrint && (
+        <Print
+          onClose={() => setShowTranscriptPrint(false)}
+          title={`Transcript - ${studentName || displayStudentId}`}
+        >
+          <div className="print-document space-y-6">
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="print-header border-b border-gray-200 pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <img
+                      src="/logo.png"
+                      alt="Marian College Logo"
+                      className="w-16 h-16 object-contain"
+                    />
+                    <div>
+                      <h1
+                        className="text-xl text-gray-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        {SCHOOL_NAME_FORMAL}
+                      </h1>
+                      <p
+                        className="text-xs text-gray-600"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        908 Gil Carlos St. San Jose, Baliwag, Bulacan
+                      </p>
+                      <p
+                        className="text-xs text-gray-600"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        Registrar&apos;s Office
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p
+                      className="text-sm text-gray-900"
+                      style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                    >
+                      Student Transcript
+                    </p>
+                    <p
+                      className="text-xs text-gray-600"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      Generated:{' '}
+                      {new Date().toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <table className="mt-4 w-full table-fixed border border-gray-200">
+                <tbody>
+                  <tr className="text-sm text-gray-900">
+                    <td className="w-1/2 border-r border-gray-200 px-4 py-3 font-semibold">
+                      {studentName || 'N/A'}
+                    </td>
+                    <td className="px-4 py-3 text-right">{displayStudentId}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {transcriptHasData ? (
+              populatedTranscriptSections.map((section) => {
+                const semesterLabel = formatSemesterLabel(section.semester)
+                const levelText = section.label || 'Unknown Level'
+                const ayCodeOnly = extractAyCode(section.ayCode)
+                const headerText = semesterLabel
+                  ? `${levelText} ${semesterLabel}`
+                  : levelText
+                return (
+                  <div
+                    key={section.ayCode}
+                    className="print-section rounded-lg border border-gray-200 bg-white p-5"
+                  >
+                    <div className="mb-4">
+                      <p
+                        className="text-base font-semibold text-gray-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        {headerText}
+                      </p>
+                      <p
+                        className="text-sm text-gray-600 mt-1"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      >
+                        {ayCodeOnly}
+                      </p>
+                    </div>
+                    <div className="overflow-hidden rounded-lg border border-gray-200">
+                      <table className="min-w-full table-fixed text-sm">
+                        <thead className="bg-gray-50 text-left text-[13px] font-semibold text-gray-600">
+                          <tr>
+                            <th className="border-b border-gray-200 px-4 py-2">
+                              Code
+                            </th>
+                            <th className="border-b border-gray-200 px-4 py-2">
+                              Subject Name
+                            </th>
+                            <th className="border-b border-gray-200 px-4 py-2 text-center">
+                              Average
+                            </th>
+                            <th className="border-b border-gray-200 px-4 py-2">
+                              Remarks
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 bg-white">
+                          {section.rows.map((row) => (
+                            <tr key={`${section.ayCode}-${row.subjectId}`}>
+                              <td className="px-4 py-2 align-top font-semibold text-gray-800">
+                                {row.code}
+                              </td>
+                              <td className="px-4 py-2 align-top text-gray-800">
+                                {row.name}
+                              </td>
+                              <td className="px-4 py-2 text-center align-top text-gray-900">
+                                {row.average}
+                              </td>
+                              <td className="px-4 py-2 align-top text-gray-800">
+                                {row.remarks}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="print-section">
+                <p
+                  className="text-sm text-gray-600"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                >
+                  No transcript data available for this student.
+                </p>
+              </div>
+            )}
+
+            <div className="print-section mt-8">
+              <div className="flex justify-between items-start pt-4">
+                <div>
+                  <p
+                    className="text-xs text-gray-600"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Generated on{' '}
+                    {new Date().toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </p>
+                </div>
+                <div className="text-right w-48">
+                  <div className="border-t border-black mb-2"></div>
+                  <p
+                    className="text-xs text-gray-900 font-medium"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
+                    {registrarName}
+                  </p>
+                  <p
+                    className="text-xs text-gray-600"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Marian College of Baliuag
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Print>
+      )}
     </div>
   )
 }

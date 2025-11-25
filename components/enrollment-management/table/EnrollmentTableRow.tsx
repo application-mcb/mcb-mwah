@@ -9,6 +9,7 @@ import {
   Trash,
   Sparkle,
   Gear,
+  Notebook,
 } from '@phosphor-icons/react'
 import StatusBadge from './StatusBadge'
 import SubmittedAtCell from './SubmittedAtCell'
@@ -23,6 +24,7 @@ const EnrollmentTableRow = React.memo(
     onQuickEnroll,
     onPrint,
     onDelete,
+    onManualEnroll,
     onOpenAIChat,
     enrollingStudent,
     getEnrollmentDisplayInfo,
@@ -131,6 +133,7 @@ const EnrollmentTableRow = React.memo(
               className="rounded-lg bg-blue-900 hover:bg-blue-800 flex items-center gap-2"
               disabled={enrollingStudent}
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              aria-label="Open enrollment settings"
             >
               <Gear size={16} weight="fill" className="text-white" />
               <span className="text-xs text-white">Settings</span>
@@ -146,6 +149,18 @@ const EnrollmentTableRow = React.memo(
                     <Eye size={14} />
                     View
                   </button>
+                  {enrollment.enrollmentInfo?.status !== 'enrolled' && (
+                    <button
+                      onClick={() =>
+                        handleMenuAction(() => onManualEnroll(enrollment))
+                      }
+                      className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2"
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    >
+                      <Notebook size={14} />
+                      Manual Enrollment
+                    </button>
+                  )}
                   <button
                     onClick={() =>
                       handleMenuAction(() => onOpenAIChat(enrollment))

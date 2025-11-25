@@ -373,7 +373,11 @@ export const GradeEnrolledList: React.FC<GradeEnrolledListProps> = ({
               </thead>
               <tbody>
                 {enrolledStudents.map((student, index) => (
-                  <tr key={student.userId || index}>
+                  <tr
+                    key={`${student.userId || 'unknown'}-${
+                      student.studentSection || 'unassigned'
+                    }-${index}`}
+                  >
                     <td
                       style={{
                         fontFamily: 'monospace',

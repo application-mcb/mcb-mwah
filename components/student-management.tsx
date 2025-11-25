@@ -833,8 +833,8 @@ export default function StudentManagement({
             }
           )
 
-          // Refresh to update stats
-          await refreshStudents()
+          // Refresh enrollments to update section assignment and counts
+          await fetchEnrolledStudents()
         } else {
           toast.error(
             data.error || 'Failed to assign section. Please try again.',
@@ -864,8 +864,8 @@ export default function StudentManagement({
             autoClose: 3000,
           })
 
-          // Refresh to update stats
-          await refreshStudents()
+          // Refresh enrollments to update section assignment and counts
+          await fetchEnrolledStudents()
         } else {
           toast.error(
             data.error || 'Failed to unassign section. Please try again.',
@@ -1379,12 +1379,6 @@ export default function StudentManagement({
   const getCourseColor = (courseCode: string): string => {
     // Find the course that matches the course code
     const courseData = courses.find((c) => c.code === courseCode)
-    console.log(
-      'CONSOLE :: Looking for course color for code:',
-      courseCode,
-      'Found:',
-      courseData
-    )
 
     const color = courseData ? courseData.color : 'blue-900'
     console.log('CONSOLE:: Course', courseCode, 'color:', color)
@@ -1504,6 +1498,7 @@ export default function StudentManagement({
       <StudentsTable
         showTableSkeleton={showTableSkeleton}
         paginatedEnrollments={paginatedEnrollments}
+        allEnrollments={filteredAndSortedEnrollments}
         searchQuery={searchQuery}
         studentProfiles={studentProfiles}
         loadingImages={loadingImages}

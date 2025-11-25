@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Modal } from '@/components/ui/modal'
-import { User as UserIcon, GraduationCap as GraduationCapIcon, Gear, FileText as FileTextIcon } from '@phosphor-icons/react'
+import { User as UserIcon, FileText as FileTextIcon, Calculator } from '@phosphor-icons/react'
 
 interface Props {
   isOpen: boolean
@@ -93,22 +93,16 @@ const ViewEnrollmentModal: React.FC<Props> = ({
                           <UserIcon size={12} weight="fill" className={iconClass} />
                         </div>
                       )
-                    case 'subjects':
-                      return (
-                        <div className={`w-5 h-5 flex items-center justify-center ${bgClass}`}>
-                          <GraduationCapIcon size={12} weight="fill" className={iconClass} />
-                        </div>
-                      )
-                    case 'process':
-                      return (
-                        <div className={`w-5 h-5 flex items-center justify-center ${bgClass}`}>
-                          <Gear size={12} weight="fill" className={iconClass} />
-                        </div>
-                      )
                     case 'documents':
                       return (
                         <div className={`w-5 h-5 flex items-center justify-center ${bgClass}`}>
                           <FileTextIcon size={12} weight="fill" className={iconClass} />
+                        </div>
+                      )
+                    case 'grades':
+                      return (
+                        <div className={`w-5 h-5 flex items-center justify-center ${bgClass}`}>
+                          <Calculator size={12} weight="fill" className={iconClass} />
                         </div>
                       )
                     default:

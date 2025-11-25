@@ -84,7 +84,6 @@ export function closeViewModalUtil({
   setShowViewModal,
   setViewingEnrollment,
   setActiveTab,
-  setSelectedSubjectSets,
   setSelectedSubjects,
   setShowOtherSets,
   setShowRevokeModal,
@@ -101,7 +100,6 @@ export function closeViewModalUtil({
   setShowViewModal(false)
   setViewingEnrollment(null)
   setActiveTab('student-info')
-  setSelectedSubjectSets([])
   setSelectedSubjects([])
   setShowOtherSets(false)
   setShowRevokeModal(false)
@@ -115,5 +113,3 @@ export function closeViewModalUtil({
   setEnrollingStudent(false)
   setRevokingEnrollment(false)
 }
-
-

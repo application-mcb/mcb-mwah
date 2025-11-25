@@ -862,7 +862,6 @@ export function useEnrollmentState(
           'reportCard',
           'certificateOfGoodMoral',
           'birthCertificate',
-          'idPicture',
         ]
         const uploadedRequired = requiredTypes.filter((type) =>
           documents.some((doc: any) => doc.type === type)
@@ -877,7 +876,7 @@ export function useEnrollmentState(
       } else {
         setDocumentsStatus({
           uploaded: 0,
-          required: 4,
+          required: 3,
           isComplete: false,
           uploadedDocuments: [],
         })
@@ -886,7 +885,7 @@ export function useEnrollmentState(
       console.error('Error checking documents status:', error)
       setDocumentsStatus({
         uploaded: 0,
-        required: 4,
+        required: 3,
         isComplete: false,
         uploadedDocuments: [],
       })

@@ -60,17 +60,24 @@ const StudentCell: React.FC<Props> = ({
           ></span>
         </div>
         <div className="ml-4">
-          <div
-            className="text-xs font-medium text-gray-900"
-            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-          >
-            {formatFullName(
+          {(() => {
+            const rawFullName = formatFullName(
               enrollment.personalInfo?.firstName,
               enrollment.personalInfo?.middleName,
               enrollment.personalInfo?.lastName,
               enrollment.personalInfo?.nameExtension
-            )}
-          </div>
+            )
+            const formattedFullName =
+              rawFullName === 'N/A' ? rawFullName : rawFullName.toLowerCase()
+            return (
+              <div
+                className="text-xs font-medium text-gray-900 capitalize"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                {formattedFullName}
+              </div>
+            )
+          })()}
           <div className="text-xs text-gray-500 font-mono" style={{ fontWeight: 400 }}>
             {studentProfile?.email || enrollment.personalInfo?.email || 'N/A'}
           </div>

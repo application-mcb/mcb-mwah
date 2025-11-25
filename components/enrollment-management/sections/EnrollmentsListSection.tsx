@@ -17,6 +17,7 @@ interface Props {
   onDelete: (enrollment: any) => void
   onPrint: (enrollment: any) => void
   onOpenAIChat: (enrollment: any) => void
+  onManualEnroll: (enrollment: any) => void
   getEnrollmentDisplayInfo: any
   getBgColor: any
   getStatusHexColor: any
@@ -48,6 +49,7 @@ const EnrollmentsListSection: React.FC<Props> = (props) => {
         onDelete={props.onDelete}
         onPrint={props.onPrint}
         onOpenAIChat={props.onOpenAIChat}
+        onManualEnroll={props.onManualEnroll}
         getEnrollmentDisplayInfo={props.getEnrollmentDisplayInfo}
         getBgColor={props.getBgColor}
         getStatusHexColor={props.getStatusHexColor}

@@ -23,8 +23,8 @@ export default function AccountSetupProgress({
 
   // Calculate progress based on document uploads
   useEffect(() => {
-    // Base required documents (6 total)
-    const baseRequiredDocs = ['reportCard', 'certificateOfGoodMoral', 'birthCertificate', 'idPicture', 'form137', 'certificateOfCompletion'];
+    // Base required documents (4 total)
+    const baseRequiredDocs = ['reportCard', 'certificateOfGoodMoral', 'birthCertificate', 'certificateOfCompletion'];
 
     // Add marriage certificate if user is married
     const isMarried = userProfile?.civilStatus?.toLowerCase() === 'married';

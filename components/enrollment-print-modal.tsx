@@ -86,13 +86,6 @@ const EnrollmentPrintModal: React.FC<EnrollmentPrintModalProps> = ({
   subjectSets,
   registrarName,
 }) => {
-  console.log('EVIL JORDAN::  EnrollmentPrintModal opened with:', {
-    enrollmentId: enrollment?.id,
-    selectedSubjectsCount: selectedSubjects?.length,
-    subjectsCount: Object.keys(subjects || {}).length,
-    subjectSetsCount: Object.keys(subjectSets || {}).length,
-  })
-
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('')
   const [orNumber, setOrNumber] = useState<string>('')
   const [scholarship, setScholarship] = useState<string>('')

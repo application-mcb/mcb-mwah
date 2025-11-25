@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
 
     // Grade counts: { gradeId: count }
     const gradeCounts: Record<string, number> = {}
+    const gradeStudentSets: Record<string, Set<string>> = {}
 
     // Query enrollments collection for current AY
     const enrollmentsRef = collection(db, 'enrollments')
@@ -65,6 +66,7 @@ export async function GET(request: NextRequest) {
       enrollmentsChecked++
       const enrollmentData = enrollmentDoc.data()
       const enrollmentInfo = enrollmentData?.enrollmentData?.enrollmentInfo
+      const userId = enrollmentData?.enrollmentData?.userId
 
       // Get gradeId using utility function (handles both stored and derived)
       const gradeId = getOrDeriveGradeId(enrollmentInfo)
@@ -80,15 +82,24 @@ export async function GET(request: NextRequest) {
         continue
       }
 
-      enrollmentsWithGrade++
-
-      // Initialize count for this grade if not exists
-      if (!gradeCounts[gradeId]) {
-        gradeCounts[gradeId] = 0
+      if (!userId) {
+        continue
       }
 
-      // Increment count
-      gradeCounts[gradeId]++
+      enrollmentsWithGrade++
+
+      if (!gradeStudentSets[gradeId]) {
+        gradeStudentSets[gradeId] = new Set<string>()
+      }
+
+      const studentSet = gradeStudentSets[gradeId]
+
+      if (studentSet.has(userId)) {
+        continue
+      }
+
+      studentSet.add(userId)
+      gradeCounts[gradeId] = studentSet.size
     }
 
     console.log(

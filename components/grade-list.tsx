@@ -34,6 +34,7 @@ interface GradeListProps {
   searchQuery?: string
   onSearchChange?: (query: string) => void
   totalGradesCount?: number
+  totalJuniorHighCount?: number
   selectedDepartments?: string[]
   onDepartmentToggle?: (department: string) => void
 }
@@ -228,6 +229,7 @@ export default function GradeList({
   searchQuery = '',
   onSearchChange,
   totalGradesCount,
+  totalJuniorHighCount,
   selectedDepartments = [],
   onDepartmentToggle,
 }: GradeListProps) {
@@ -235,7 +237,7 @@ export default function GradeList({
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const itemsPerPage = 5
   // Filter dropdown state
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
   // Student count filter state
@@ -280,6 +282,20 @@ export default function GradeList({
     }
     return `Grade ${grade.gradeLevel}`
   }
+
+  const totalGradeLevels = totalGradesCount || grades.length
+
+  const juniorHighGradeCount = useMemo(() => {
+    if (typeof totalJuniorHighCount === 'number') {
+      return totalJuniorHighCount
+    }
+    return grades.reduce((count, grade) => {
+      if (grade.gradeLevel >= 7 && grade.gradeLevel <= 10) {
+        return count + 1
+      }
+      return count
+    }, 0)
+  }, [grades, totalJuniorHighCount])
 
   // Get all grades sorted (for table view)
   const sortedGrades = useMemo(() => {
@@ -512,9 +528,24 @@ export default function GradeList({
               className="text-sm text-white/80"
               style={{ fontFamily: 'Poppins', fontWeight: 300 }}
             >
-              Manage grade levels and their sections (
-              {totalGradesCount || grades.length} total)
+              Manage grade levels and their sections ({totalGradeLevels} total)
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <div className="flex items-center gap-2 rounded-lg border border-white/40 bg-white/10 px-3 py-1.5">
+                <span
+                  className="text-xs text-white/80 uppercase tracking-wide"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Junior HS (G7-G10)
+                </span>
+                <span
+                  className="text-sm text-white"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
+                  {juniorHighGradeCount}
+                </span>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {/* View Toggle Buttons */}
@@ -830,9 +861,9 @@ export default function GradeList({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <Users
-                            size={14}
-                            weight="bold"
+                          <Building
+                            size={16}
+                            weight="duotone"
                             className="text-blue-900"
                           />
                           <span
@@ -1053,7 +1084,7 @@ export default function GradeList({
                 {/* Sections Count and Created Date */}
                 <div className="flex items-center justify-between text-xs text-white/70 mb-4 border-t border-white/30 pt-3">
                   <div className="flex items-center space-x-1">
-                    <Users size={14} weight="duotone" />
+                    <Building size={14} weight="duotone" />
                     <span style={{ fontFamily: 'Poppins', fontWeight: 300 }}>
                       {sectionsCount[grade.id] || 0} sections
                     </span>

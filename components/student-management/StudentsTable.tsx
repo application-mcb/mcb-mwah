@@ -28,6 +28,7 @@ import SkeletonTable from './SkeletonTable'
 interface StudentsTableProps {
   showTableSkeleton: boolean
   paginatedEnrollments: (ExtendedEnrollmentData | null)[]
+  allEnrollments: ExtendedEnrollmentData[]
   searchQuery: string
   studentProfiles: Record<string, StudentProfile>
   loadingImages: Record<string, boolean>
@@ -137,6 +138,7 @@ const ActionMenu = ({
 export default function StudentsTable({
   showTableSkeleton,
   paginatedEnrollments,
+  allEnrollments,
   searchQuery,
   studentProfiles,
   loadingImages,
@@ -155,6 +157,17 @@ export default function StudentsTable({
   onPrintStudent,
   onOpenAIChat,
 }: StudentsTableProps) {
+  // Calculate section counts from all enrollments
+  const sectionCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {}
+    allEnrollments.forEach((enrollment) => {
+      const sectionId = enrollment.enrollmentInfo?.sectionId
+      if (sectionId) {
+        counts[sectionId] = (counts[sectionId] || 0) + 1
+      }
+    })
+    return counts
+  }, [allEnrollments])
   return (
     <Card className="overflow-hidden pt-0 mt-0 mb-0 pb-0 border border-gray-200 shadow-lg rounded-xl">
       {showTableSkeleton ? (
@@ -232,7 +245,9 @@ export default function StudentsTable({
                     </td>
                   </tr>
                   {/* Add empty rows to fill up to 8 */}
-                  {Array.from({ length: Math.max(0, paginatedEnrollments.length - 1) }).map((_, i) => (
+                  {Array.from({
+                    length: Math.max(0, paginatedEnrollments.length - 1),
+                  }).map((_, i) => (
                     <tr key={`empty-after-message-${i}`} className="h-16">
                       <td className="px-6 py-4 border-r border-gray-200"></td>
                       <td className="px-6 py-4 border-r border-gray-200"></td>
@@ -336,14 +351,23 @@ export default function StudentsTable({
                             )}
                           </div>
                           <div className="ml-4">
-                            <div className="text-xs font-medium text-gray-900">
-                              {formatFullName(
+                            {(() => {
+                              const rawFullName = formatFullName(
                                 enrollment.personalInfo?.firstName,
                                 enrollment.personalInfo?.middleName,
                                 enrollment.personalInfo?.lastName,
                                 enrollment.personalInfo?.nameExtension
-                              )}
-                            </div>
+                              )
+                              const formattedFullName =
+                                rawFullName === 'N/A'
+                                  ? rawFullName
+                                  : rawFullName.toLowerCase()
+                              return (
+                                <div className="text-xs font-medium text-gray-900 capitalize">
+                                  {formattedFullName}
+                                </div>
+                              )
+                            })()}
                             {enrollment.enrollmentInfo?.studentType && (
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 <div
@@ -455,11 +479,14 @@ export default function StudentsTable({
                                   }`}
                                 >
                                   <option value="">Select Section</option>
-                                  {gradeSections.map((section) => (
-                                    <option key={section.id} value={section.id}>
-                                      {section.sectionName} ({section.rank})
-                                    </option>
-                                  ))}
+                                  {gradeSections.map((section) => {
+                                    const studentCount = sectionCounts[section.id] || 0
+                                    return (
+                                      <option key={section.id} value={section.id}>
+                                        {section.sectionName} ({studentCount})
+                                      </option>
+                                    )
+                                  })}
                                 </select>
                                 {isAssigning && (
                                   <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75 rounded">
