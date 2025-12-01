@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Modal } from '@/components/ui/modal'
@@ -26,8 +27,11 @@ import {
   Circle,
   UserPlus,
   Lock,
+  X,
+  Printer,
 } from '@phosphor-icons/react'
 import TeacherAssignmentModal from './teacher-assignment-modal'
+import TeacherSchedulePrintModal from './teacher-schedule-print'
 
 const TeacherManagementSkeleton = () => {
   return (
@@ -49,13 +53,16 @@ const TeacherManagementSkeleton = () => {
         <div className="h-10 bg-gray-100 rounded-lg flex-1" />
         <div className="flex gap-2 w-full sm:w-auto">
           {[1, 2].map((chip) => (
-            <div key={`chip-${chip}`} className="h-9 w-20 rounded-lg bg-gray-100" />
+            <div
+              key={`chip-${chip}`}
+              className="h-9 w-20 rounded-lg bg-gray-100"
+            />
           ))}
         </div>
         <div className="h-4 w-48 rounded bg-gray-100" />
       </div>
 
-      <Card className="overflow-hidden border border-blue-100 rounded-xl shadow-sm">
+      <div className="border border-blue-100 rounded-xl shadow-sm">
         <div className="p-4 bg-gradient-to-br from-blue-900 to-blue-800 animate-pulse" />
         <div className="divide-y divide-blue-50">
           {[1, 2, 3, 4, 5].map((row) => (
@@ -72,7 +79,7 @@ const TeacherManagementSkeleton = () => {
             </div>
           ))}
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
@@ -94,6 +101,153 @@ interface Teacher {
   uid?: string // Firebase user ID
   status?: 'active' | 'inactive' // Account status
   permissions?: string[] // Allowed dashboard tabs/sections
+}
+
+// Teacher Action Menu Component
+interface TeacherActionMenuProps {
+  teacher: Teacher
+  loading: boolean
+  onEdit: () => void
+  onAssign: () => void
+  onShowAssignments: () => void
+  onPermissions: () => void
+  onPrintSchedule: () => void
+  onRemove: () => void
+}
+
+const TeacherActionMenu = ({
+  teacher,
+  loading,
+  onEdit,
+  onAssign,
+  onShowAssignments,
+  onPermissions,
+  onPrintSchedule,
+  onRemove,
+}: TeacherActionMenuProps) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 })
+  const menuRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        if (
+          buttonRef.current &&
+          !buttonRef.current.contains(event.target as Node)
+        ) {
+          setIsMenuOpen(false)
+        }
+      }
+    }
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      // Calculate position for dropdown
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect()
+        setMenuPosition({
+          top: rect.bottom + window.scrollY + 4,
+          right: window.innerWidth - rect.right - window.scrollX,
+        })
+      }
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMenuOpen])
+
+  const handleMenuAction = (action: () => void) => {
+    action()
+    setIsMenuOpen(false)
+  }
+
+  const dropdownContent = isMenuOpen ? (
+    <div
+      ref={menuRef}
+      className="fixed w-48 bg-white border border-gray-200 shadow-lg rounded-lg z-[100]"
+      style={{
+        top: `${menuPosition.top}px`,
+        right: `${menuPosition.right}px`,
+      }}
+    >
+      <div className="py-1">
+        <button
+          onClick={() => handleMenuAction(onEdit)}
+          className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2 rounded-lg transition-colors"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          <Pencil size={14} className="text-blue-900" />
+          <span className="text-gray-900">Edit</span>
+        </button>
+        <button
+          onClick={() => handleMenuAction(onAssign)}
+          className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2 rounded-lg transition-colors"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          <UserPlus size={14} className="text-blue-900" />
+          <span className="text-gray-900">Assign</span>
+        </button>
+        <button
+          onClick={() => handleMenuAction(onShowAssignments)}
+          className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2 rounded-lg transition-colors"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          <BookOpen size={14} className="text-blue-900" />
+          <span className="text-gray-900">Show Assignments</span>
+        </button>
+        <button
+          onClick={() => handleMenuAction(onPrintSchedule)}
+          className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2 rounded-lg transition-colors"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          <Printer size={14} className="text-blue-900" />
+          <span className="text-gray-900">Print Schedule</span>
+        </button>
+        <button
+          onClick={() => handleMenuAction(onPermissions)}
+          className="w-full px-4 py-2 text-left text-xs hover:bg-gray-100 flex items-center gap-2 rounded-lg transition-colors"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          <Lock size={14} className="text-blue-900" />
+          <span className="text-gray-900">Permissions</span>
+        </button>
+        <div className="border-t border-gray-200 my-1"></div>
+        <button
+          onClick={() => handleMenuAction(onRemove)}
+          className="w-full px-4 py-2 text-left text-xs hover:bg-red-50 flex items-center gap-2 rounded-lg transition-colors"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          <Trash size={14} className="text-red-600" />
+          <span className="text-red-600">Remove</span>
+        </button>
+      </div>
+    </div>
+  ) : null
+
+  return (
+    <>
+      <div className="relative flex justify-end">
+        <Button
+          ref={buttonRef}
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          size="sm"
+          variant="ghost"
+          className="rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center gap-2 justify-center"
+          disabled={loading}
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
+          <Gear size={16} weight="fill" className="text-blue-900" />
+          <span className="text-xs text-blue-900">Settings</span>
+        </Button>
+      </div>
+      {typeof window !== 'undefined' && dropdownContent
+        ? createPortal(dropdownContent, document.body)
+        : null}
+    </>
+  )
 }
 
 // Helper functions defined outside component for better scoping
@@ -139,21 +293,24 @@ export default function TeacherManagement({
 }: TeacherManagementProps) {
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [loading, setLoading] = useState(true)
-  const [assignmentCounts, setAssignmentCounts] = useState<
-    Record<string, { subjects: number; sections: number }>
-  >({})
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [showAssignmentModal, setShowAssignmentModal] = useState(false)
+  const [showAssignmentsViewModal, setShowAssignmentsViewModal] =
+    useState(false)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null)
   const [passwordTeacher, setPasswordTeacher] = useState<Teacher | null>(null)
   const [assignmentTeacher, setAssignmentTeacher] = useState<Teacher | null>(
     null
   )
+  const [assignmentsViewTeacher, setAssignmentsViewTeacher] =
+    useState<Teacher | null>(null)
   const [permissionsTeacher, setPermissionsTeacher] = useState<Teacher | null>(
     null
   )
+  const [printTeacher, setPrintTeacher] = useState<Teacher | null>(null)
+  const [showPrintScheduleModal, setShowPrintScheduleModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortOption, setSortOption] = useState<string>('a-z')
 
@@ -224,43 +381,6 @@ export default function TeacherManagement({
     loadTeachers()
   }, [])
 
-  // Load assignment counts per teacher when teachers list updates
-  useEffect(() => {
-    const loadCounts = async () => {
-      try {
-        const entries = await Promise.all(
-          teachers.map(async (t) => {
-            try {
-              const res = await fetch(
-                `/api/teacher-assignments?teacherId=${encodeURIComponent(t.id)}`
-              )
-              if (!res.ok) return [t.id, { subjects: 0, sections: 0 }] as const
-              const data = await res.json()
-              const assignments: Record<string, string[]> =
-                data.assignments || {}
-              const subjects = Object.keys(assignments).length
-              const sectionSet = new Set<string>()
-              Object.values(assignments).forEach((arr: string[]) => {
-                if (Array.isArray(arr)) arr.forEach((id) => sectionSet.add(id))
-              })
-              const sections = sectionSet.size
-              return [t.id, { subjects, sections }] as const
-            } catch {
-              return [t.id, { subjects: 0, sections: 0 }] as const
-            }
-          })
-        )
-        const map: Record<string, { subjects: number; sections: number }> = {}
-        for (const [id, counts] of entries) map[id] = counts
-        setAssignmentCounts(map)
-      } catch {
-        // ignore
-      }
-    }
-    if (teachers.length > 0) loadCounts()
-    else setAssignmentCounts({})
-  }, [teachers])
-
   const loadTeachers = async () => {
     try {
       setLoading(true)
@@ -325,9 +445,19 @@ export default function TeacherManagement({
     setShowAssignmentModal(true)
   }
 
+  const handleShowAssignments = (teacher: Teacher) => {
+    setAssignmentsViewTeacher(teacher)
+    setShowAssignmentsViewModal(true)
+  }
+
   const handlePermissionsTeacher = (teacher: Teacher) => {
     setPermissionsTeacher(teacher)
     setShowPermissionsModal(true)
+  }
+
+  const handlePrintScheduleTeacher = (teacher: Teacher) => {
+    setPrintTeacher(teacher)
+    setShowPrintScheduleModal(true)
   }
 
   const handleCancel = () => {
@@ -338,6 +468,11 @@ export default function TeacherManagement({
   const handleAssignmentModalClose = () => {
     setShowAssignmentModal(false)
     setAssignmentTeacher(null)
+  }
+
+  const handleAssignmentsViewModalClose = () => {
+    setShowAssignmentsViewModal(false)
+    setAssignmentsViewTeacher(null)
   }
 
   const handlePermissionsModalClose = () => {
@@ -475,10 +610,17 @@ export default function TeacherManagement({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-8 h-8 aspect-square bg-white rounded-xl flex items-center justify-center">
-              <GraduationCap size={20} weight="fill" className="text-blue-900" />
+              <GraduationCap
+                size={20}
+                weight="fill"
+                className="text-blue-900"
+              />
             </div>
             <div>
-              <h1 className="text-2xl font-light text-white flex items-center gap-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+              <h1
+                className="text-2xl font-light text-white flex items-center gap-2"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
                 Teacher Management
               </h1>
               <p
@@ -535,7 +677,10 @@ export default function TeacherManagement({
             </button>
           ))}
         </div>
-        <div className="text-xs text-gray-600 flex items-center gap-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+        <div
+          className="text-xs text-gray-600 flex items-center gap-2"
+          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+        >
           <div className="w-3 h-3 aspect-square rounded-md bg-gradient-to-br from-blue-800 to-blue-900"></div>
           Showing {filteredAndSortedTeachers.length} of {teachers.length}{' '}
           teachers
@@ -543,8 +688,8 @@ export default function TeacherManagement({
       </div>
 
       {/* Teachers Table */}
-      <Card className="overflow-hidden pb-0 pt-0 mt-0 mb-0 border border-gray-200 shadow-lg rounded-xl">
-        <div className="overflow-x-auto">
+      <div className="pb-0 pt-0 mt-0 mb-0 border border-gray-200 shadow-lg rounded-xl">
+        <div className="overflow-x-auto overflow-y-visible">
           <table className="w-full">
             <thead className="bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg border-b border-blue-900">
               <tr>
@@ -559,14 +704,6 @@ export default function TeacherManagement({
                 <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 aspect-square bg-white rounded-md flex items-center justify-center">
-                      <Users size={12} weight="bold" className="text-blue-900" />
-                    </div>
-                    Assignments
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 aspect-square bg-white rounded-md flex items-center justify-center">
                       <Envelope
                         size={12}
                         weight="bold"
@@ -574,18 +711,6 @@ export default function TeacherManagement({
                       />
                     </div>
                     Contact
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 aspect-square bg-white rounded-md flex items-center justify-center">
-                      <Calendar
-                        size={12}
-                        weight="bold"
-                        className="text-blue-900"
-                      />
-                    </div>
-                    Created
                   </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r-0">
@@ -613,22 +738,11 @@ export default function TeacherManagement({
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                      <div className="space-y-2">
-                        <div className="h-4 bg-gray-200 w-48"></div>
-                        <div className="h-3 bg-gray-200 w-32"></div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="h-4 bg-gray-200 w-20"></div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                      <div className="h-4 bg-gray-200 w-16"></div>
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex gap-2">
-                        <div className="h-8 w-16 bg-gray-200 rounded"></div>
-                        <div className="h-8 w-16 bg-gray-200 rounded"></div>
-                        <div className="h-8 w-16 bg-gray-200 rounded"></div>
+                      <div className="flex justify-end">
+                        <div className="h-8 w-8 bg-gray-200 rounded-lg"></div>
                       </div>
                     </td>
                   </tr>
@@ -637,7 +751,7 @@ export default function TeacherManagement({
                 teachers.length > 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={3}
                     className="px-6 py-8 text-center text-gray-500 border-t border-gray-200"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
@@ -647,7 +761,7 @@ export default function TeacherManagement({
               ) : teachers.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={3}
                     className="px-6 py-8 text-center border-t border-gray-200"
                   >
                     <div className="flex flex-col items-center">
@@ -658,7 +772,10 @@ export default function TeacherManagement({
                           weight="fill"
                         />
                       </div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-2" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+                      <h3
+                        className="text-lg font-medium text-gray-900 mb-2"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      >
                         No teachers found
                       </h3>
                       <p
@@ -681,7 +798,10 @@ export default function TeacherManagement({
                 </tr>
               ) : (
                 filteredAndSortedTeachers.map((teacher) => (
-                  <tr key={teacher.id} className="hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={teacher.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="flex items-center">
                         <div className="relative flex-shrink-0 h-10 w-10">
@@ -721,26 +841,6 @@ export default function TeacherManagement({
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
-                      <div
-                        className="text-xs text-gray-900"
-                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                      >
-                        {assignmentCounts[teacher.id]?.subjects || 0} Subject
-                        {(assignmentCounts[teacher.id]?.subjects || 0) !== 1
-                          ? 's'
-                          : ''}
-                      </div>
-                      <div
-                        className="text-xs text-gray-500"
-                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                      >
-                        {assignmentCounts[teacher.id]?.sections || 0} Section
-                        {(assignmentCounts[teacher.id]?.sections || 0) !== 1
-                          ? 's'
-                          : ''}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200">
                       <div className="space-y-1">
                         <div
                           className="text-xs text-gray-900 font-mono"
@@ -753,52 +853,22 @@ export default function TeacherManagement({
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200 text-xs text-gray-500 font-mono">
-                      {new Date(teacher.createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
-                          onClick={() => handleEditTeacher(teacher)}
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                        >
-                          <Pencil size={14} className="mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
-                          onClick={() => handleAssignTeacher(teacher)}
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                        >
-                          <UserPlus size={14} className="mr-1" />
-                          Assign
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
-                          onClick={() => handlePermissionsTeacher(teacher)}
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                        >
-                          <Lock size={14} className="mr-1" />
-                          Permissions
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="rounded-lg bg-red-600 hover:bg-red-700 text-white border"
-                          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                        >
-                          <Trash size={14} className="mr-1" />
-                          Remove
-                        </Button>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium relative">
+                      <TeacherActionMenu
+                        teacher={teacher}
+                        loading={loading}
+                        onEdit={() => handleEditTeacher(teacher)}
+                        onAssign={() => handleAssignTeacher(teacher)}
+                        onShowAssignments={() => handleShowAssignments(teacher)}
+                        onPermissions={() => handlePermissionsTeacher(teacher)}
+                        onPrintSchedule={() =>
+                          handlePrintScheduleTeacher(teacher)
+                        }
+                        onRemove={() => {
+                          // TODO: Implement remove functionality
+                          toast.info('Remove functionality coming soon')
+                        }}
+                      />
                     </td>
                   </tr>
                 ))
@@ -806,7 +876,7 @@ export default function TeacherManagement({
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       {/* Create/Edit Teacher Modal */}
       <Modal
@@ -852,6 +922,14 @@ export default function TeacherManagement({
         registrarUid={registrarUid}
       />
 
+      {/* Teacher Assignments View Modal */}
+      <TeacherAssignmentsViewModal
+        isOpen={showAssignmentsViewModal}
+        onClose={handleAssignmentsViewModalClose}
+        teacher={assignmentsViewTeacher}
+        registrarUid={registrarUid}
+      />
+
       {/* Permissions Modal */}
       <Modal
         isOpen={showPermissionsModal}
@@ -892,6 +970,17 @@ export default function TeacherManagement({
           }}
         />
       </Modal>
+
+      {/* Teacher Schedule Print Modal */}
+      <TeacherSchedulePrintModal
+        isOpen={showPrintScheduleModal}
+        onClose={() => {
+          setShowPrintScheduleModal(false)
+          setPrintTeacher(null)
+        }}
+        teacher={printTeacher}
+        registrarUid={registrarUid}
+      />
     </div>
   )
 }
@@ -1287,7 +1376,10 @@ function TeacherForm({
           >
             Personal Information
           </h4>
-          <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-white rounded-xl mb-4" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+          <p
+            className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-white rounded-xl mb-4"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
             Provide the teacher's complete personal details for identification
             and contact purposes. This information helps establish their
             professional profile and enables effective communication within the
@@ -1398,7 +1490,10 @@ function TeacherForm({
           >
             Account Information
           </h4>
-          <p className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-white rounded-xl mb-4" style={{ fontFamily: 'Poppins', fontWeight: 400 }}>
+          <p
+            className="text-xs text-blue-900 font-light text-justify border-1 shadow-sm border-blue-900 p-3 bg-white rounded-xl mb-4"
+            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+          >
             Set up secure login credentials for the teacher account. This
             includes email verification and password creation to ensure
             authorized access to the system and protect sensitive educational
@@ -1697,11 +1792,7 @@ const PERMISSION_OPTIONS = [
   },
 ]
 
-function PermissionsForm({
-  teacher,
-  onCancel,
-  onSave,
-}: PermissionsFormProps) {
+function PermissionsForm({ teacher, onCancel, onSave }: PermissionsFormProps) {
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
 
   useEffect(() => {
@@ -1857,4 +1948,1609 @@ function PermissionsForm({
       </div>
     </div>
   )
+}
+
+// Helper function to generate time slots in 15-minute intervals from 7:00 AM to 6:00 PM
+const generateTimeSlots = (): string[] => {
+  const slots: string[] = []
+  const startHour = 7 // 7 AM
+  const endHour = 18 // 6 PM (18:00 in 24-hour format)
+  const minutes = [0, 15, 30, 45]
+
+  for (let hour = startHour; hour <= endHour; hour++) {
+    for (const minute of minutes) {
+      // Skip 6:15 PM, 6:30 PM, 6:45 PM (only go up to 6:00 PM)
+      if (hour === endHour && minute > 0) break
+
+      const hour12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour
+      const ampm = hour >= 12 ? 'PM' : 'AM'
+      const minuteStr = minute.toString().padStart(2, '0')
+      slots.push(`${hour12}:${minuteStr} ${ampm}`)
+    }
+  }
+
+  return slots
+}
+
+// Helper function to convert time string to minutes for comparison
+const convertToMinutes = (timeStr: string): number => {
+  const [time, period] = timeStr.split(' ')
+  const [hours, minutes] = time.split(':').map(Number)
+  let totalMinutes = hours * 60 + minutes
+  if (period === 'PM' && hours !== 12) {
+    totalMinutes += 12 * 60
+  } else if (period === 'AM' && hours === 12) {
+    totalMinutes -= 12 * 60
+  }
+  return totalMinutes
+}
+
+// Teacher Assignments View Modal Component
+interface TeacherAssignmentsViewModalProps {
+  isOpen: boolean
+  onClose: () => void
+  teacher: Teacher | null
+  registrarUid: string
+}
+
+interface AssignmentData {
+  subjectId: string
+  subjectCode: string
+  subjectName: string
+  subjectColor: string
+  gradeLevel?: number
+  courseCode?: string
+  courseName?: string
+  sections: {
+    sectionId: string
+    sectionName: string
+    rank: string
+    department: string
+    startTime?: string // Format: "HH:MM AM/PM" (e.g., "8:00 AM")
+    endTime?: string // Format: "HH:MM AM/PM" (e.g., "9:30 AM")
+    room?: string
+    deliveryMode?: 'Face to Face' | 'Modular' | 'Hybrid' | 'Online'
+    dayOfWeek?:
+      | (
+          | 'Monday'
+          | 'Tuesday'
+          | 'Wednesday'
+          | 'Thursday'
+          | 'Friday'
+          | 'Saturday'
+          | 'Sunday'
+        )[]
+      | 'Monday'
+      | 'Tuesday'
+      | 'Wednesday'
+      | 'Thursday'
+      | 'Friday'
+      | 'Saturday'
+      | 'Sunday' // Support both array and single value for backward compatibility
+  }[]
+}
+
+const TeacherAssignmentsViewModal = ({
+  isOpen,
+  onClose,
+  teacher,
+  registrarUid,
+}: TeacherAssignmentsViewModalProps) => {
+  const [assignments, setAssignments] = useState<AssignmentData[]>([])
+  const [loading, setLoading] = useState(false)
+  const [removingAssignments, setRemovingAssignments] = useState<
+    Record<string, boolean>
+  >({})
+  const [editingSchedule, setEditingSchedule] = useState<{
+    subjectId: string
+    sectionId: string
+    sectionName: string
+  } | null>(null)
+  const [scheduleForm, setScheduleForm] = useState<{
+    dayOfWeek: (
+      | 'Monday'
+      | 'Tuesday'
+      | 'Wednesday'
+      | 'Thursday'
+      | 'Friday'
+      | 'Saturday'
+      | 'Sunday'
+    )[]
+    startTime: string
+    endTime: string
+    room: string
+    deliveryMode: 'Face to Face' | 'Modular' | 'Hybrid' | 'Online' | ''
+  }>({
+    dayOfWeek: [],
+    startTime: '',
+    endTime: '',
+    room: '',
+    deliveryMode: '',
+  })
+  const [scheduleErrors, setScheduleErrors] = useState<string[]>([])
+  const [savingSchedule, setSavingSchedule] = useState(false)
+  const [dayConflicts, setDayConflicts] = useState<Record<string, boolean>>({})
+  const [resetTarget, setResetTarget] = useState<{
+    subjectId: string
+    sectionId: string
+    sectionName: string
+  } | null>(null)
+  const [resetting, setResetting] = useState(false)
+
+  // Check room conflicts for each day in real-time
+  useEffect(() => {
+    const checkDayConflicts = async () => {
+      if (
+        !editingSchedule ||
+        !scheduleForm.startTime ||
+        !scheduleForm.endTime ||
+        scheduleForm.deliveryMode === 'Online' ||
+        !scheduleForm.room ||
+        !teacher?.id
+      ) {
+        setDayConflicts({})
+        return
+      }
+
+      const conflicts: Record<string, boolean> = {}
+      const allDays = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ]
+
+      // Check conflicts for each day
+      const promises = allDays.map(async (day) => {
+        try {
+          const conflictResponse = await fetch(
+            '/api/teacher-assignments/check-conflicts',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                subjectId: editingSchedule.subjectId,
+                sectionId: editingSchedule.sectionId,
+                teacherId: teacher.id,
+                dayOfWeek: day,
+                startTime: scheduleForm.startTime,
+                endTime: scheduleForm.endTime,
+                room: scheduleForm.room,
+                deliveryMode: scheduleForm.deliveryMode,
+              }),
+            }
+          )
+
+          const conflictData = await conflictResponse.json()
+          if (
+            conflictData.conflicts &&
+            conflictData.conflicts.some((c: string) =>
+              c.toLowerCase().includes('room')
+            )
+          ) {
+            conflicts[day] = true
+          }
+        } catch (error) {
+          console.error('Error checking conflict for day:', day, error)
+        }
+      })
+
+      await Promise.all(promises)
+      setDayConflicts(conflicts)
+    }
+
+    // Debounce conflict checking
+    const timeoutId = setTimeout(() => {
+      if (
+        editingSchedule &&
+        scheduleForm.startTime &&
+        scheduleForm.endTime &&
+        scheduleForm.room &&
+        scheduleForm.deliveryMode !== 'Online'
+      ) {
+        checkDayConflicts()
+      } else {
+        setDayConflicts({})
+      }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [
+    editingSchedule?.subjectId,
+    editingSchedule?.sectionId,
+    scheduleForm.startTime,
+    scheduleForm.endTime,
+    scheduleForm.room,
+    scheduleForm.deliveryMode,
+    teacher?.id,
+  ])
+
+  useEffect(() => {
+    if (isOpen && teacher) {
+      loadAssignments()
+    } else {
+      setAssignments([])
+    }
+  }, [isOpen, teacher])
+
+  const loadAssignments = async () => {
+    if (!teacher) return
+
+    try {
+      setLoading(true)
+      // Fetch teacher assignments
+      const assignmentsResponse = await fetch(
+        `/api/teacher-assignments?teacherId=${encodeURIComponent(teacher.id)}`
+      )
+      if (!assignmentsResponse.ok) {
+        throw new Error('Failed to load assignments')
+      }
+      const assignmentsData = await assignmentsResponse.json()
+      const teacherAssignments: Record<string, any> =
+        assignmentsData.assignments || {}
+
+      // Fetch all subjects to get details
+      const subjectsResponse = await fetch('/api/subjects')
+      if (!subjectsResponse.ok) {
+        throw new Error('Failed to load subjects')
+      }
+      const subjectsData = await subjectsResponse.json()
+      const subjects = subjectsData.subjects || []
+
+      // Fetch all sections to get details
+      const sectionsResponse = await fetch('/api/sections')
+      if (!sectionsResponse.ok) {
+        throw new Error('Failed to load sections')
+      }
+      const sectionsData = await sectionsResponse.json()
+      const sections = sectionsData.sections || []
+
+      // Fetch all courses to get course names
+      const coursesResponse = await fetch('/api/courses')
+      const coursesData = coursesResponse.ok
+        ? await coursesResponse.json()
+        : { courses: [] }
+      const courses = coursesData.courses || []
+
+      // Organize assignments by subject
+      const organizedAssignments: AssignmentData[] = []
+
+      for (const [subjectId, sectionIds] of Object.entries(
+        teacherAssignments
+      )) {
+        const subject = subjects.find((s: any) => s.id === subjectId)
+        if (!subject) continue
+
+        const sectionDetails = (Array.isArray(sectionIds) ? sectionIds : [])
+          .map((sectionId: string) => {
+            const section = sections.find((s: any) => s.id === sectionId)
+            if (!section) return null
+
+            // Get schedule data from assignment
+            let scheduleData: {
+              startTime?: string
+              endTime?: string
+              room?: string
+              deliveryMode?: 'Face to Face' | 'Modular' | 'Hybrid' | 'Online'
+              dayOfWeek?: (
+                | 'Monday'
+                | 'Tuesday'
+                | 'Wednesday'
+                | 'Thursday'
+                | 'Friday'
+                | 'Saturday'
+                | 'Sunday'
+              )[]
+            } = {}
+
+            // Get assignment data from subject's teacherAssignments
+            const assignmentData = (subject.teacherAssignments as any)?.[
+              sectionId
+            ]
+            if (assignmentData) {
+              if (Array.isArray(assignmentData)) {
+                // Old format: just teacher IDs, no schedule
+              } else if (
+                typeof assignmentData === 'object' &&
+                'schedule' in assignmentData
+              ) {
+                const dayOfWeek = assignmentData.schedule?.dayOfWeek
+                scheduleData = {
+                  startTime: assignmentData.schedule?.startTime,
+                  endTime: assignmentData.schedule?.endTime,
+                  room: assignmentData.schedule?.room,
+                  deliveryMode: assignmentData.schedule?.deliveryMode,
+                  dayOfWeek: Array.isArray(dayOfWeek)
+                    ? dayOfWeek
+                    : dayOfWeek
+                    ? [dayOfWeek]
+                    : undefined,
+                }
+              }
+            }
+
+            return {
+              sectionId: section.id,
+              sectionName: section.sectionName,
+              rank: section.rank || '',
+              department: section.department || '',
+              ...scheduleData,
+            }
+          })
+          .filter((s): s is NonNullable<typeof s> => s !== null)
+
+        if (sectionDetails.length > 0) {
+          // Find course name if it's a college subject
+          let courseName: string | undefined
+          if (subject.courseCodes && subject.courseCodes.length > 0) {
+            const course = courses.find(
+              (c: any) => c.code === subject.courseCodes[0]
+            )
+            courseName = course?.name
+          }
+
+          organizedAssignments.push({
+            subjectId: subject.id,
+            subjectCode: subject.code || '',
+            subjectName: subject.name || '',
+            subjectColor: subject.color || 'blue-900',
+            gradeLevel: subject.gradeLevel,
+            courseCode: subject.courseCodes?.[0],
+            courseName,
+            sections: sectionDetails,
+          })
+        }
+      }
+
+      // Sort by subject code
+      organizedAssignments.sort((a, b) =>
+        a.subjectCode.localeCompare(b.subjectCode)
+      )
+
+      setAssignments(organizedAssignments)
+    } catch (error) {
+      console.error('Error loading assignments:', error)
+      toast.error('Failed to load assignments')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!teacher) return null
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Assignments - ${teacher.firstName} ${teacher.lastName}`}
+      size="2xl"
+    >
+      <div className="p-6">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-2 border-blue-900 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : assignments.length === 0 ? (
+          <div className="text-center py-12">
+            <BookOpen
+              size={48}
+              className="mx-auto text-gray-400 mb-4"
+              weight="duotone"
+            />
+            <h3
+              className="text-lg font-medium text-gray-900 mb-2"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              No Assignments
+            </h3>
+            <p
+              className="text-xs text-gray-600"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
+              This teacher has no subject assignments yet.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {assignments.map((assignment) => (
+              <div
+                key={assignment.subjectId}
+                className="border border-gray-200 rounded-xl overflow-hidden bg-white"
+              >
+                {/* Subject Header */}
+                <div className="flex items-start justify-between p-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className="inline-block h-3 w-3 rounded"
+                        style={{
+                          backgroundColor: getColorValue(
+                            assignment.subjectColor
+                          ),
+                        }}
+                        aria-hidden="true"
+                      />
+                      <BookOpen
+                        size={16}
+                        style={{
+                          color: getColorValue(assignment.subjectColor),
+                        }}
+                        weight="fill"
+                      />
+                      <h4
+                        className="text-sm font-medium text-gray-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        {assignment.subjectCode} - {assignment.subjectName}
+                      </h4>
+                    </div>
+                    {assignment.gradeLevel && (
+                      <p
+                        className="text-xs text-gray-600 ml-5"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        Grade {assignment.gradeLevel}
+                      </p>
+                    )}
+                    {assignment.courseCode && (
+                      <p
+                        className="text-xs text-gray-600 ml-5"
+                        style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                      >
+                        {assignment.courseCode}
+                        {assignment.courseName && ` - ${assignment.courseName}`}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                      {assignment.sections.length} section
+                      {assignment.sections.length !== 1 ? 's' : ''}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (!teacher) return
+                        const assignmentKey = `${assignment.subjectId}-all`
+                        setRemovingAssignments((prev) => ({
+                          ...prev,
+                          [assignmentKey]: true,
+                        }))
+
+                        try {
+                          let removed = 0
+                          const errors: string[] = []
+
+                          for (const section of assignment.sections) {
+                            const url = `/api/teacher-assignments?subjectId=${encodeURIComponent(
+                              assignment.subjectId
+                            )}&sectionId=${encodeURIComponent(
+                              section.sectionId
+                            )}&registrarUid=${encodeURIComponent(
+                              registrarUid
+                            )}&teacherId=${encodeURIComponent(teacher.id)}`
+                            const res = await fetch(url, { method: 'DELETE' })
+                            const data = await res.json().catch(() => ({}))
+                            if (res.ok) {
+                              removed++
+                            } else {
+                              errors.push(
+                                `${section.sectionName}: ${
+                                  data.error || 'Failed to remove'
+                                }`
+                              )
+                            }
+                          }
+
+                          if (removed > 0) {
+                            toast.success(
+                              `Removed ${removed} assignment(s) for ${assignment.subjectName}`
+                            )
+                            // Reload assignments
+                            await loadAssignments()
+                          }
+                          if (errors.length > 0) {
+                            toast.warning(
+                              `Some removals failed: ${errors.join(', ')}`
+                            )
+                          }
+                        } catch (error) {
+                          console.error('Error removing assignments:', error)
+                          toast.error('Failed to remove assignments')
+                        } finally {
+                          setRemovingAssignments((prev) => {
+                            const copy = { ...prev }
+                            delete copy[assignmentKey]
+                            return copy
+                          })
+                        }
+                      }}
+                      disabled={
+                        removingAssignments[`${assignment.subjectId}-all`]
+                      }
+                      className="px-2 py-1 border-2 text-xs rounded-lg flex items-center gap-1 border-red-600 text-red-700 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    >
+                      {removingAssignments[`${assignment.subjectId}-all`] ? (
+                        <>
+                          <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                          Removing...
+                        </>
+                      ) : (
+                        <>
+                          <Trash size={14} />
+                          Remove All
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sections Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-r border-gray-300"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Users size={14} className="text-gray-600" />
+                            Sections
+                          </div>
+                        </th>
+                        <th
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-r border-gray-300"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Calendar size={14} className="text-gray-600" />
+                            Start
+                          </div>
+                        </th>
+                        <th
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-r border-gray-300"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Calendar size={14} className="text-gray-600" />
+                            End
+                          </div>
+                        </th>
+                        <th
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-r border-gray-300"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Calendar size={14} className="text-gray-600" />
+                            Days
+                          </div>
+                        </th>
+                        <th
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-r border-gray-300"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <MapPin size={14} className="text-gray-600" />
+                            Room
+                          </div>
+                        </th>
+                        <th
+                          className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-r border-gray-300"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          <div className="flex items-center gap-2">
+                            Delivery Mode
+                          </div>
+                        </th>
+                        <th
+                          className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-300"
+                          style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                        >
+                          <div className="flex items-center justify-end gap-2">
+                            <Gear size={14} className="text-gray-600" />
+                            Actions
+                          </div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white">
+                      {assignment.sections.map((section) => (
+                        <tr
+                          key={section.sectionId}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-4 py-3 border-b border-r border-gray-200 min-w-[200px]">
+                            <div className="flex items-center gap-2">
+                              <Users
+                                size={16}
+                                style={{
+                                  color: getColorValue(assignment.subjectColor),
+                                }}
+                                weight="fill"
+                              />
+                              <div>
+                                <p
+                                  className="text-xs font-medium text-gray-900"
+                                  style={{
+                                    fontFamily: 'Poppins',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {section.sectionName}
+                                </p>
+                                <p
+                                  className="text-xs text-gray-600"
+                                  style={{
+                                    fontFamily: 'Poppins',
+                                    fontWeight: 300,
+                                  }}
+                                >
+                                  {section.rank} • {section.department}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 border-b border-r border-gray-200 min-w-[120px]">
+                            {section.startTime ? (
+                              <p
+                                className="text-xs text-gray-900"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {section.startTime}
+                              </p>
+                            ) : (
+                              <p
+                                className="text-xs text-gray-400 italic"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 300,
+                                }}
+                              >
+                                Not set
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 border-b border-r border-gray-200 min-w-[120px]">
+                            {section.endTime ? (
+                              <p
+                                className="text-xs text-gray-900"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {section.endTime}
+                              </p>
+                            ) : (
+                              <p
+                                className="text-xs text-gray-400 italic"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 300,
+                                }}
+                              >
+                                Not set
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 border-b border-r border-gray-200 min-w-[120px]">
+                            {(() => {
+                              const days = (section as any).dayOfWeek
+                              if (
+                                !days ||
+                                (Array.isArray(days) && days.length === 0)
+                              ) {
+                                return (
+                                  <p
+                                    className="text-xs text-gray-400 italic"
+                                    style={{
+                                      fontFamily: 'Poppins',
+                                      fontWeight: 300,
+                                    }}
+                                  >
+                                    Not set
+                                  </p>
+                                )
+                              }
+
+                              const dayArray: string[] = Array.isArray(days)
+                                ? days
+                                : [days]
+
+                              const abbrevMap: Record<string, string> = {
+                                Monday: 'Mon',
+                                Tuesday: 'Tue',
+                                Wednesday: 'Wed',
+                                Thursday: 'Thu',
+                                Friday: 'Fri',
+                                Saturday: 'Sat',
+                                Sunday: 'Sun',
+                              }
+
+                              const label = dayArray
+                                .map((d) => abbrevMap[d] || d.slice(0, 3))
+                                .join(', ')
+
+                              return (
+                                <p
+                                  className="text-xs text-gray-900"
+                                  style={{
+                                    fontFamily: 'Poppins',
+                                    fontWeight: 400,
+                                  }}
+                                >
+                                  {label}
+                                </p>
+                              )
+                            })()}
+                          </td>
+                          <td className="px-4 py-3 border-b border-r border-gray-200 min-w-[120px]">
+                            {section.room ? (
+                              <p
+                                className="text-xs text-gray-900"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {section.room}
+                              </p>
+                            ) : (
+                              <p
+                                className="text-xs text-gray-400 italic"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 300,
+                                }}
+                              >
+                                {(section as any).deliveryMode === 'Online'
+                                  ? 'Online'
+                                  : 'No room assigned'}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 border-b border-r border-gray-200 min-w-[120px]">
+                            {(section as any).deliveryMode ? (
+                              <p
+                                className="text-xs text-gray-900"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {(section as any).deliveryMode}
+                              </p>
+                            ) : (
+                              <p
+                                className="text-xs text-gray-400 italic"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 300,
+                                }}
+                              >
+                                Not set
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 border-b border-gray-200 text-right min-w-[180px]">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => {
+                                  setEditingSchedule({
+                                    subjectId: assignment.subjectId,
+                                    sectionId: section.sectionId,
+                                    sectionName: section.sectionName,
+                                  })
+                                  setScheduleForm({
+                                    dayOfWeek: section.dayOfWeek
+                                      ? Array.isArray(section.dayOfWeek)
+                                        ? section.dayOfWeek
+                                        : [section.dayOfWeek]
+                                      : [],
+                                    startTime: section.startTime || '',
+                                    endTime: section.endTime || '',
+                                    room: section.room || '',
+                                    deliveryMode:
+                                      (section as any).deliveryMode || '',
+                                  })
+                                  setScheduleErrors([])
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                                title="Edit schedule"
+                              >
+                                <Pencil size={14} weight="bold" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (!teacher) return
+                                  setResetTarget({
+                                    subjectId: assignment.subjectId,
+                                    sectionId: section.sectionId,
+                                    sectionName: section.sectionName,
+                                  })
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs text-orange-600 hover:bg-orange-50 rounded transition-colors"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                                title="Reset schedule (clear days, time, room, mode)"
+                              >
+                                <X size={14} />
+                                Reset
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (!teacher) return
+                                  const sectionKey = `${assignment.subjectId}-${section.sectionId}`
+                                  setRemovingAssignments((prev) => ({
+                                    ...prev,
+                                    [sectionKey]: true,
+                                  }))
+
+                                  try {
+                                    const url = `/api/teacher-assignments?subjectId=${encodeURIComponent(
+                                      assignment.subjectId
+                                    )}&sectionId=${encodeURIComponent(
+                                      section.sectionId
+                                    )}&registrarUid=${encodeURIComponent(
+                                      registrarUid
+                                    )}&teacherId=${encodeURIComponent(
+                                      teacher.id
+                                    )}`
+                                    const res = await fetch(url, {
+                                      method: 'DELETE',
+                                    })
+                                    const data = await res
+                                      .json()
+                                      .catch(() => ({}))
+
+                                    if (res.ok) {
+                                      toast.success(
+                                        `Removed ${section.sectionName} from ${assignment.subjectName}`
+                                      )
+                                      // Reload assignments
+                                      await loadAssignments()
+                                    } else {
+                                      toast.error(
+                                        data.error ||
+                                          'Failed to remove assignment'
+                                      )
+                                    }
+                                  } catch (error) {
+                                    console.error(
+                                      'Error removing assignment:',
+                                      error
+                                    )
+                                    toast.error('Failed to remove assignment')
+                                  } finally {
+                                    setRemovingAssignments((prev) => {
+                                      const copy = { ...prev }
+                                      delete copy[sectionKey]
+                                      return copy
+                                    })
+                                  }
+                                }}
+                                disabled={
+                                  removingAssignments[
+                                    `${assignment.subjectId}-${section.sectionId}`
+                                  ]
+                                }
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                                title="Remove this section assignment"
+                              >
+                                {removingAssignments[
+                                  `${assignment.subjectId}-${section.sectionId}`
+                                ] ? (
+                                  <>
+                                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                    Removing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <X size={14} weight="bold" />
+                                    Remove
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Schedule Edit Modal */}
+      {editingSchedule && (
+        <Modal
+          isOpen={!!editingSchedule}
+          onClose={() => {
+            setEditingSchedule(null)
+            setScheduleForm({
+              dayOfWeek: [],
+              startTime: '',
+              endTime: '',
+              room: '',
+              deliveryMode: '',
+            })
+            setScheduleErrors([])
+            setDayConflicts({})
+          }}
+          title={`Edit Schedule - ${editingSchedule.sectionName}`}
+          size="md"
+        >
+          <div className="p-6 space-y-4">
+            {/* Subject and Section Indicator */}
+            {(() => {
+              const assignment = assignments.find(
+                (a) => a.subjectId === editingSchedule.subjectId
+              )
+              return (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor: assignment
+                          ? getColorValue(assignment.subjectColor)
+                          : '#1e40af',
+                      }}
+                    />
+                    <div>
+                      <p
+                        className="text-xs font-medium text-blue-900"
+                        style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                      >
+                        {assignment?.subjectName || 'Subject'}
+                      </p>
+                      <p
+                        className="text-xs text-blue-700"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      >
+                        {editingSchedule.sectionName}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Days of Week */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  className="block text-xs font-medium text-gray-700"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
+                  Days of Week
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allDays: (
+                      | 'Monday'
+                      | 'Tuesday'
+                      | 'Wednesday'
+                      | 'Thursday'
+                      | 'Friday'
+                      | 'Saturday'
+                      | 'Sunday'
+                    )[] = [
+                      'Monday',
+                      'Tuesday',
+                      'Wednesday',
+                      'Thursday',
+                      'Friday',
+                      'Saturday',
+                      'Sunday',
+                    ]
+                    if (scheduleForm.dayOfWeek.length === allDays.length) {
+                      // Deselect all
+                      setScheduleForm({
+                        ...scheduleForm,
+                        dayOfWeek: [],
+                      })
+                    } else {
+                      // Select all
+                      setScheduleForm({
+                        ...scheduleForm,
+                        dayOfWeek: allDays,
+                      })
+                    }
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  {scheduleForm.dayOfWeek.length === 7
+                    ? 'Deselect All'
+                    : 'Select All'}
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  'Monday',
+                  'Tuesday',
+                  'Wednesday',
+                  'Thursday',
+                  'Friday',
+                  'Saturday',
+                  'Sunday',
+                ].map((day) => {
+                  const hasConflict = dayConflicts[day] || false
+                  return (
+                    <label
+                      key={day}
+                      className={`flex items-center gap-2 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${
+                        hasConflict
+                          ? 'border-red-500 bg-red-50'
+                          : 'border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={scheduleForm.dayOfWeek.includes(day as any)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setScheduleForm({
+                              ...scheduleForm,
+                              dayOfWeek: [
+                                ...scheduleForm.dayOfWeek,
+                                day as any,
+                              ],
+                            })
+                          } else {
+                            setScheduleForm({
+                              ...scheduleForm,
+                              dayOfWeek: scheduleForm.dayOfWeek.filter(
+                                (d) => d !== day
+                              ),
+                            })
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span
+                        className={`text-xs ${
+                          hasConflict
+                            ? 'text-red-700 font-medium'
+                            : 'text-gray-700'
+                        }`}
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      >
+                        {day}
+                        {hasConflict && (
+                          <span className="ml-1 text-red-600">
+                            (Room taken)
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Start Time and End Time */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    className="block text-xs font-medium text-gray-700 mb-2"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
+                    Start Time
+                  </label>
+                  <select
+                    value={scheduleForm.startTime}
+                    onChange={(e) =>
+                      setScheduleForm({
+                        ...scheduleForm,
+                        startTime: e.target.value,
+                        endTime: '', // Clear end time when start time changes
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    <option value="">Select start time</option>
+                    {generateTimeSlots().map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label
+                    className="block text-xs font-medium text-gray-700 mb-2"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
+                    End Time
+                  </label>
+                  <select
+                    value={scheduleForm.endTime}
+                    onChange={(e) =>
+                      setScheduleForm({
+                        ...scheduleForm,
+                        endTime: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    <option value="">Select end time</option>
+                    {generateTimeSlots().map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Quick Duration Buttons */}
+              {scheduleForm.startTime && (
+                <div>
+                  <label
+                    className="block text-xs font-medium text-gray-700 mb-2"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
+                    Quick Duration
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: '30 mins', minutes: 30 },
+                      { label: '45 mins', minutes: 45 },
+                      { label: '1 hour', minutes: 60 },
+                      { label: '2 hours', minutes: 120 },
+                      { label: '3 hours', minutes: 180 },
+                    ].map((duration) => (
+                      <button
+                        key={duration.minutes}
+                        type="button"
+                        onClick={() => {
+                          try {
+                            const startMinutes = convertToMinutes(
+                              scheduleForm.startTime
+                            )
+                            const endMinutes = startMinutes + duration.minutes
+                            const endHour24 = Math.floor(endMinutes / 60)
+                            const endMinute = endMinutes % 60
+
+                            // Convert to 12-hour format
+                            let hour12 =
+                              endHour24 > 12 ? endHour24 - 12 : endHour24
+                            if (hour12 === 0) hour12 = 12
+                            const ampm = endHour24 >= 12 ? 'PM' : 'AM'
+                            const minuteStr = endMinute
+                              .toString()
+                              .padStart(2, '0')
+
+                            const endTimeStr = `${hour12}:${minuteStr} ${ampm}`
+                            setScheduleForm({
+                              ...scheduleForm,
+                              endTime: endTimeStr,
+                            })
+                          } catch (error) {
+                            console.error('Error calculating end time:', error)
+                          }
+                        }}
+                        className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-500 transition-colors"
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      >
+                        {duration.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Duration Display */}
+              {scheduleForm.startTime && scheduleForm.endTime && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p
+                    className="text-xs text-blue-900"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    <span className="font-medium">Duration:</span>{' '}
+                    {(() => {
+                      try {
+                        const start = convertToMinutes(scheduleForm.startTime)
+                        const end = convertToMinutes(scheduleForm.endTime)
+                        if (end <= start) {
+                          return 'Invalid (end time must be after start time)'
+                        }
+                        const duration = end - start
+                        const hours = Math.floor(duration / 60)
+                        const minutes = duration % 60
+                        if (hours > 0 && minutes > 0) {
+                          return `${hours} hour${
+                            hours > 1 ? 's' : ''
+                          } and ${minutes} minute${minutes > 1 ? 's' : ''}`
+                        } else if (hours > 0) {
+                          return `${hours} hour${hours > 1 ? 's' : ''}`
+                        } else {
+                          return `${minutes} minute${minutes > 1 ? 's' : ''}`
+                        }
+                      } catch {
+                        return 'Invalid time format'
+                      }
+                    })()}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Delivery Mode */}
+            <div>
+              <label
+                className="block text-xs font-medium text-gray-700 mb-2"
+                style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+              >
+                Delivery Mode
+              </label>
+              <select
+                value={scheduleForm.deliveryMode}
+                onChange={(e) =>
+                  setScheduleForm({
+                    ...scheduleForm,
+                    deliveryMode: e.target.value as any,
+                    room: e.target.value === 'Online' ? '' : scheduleForm.room, // Clear room if Online
+                  })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                <option value="">Select delivery mode</option>
+                <option value="Face to Face">Face to Face</option>
+                <option value="Modular">Modular</option>
+                <option value="Hybrid">Hybrid</option>
+                <option value="Online">Online</option>
+              </select>
+            </div>
+
+            {/* Room */}
+            {scheduleForm.deliveryMode !== 'Online' && (
+              <div>
+                <label
+                  className="block text-xs font-medium text-gray-700 mb-2"
+                  style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                >
+                  Room
+                </label>
+                <input
+                  type="text"
+                  value={scheduleForm.room}
+                  onChange={(e) =>
+                    setScheduleForm({
+                      ...scheduleForm,
+                      room: e.target.value,
+                    })
+                  }
+                  placeholder="103A"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                />
+              </div>
+            )}
+
+            {/* Error Messages */}
+            {scheduleErrors.length > 0 && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                {scheduleErrors.map((error, index) => (
+                  <p
+                    key={index}
+                    className="text-xs text-red-600 mb-1"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    {error}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setEditingSchedule(null)
+                  setScheduleForm({
+                    dayOfWeek: [],
+                    startTime: '',
+                    endTime: '',
+                    room: '',
+                    deliveryMode: '',
+                  })
+                  setScheduleErrors([])
+                }}
+                className="flex-1 px-4 py-2 rounded-lg bg-gray-500 text-white text-xs font-medium hover:bg-gray-600 transition-colors"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  // Validation
+                  const errors: string[] = []
+                  if (scheduleForm.dayOfWeek.length === 0) {
+                    errors.push('At least one day of week is required')
+                  }
+                  if (!scheduleForm.startTime) {
+                    errors.push('Start time is required')
+                  }
+                  if (!scheduleForm.endTime) {
+                    errors.push('End time is required')
+                  }
+                  if (!scheduleForm.deliveryMode) {
+                    errors.push('Delivery mode is required')
+                  }
+                  if (
+                    scheduleForm.deliveryMode !== 'Online' &&
+                    !scheduleForm.room
+                  ) {
+                    errors.push(
+                      'Room is required for non-online delivery modes'
+                    )
+                  }
+
+                  // Check if end time is after start time
+                  if (scheduleForm.startTime && scheduleForm.endTime) {
+                    const start = convertToMinutes(scheduleForm.startTime)
+                    const end = convertToMinutes(scheduleForm.endTime)
+                    if (end <= start) {
+                      errors.push('End time must be after start time')
+                    }
+                  }
+
+                  if (errors.length > 0) {
+                    setScheduleErrors(errors)
+                    return
+                  }
+
+                  setSavingSchedule(true)
+                  setScheduleErrors([])
+
+                  try {
+                    // Check for conflicts first - check each day
+                    const allConflicts: string[] = []
+                    for (const day of scheduleForm.dayOfWeek) {
+                      const conflictResponse = await fetch(
+                        '/api/teacher-assignments/check-conflicts',
+                        {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            subjectId: editingSchedule.subjectId,
+                            sectionId: editingSchedule.sectionId,
+                            teacherId: teacher?.id,
+                            dayOfWeek: day,
+                            startTime: scheduleForm.startTime,
+                            endTime: scheduleForm.endTime,
+                            room:
+                              scheduleForm.deliveryMode === 'Online'
+                                ? ''
+                                : scheduleForm.room,
+                            deliveryMode: scheduleForm.deliveryMode,
+                          }),
+                        }
+                      )
+
+                      const conflictData = await conflictResponse.json()
+                      if (
+                        conflictData.conflicts &&
+                        conflictData.conflicts.length > 0
+                      ) {
+                        allConflicts.push(...conflictData.conflicts)
+                      }
+                    }
+
+                    if (allConflicts.length > 0) {
+                      setScheduleErrors(allConflicts)
+                      setSavingSchedule(false)
+                      return
+                    }
+
+                    // Save schedule
+                    const saveResponse = await fetch(
+                      '/api/teacher-assignments/update-schedule',
+                      {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          subjectId: editingSchedule.subjectId,
+                          sectionId: editingSchedule.sectionId,
+                          teacherId: teacher?.id,
+                          registrarUid,
+                          dayOfWeek: scheduleForm.dayOfWeek,
+                          startTime: scheduleForm.startTime,
+                          endTime: scheduleForm.endTime,
+                          room: scheduleForm.room,
+                        }),
+                      }
+                    )
+
+                    const saveData = await saveResponse.json()
+
+                    if (saveResponse.ok) {
+                      toast.success('Schedule updated successfully')
+                      setEditingSchedule(null)
+                      setScheduleForm({
+                        dayOfWeek: [],
+                        startTime: '',
+                        endTime: '',
+                        room: '',
+                        deliveryMode: '',
+                      })
+                      await loadAssignments()
+                    } else {
+                      setScheduleErrors([
+                        saveData.error || 'Failed to update schedule',
+                      ])
+                    }
+                  } catch (error) {
+                    console.error('Error updating schedule:', error)
+                    setScheduleErrors(['Failed to update schedule'])
+                  } finally {
+                    setSavingSchedule(false)
+                  }
+                }}
+                disabled={savingSchedule}
+                className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                {savingSchedule ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  'Save Schedule'
+                )}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Reset Schedule Confirmation Modal */}
+      {resetTarget && (
+        <Modal
+          isOpen={!!resetTarget}
+          onClose={() => {
+            if (resetting) return
+            setResetTarget(null)
+          }}
+          title="Reset Schedule"
+          size="sm"
+        >
+          <div className="p-6 space-y-4">
+            <p
+              className="text-sm text-gray-700"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              You are about to reset the schedule for{' '}
+              <span className="font-semibold">{resetTarget.sectionName}</span>.
+              This will clear all days, start time, end time, room, and delivery
+              mode for this section, but will keep the teacher assigned.
+            </p>
+            <p
+              className="text-xs text-gray-500"
+              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+            >
+              You can set a new schedule anytime using the Edit button.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => {
+                  if (resetting) return
+                  setResetTarget(null)
+                }}
+                className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-xs font-medium hover:bg-gray-200 transition-colors"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!teacher || !resetTarget) return
+                  try {
+                    setResetting(true)
+                    const res = await fetch(
+                      '/api/teacher-assignments/reset-schedule',
+                      {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          subjectId: resetTarget.subjectId,
+                          sectionId: resetTarget.sectionId,
+                          teacherId: teacher.id,
+                          registrarUid,
+                        }),
+                      }
+                    )
+
+                    const data = await res.json().catch(() => ({}))
+
+                    if (res.ok) {
+                      toast.success(
+                        `Reset schedule for ${resetTarget.sectionName}`
+                      )
+                      setResetTarget(null)
+                      await loadAssignments()
+                    } else {
+                      toast.error(data.error || 'Failed to reset schedule')
+                    }
+                  } catch (error) {
+                    console.error('Error resetting schedule:', error)
+                    toast.error('Failed to reset schedule')
+                  } finally {
+                    setResetting(false)
+                  }
+                }}
+                disabled={resetting}
+                className="px-4 py-2 rounded-lg bg-orange-600 text-white text-xs font-medium hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                {resetting ? 'Resetting…' : 'Reset Schedule'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </Modal>
+  )
+}
+
+// Helper function to get color value
+const getColorValue = (color: string): string => {
+  const colorMap: Record<string, string> = {
+    'blue-900': '#1e40af',
+    'red-700': '#b91c1c',
+    'red-800': '#991b1b',
+    'emerald-700': '#047857',
+    'emerald-800': '#065f46',
+    'yellow-700': '#a16207',
+    'yellow-800': '#92400e',
+    'orange-700': '#c2410c',
+    'orange-800': '#9a3412',
+    'violet-700': '#7c3aed',
+    'violet-800': '#5b21b6',
+    'purple-700': '#8b5cf6',
+    'purple-800': '#6b21a8',
+    'indigo-700': '#4338ca',
+    'indigo-800': '#312e81',
+  }
+  return colorMap[color] || '#1e40af'
 }

@@ -140,6 +140,35 @@ export default function TeacherAssignmentModal({
   const [currentPage, setCurrentPage] = useState(1)
   const [currentGradePage, setCurrentGradePage] = useState(1)
   const itemsPerPage = 5
+  const [showReplaceModal, setShowReplaceModal] = useState(false)
+  const [replacementData, setReplacementData] = useState<{
+    subjectId: string
+    sectionId: string
+    sectionName: string
+    currentTeacherName: string
+    currentTeacherEmail: string
+  } | null>(null)
+  const [teachers, setTeachers] = useState<
+    Array<{
+      id: string
+      firstName: string
+      middleName?: string
+      lastName: string
+      extension?: string
+    }>
+  >([])
+  const [teachersMap, setTeachersMap] = useState<
+    Record<
+      string,
+      {
+        firstName: string
+        middleName?: string
+        lastName: string
+        extension?: string
+        email: string
+      }
+    >
+  >({})
 
   // Reset state and load grades/courses on modal open
   useEffect(() => {
@@ -163,6 +192,7 @@ export default function TeacherAssignmentModal({
       setCurrentGradePage(1)
       loadGrades()
       loadCourses()
+      loadTeachers()
     }
   }, [isOpen])
 
@@ -202,11 +232,88 @@ export default function TeacherAssignmentModal({
   const getAssignedSectionsForSubject = (subject: Subject | undefined) => {
     if (!subject?.teacherAssignments) return [] as string[]
     return Object.entries(subject.teacherAssignments)
-      .filter(
-        ([_, teacherIds]) =>
-          Array.isArray(teacherIds) && teacherIds.includes(teacher?.id || '')
-      )
+      .filter(([_, assignmentData]) => {
+        // Handle both old format (string[]) and new format (object)
+        if (Array.isArray(assignmentData)) {
+          // Old format: array of teacher IDs
+          return assignmentData.includes(teacher?.id || '')
+        } else if (
+          assignmentData &&
+          typeof assignmentData === 'object' &&
+          'teacherId' in assignmentData
+        ) {
+          // New format: object with teacherId
+          return (
+            (assignmentData as { teacherId: string }).teacherId === teacher?.id
+          )
+        }
+        return false
+      })
       .map(([sectionId]) => sectionId)
+  }
+
+  // Helper function to get assigned teacher ID for a section (excluding current teacher)
+  const getAssignedTeacherForSection = (
+    subjectId: string,
+    sectionId: string
+  ): string | null => {
+    const subject = selectedSubjects.find((s) => s.id === subjectId)
+    if (!subject?.teacherAssignments) return null
+
+    const assignmentData = subject.teacherAssignments[sectionId]
+    if (!assignmentData) return null
+
+    // Handle both old format (string[]) and new format (object)
+    if (Array.isArray(assignmentData)) {
+      // Old format: array of teacher IDs
+      const otherTeacherId = assignmentData.find((id) => id !== teacher?.id)
+      return otherTeacherId || null
+    } else if (
+      assignmentData &&
+      typeof assignmentData === 'object' &&
+      'teacherId' in assignmentData
+    ) {
+      // New format: object with teacherId
+      const assignedTeacherId = (assignmentData as { teacherId: string })
+        .teacherId
+      return assignedTeacherId !== teacher?.id ? assignedTeacherId : null
+    }
+
+    return null
+  }
+
+  // Helper function to get assigned teacher name for display
+  const getAssignedTeacherName = (
+    subjectId: string,
+    sectionId: string
+  ): string | null => {
+    const teacherId = getAssignedTeacherForSection(subjectId, sectionId)
+    if (!teacherId || !teachersMap[teacherId]) return null
+
+    const t = teachersMap[teacherId]
+    let name = `${t.firstName}`
+    if (t.middleName) name += ` ${t.middleName}`
+    name += ` ${t.lastName}`
+    if (t.extension) name += ` ${t.extension}`
+    return name
+  }
+
+  // Helper function to get assigned teacher email for display
+  const getAssignedTeacherEmail = (
+    subjectId: string,
+    sectionId: string
+  ): string | null => {
+    const teacherId = getAssignedTeacherForSection(subjectId, sectionId)
+    if (!teacherId || !teachersMap[teacherId]) return null
+    return teachersMap[teacherId].email || null
+  }
+
+  // Helper function to check if section is assigned to another teacher
+  const isSectionAssignedToOtherTeacher = (
+    subjectId: string,
+    sectionId: string
+  ): boolean => {
+    return getAssignedTeacherForSection(subjectId, sectionId) !== null
   }
 
   const loadGrades = async () => {
@@ -240,6 +347,49 @@ export default function TeacherAssignmentModal({
       }
     } catch (error) {
       console.error('Error loading courses:', error)
+    }
+  }
+
+  const loadTeachers = async () => {
+    try {
+      const response = await fetch('/api/teachers')
+      const data = await response.json()
+
+      if (response.ok && data.teachers) {
+        setTeachers(data.teachers || [])
+        // Create teachers map for quick lookups
+        const map: Record<
+          string,
+          {
+            firstName: string
+            middleName?: string
+            lastName: string
+            extension?: string
+            email: string
+          }
+        > = {}
+        data.teachers.forEach(
+          (t: {
+            id: string
+            firstName: string
+            middleName?: string
+            lastName: string
+            extension?: string
+            email: string
+          }) => {
+            map[t.id] = {
+              firstName: t.firstName,
+              middleName: t.middleName,
+              lastName: t.lastName,
+              extension: t.extension,
+              email: t.email,
+            }
+          }
+        )
+        setTeachersMap(map)
+      }
+    } catch (error) {
+      console.error('Error loading teachers:', error)
     }
   }
 
@@ -487,8 +637,7 @@ export default function TeacherAssignmentModal({
       filtered = filtered.filter(
         (subject) =>
           subject.code.toLowerCase().includes(query) ||
-          subject.name.toLowerCase().includes(query) ||
-          subject.description?.toLowerCase().includes(query)
+          subject.name.toLowerCase().includes(query)
       )
     }
 
@@ -549,6 +698,16 @@ export default function TeacherAssignmentModal({
       ? selectedSubjects.find((s) => s.id === subjectId)
       : selectedSubjects[currentSubjectIndex]
     if (!subject) return
+
+    // Check for conflicts before allowing selection
+    if (isSectionAssignedToOtherTeacher(subject.id, sectionId)) {
+      const assignedTeacherName = getAssignedTeacherName(subject.id, sectionId)
+      toast.warning(
+        `This section is already assigned to ${assignedTeacherName}. Please remove the existing assignment first.`
+      )
+      return
+    }
+
     setSelectedSectionsBySubject((prev) => {
       const current = prev[subject.id] || []
       const updated = current.includes(sectionId)
@@ -1231,7 +1390,8 @@ export default function TeacherAssignmentModal({
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
                         {getPaginatedCourses().map((course) => {
-                          const isSelected = selectedCourse?.code === course.code
+                          const isSelected =
+                            selectedCourse?.code === course.code
                           const rowHighlightClass = isSelected
                             ? 'bg-blue-50 border border-blue-100'
                             : 'hover:bg-gray-50 cursor-pointer'
@@ -1250,7 +1410,9 @@ export default function TeacherAssignmentModal({
                                   <span
                                     className="inline-block h-3 w-3 rounded"
                                     style={{
-                                      backgroundColor: getColorValue(course.color),
+                                      backgroundColor: getColorValue(
+                                        course.color
+                                      ),
                                     }}
                                     aria-hidden="true"
                                   />
@@ -1268,10 +1430,17 @@ export default function TeacherAssignmentModal({
                                   }}
                                   className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-medium transition-colors ${buttonClasses}`}
                                   aria-label={`Select ${course.name}`}
-                                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                                  style={{
+                                    fontFamily: 'Poppins',
+                                    fontWeight: 400,
+                                  }}
                                 >
                                   {isSelected ? (
-                                    <Check size={14} weight="bold" className="text-white" />
+                                    <Check
+                                      size={14}
+                                      weight="bold"
+                                      className="text-white"
+                                    />
                                   ) : (
                                     <Plus size={14} weight="bold" />
                                   )}
@@ -1285,9 +1454,14 @@ export default function TeacherAssignmentModal({
 
                     {/* Pagination for Courses */}
                     {(() => {
-                      const totalPages = Math.ceil(courses.length / itemsPerPage)
+                      const totalPages = Math.ceil(
+                        courses.length / itemsPerPage
+                      )
                       const startIndex = (currentGradePage - 1) * itemsPerPage
-                      const endIndex = Math.min(startIndex + itemsPerPage, courses.length)
+                      const endIndex = Math.min(
+                        startIndex + itemsPerPage,
+                        courses.length
+                      )
 
                       if (totalPages <= 1) return null
 
@@ -1325,7 +1499,9 @@ export default function TeacherAssignmentModal({
                           >
                             <button
                               onClick={() =>
-                                setCurrentGradePage((prev) => Math.max(1, prev - 1))
+                                setCurrentGradePage((prev) =>
+                                  Math.max(1, prev - 1)
+                                )
                               }
                               disabled={currentGradePage === 1}
                               className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border ${
@@ -1344,14 +1520,23 @@ export default function TeacherAssignmentModal({
                               {pageButtons.map((pageNum) => (
                                 <button
                                   key={pageNum}
-                                  onClick={() => setCurrentGradePage(() => pageNum)}
+                                  onClick={() =>
+                                    setCurrentGradePage(() => pageNum)
+                                  }
                                   className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 border ${
                                     currentGradePage === pageNum
                                       ? 'border-blue-900 bg-blue-900 text-white shadow-lg shadow-blue-900/30'
                                       : 'border-blue-100 bg-white text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
                                   }`}
-                                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                                  aria-current={currentGradePage === pageNum ? 'page' : undefined}
+                                  style={{
+                                    fontFamily: 'Poppins',
+                                    fontWeight: 400,
+                                  }}
+                                  aria-current={
+                                    currentGradePage === pageNum
+                                      ? 'page'
+                                      : undefined
+                                  }
                                 >
                                   {pageNum}
                                 </button>
@@ -1360,7 +1545,9 @@ export default function TeacherAssignmentModal({
 
                             <button
                               onClick={() =>
-                                setCurrentGradePage((prev) => Math.min(totalPages, prev + 1))
+                                setCurrentGradePage((prev) =>
+                                  Math.min(totalPages, prev + 1)
+                                )
                               }
                               disabled={currentGradePage === totalPages}
                               className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border ${
@@ -1473,10 +1660,17 @@ export default function TeacherAssignmentModal({
                                 }}
                                 className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-medium transition-colors ${buttonClasses}`}
                                 aria-label={`Select Grade ${grade.gradeLevel}`}
-                                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
                               >
                                 {isSelected ? (
-                                  <Check size={14} weight="bold" className="text-white" />
+                                  <Check
+                                    size={14}
+                                    weight="bold"
+                                    className="text-white"
+                                  />
                                 ) : (
                                   <Plus size={14} weight="bold" />
                                 )}
@@ -1492,7 +1686,10 @@ export default function TeacherAssignmentModal({
                   {(() => {
                     const totalPages = Math.ceil(grades.length / itemsPerPage)
                     const startIndex = (currentGradePage - 1) * itemsPerPage
-                    const endIndex = Math.min(startIndex + itemsPerPage, grades.length)
+                    const endIndex = Math.min(
+                      startIndex + itemsPerPage,
+                      grades.length
+                    )
 
                     if (totalPages <= 1) return null
 
@@ -1530,7 +1727,9 @@ export default function TeacherAssignmentModal({
                         >
                           <button
                             onClick={() =>
-                              setCurrentGradePage((prev) => Math.max(1, prev - 1))
+                              setCurrentGradePage((prev) =>
+                                Math.max(1, prev - 1)
+                              )
                             }
                             disabled={currentGradePage === 1}
                             className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border ${
@@ -1549,14 +1748,23 @@ export default function TeacherAssignmentModal({
                             {pageButtons.map((pageNum) => (
                               <button
                                 key={pageNum}
-                                onClick={() => setCurrentGradePage(() => pageNum)}
+                                onClick={() =>
+                                  setCurrentGradePage(() => pageNum)
+                                }
                                 className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 border ${
                                   currentGradePage === pageNum
                                     ? 'border-blue-900 bg-blue-900 text-white shadow-lg shadow-blue-900/30'
                                     : 'border-blue-100 bg-white text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
                                 }`}
-                                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                                aria-current={currentGradePage === pageNum ? 'page' : undefined}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                                aria-current={
+                                  currentGradePage === pageNum
+                                    ? 'page'
+                                    : undefined
+                                }
                               >
                                 {pageNum}
                               </button>
@@ -1565,7 +1773,9 @@ export default function TeacherAssignmentModal({
 
                           <button
                             onClick={() =>
-                              setCurrentGradePage((prev) => Math.min(totalPages, prev + 1))
+                              setCurrentGradePage((prev) =>
+                                Math.min(totalPages, prev + 1)
+                              )
                             }
                             disabled={currentGradePage === totalPages}
                             className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border ${
@@ -1677,15 +1887,23 @@ export default function TeacherAssignmentModal({
                             <div>
                               <Label
                                 className="text-xs text-gray-700 mb-2 block"
-                                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
                               >
                                 Course
                               </Label>
                               <select
                                 value={filterCourse}
-                                onChange={(e) => setFilterCourse(e.target.value)}
+                                onChange={(e) =>
+                                  setFilterCourse(e.target.value)
+                                }
                                 className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-                                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
                               >
                                 <option value="">All Courses</option>
                                 {courses.map((course) => (
@@ -1760,84 +1978,97 @@ export default function TeacherAssignmentModal({
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">
                       {getPaginatedSubjects().map((subject) => {
-                      const isSelected = selectedSubjects.some(
-                        (s) => s.id === subject.id
-                      )
-                      const assignedSections = getAssignedSectionsForSubject(
-                        subject
-                      )
-                      const totalUnits =
-                        subject.totalUnits ||
-                        (subject.lectureUnits || 0) + (subject.labUnits || 0)
-                      const rowHighlightClass = isSelected
-                        ? 'bg-blue-50 border border-blue-100'
-                        : 'hover:bg-gray-50'
-                      const buttonClasses = isSelected
-                        ? 'border-blue-900 bg-blue-900 text-white'
-                        : 'border-blue-200 text-blue-900 hover:bg-blue-50'
+                        const isSelected = selectedSubjects.some(
+                          (s) => s.id === subject.id
+                        )
+                        const assignedSections =
+                          getAssignedSectionsForSubject(subject)
+                        const totalUnits =
+                          subject.totalUnits ||
+                          (subject.lectureUnits || 0) + (subject.labUnits || 0)
+                        const rowHighlightClass = isSelected
+                          ? 'bg-blue-50 border border-blue-100'
+                          : 'hover:bg-gray-50'
+                        const buttonClasses = isSelected
+                          ? 'border-blue-900 bg-blue-900 text-white'
+                          : 'border-blue-200 text-blue-900 hover:bg-blue-50'
 
-                      return (
-                        <tr
-                          key={subject.id}
-                          className={`transition-colors ${rowHighlightClass}`}
-                        >
-                          <td className="px-4 py-3 font-semibold text-gray-900">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="inline-block h-3 w-3 rounded"
-                                style={{
-                                  backgroundColor: getColorValue(subject.color),
-                                }}
-                                aria-hidden="true"
-                              />
-                              {subject.code || 'N/A'}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-black font-bold">
-                            {subject.name}
-                            {assignedSections.length > 0 && (
-                              <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-blue-600">
-                                {assignedSections.length} section(s) assigned
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 font-semibold text-gray-900">
-                            {totalUnits} units
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <button
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                handleSubjectToggle(subject)
-                              }}
-                              className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-medium transition-colors ${buttonClasses}`}
-                              aria-label={
-                                isSelected
-                                  ? `Remove ${subject.name}`
-                                  : `Add ${subject.name}`
-                              }
-                              disabled={loading}
-                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                            >
-                              {isSelected ? (
-                                <Minus size={14} weight="bold" className="text-white" />
-                              ) : (
-                                <Plus size={14} weight="bold" />
+                        return (
+                          <tr
+                            key={subject.id}
+                            className={`transition-colors ${rowHighlightClass}`}
+                          >
+                            <td className="px-4 py-3 font-semibold text-gray-900">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="inline-block h-3 w-3 rounded"
+                                  style={{
+                                    backgroundColor: getColorValue(
+                                      subject.color
+                                    ),
+                                  }}
+                                  aria-hidden="true"
+                                />
+                                {subject.code || 'N/A'}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-black font-bold">
+                              {subject.name}
+                              {assignedSections.length > 0 && (
+                                <span className="mt-1 block text-[11px] font-semibold uppercase tracking-wide text-blue-600">
+                                  {assignedSections.length} section(s) assigned
+                                </span>
                               )}
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-gray-900">
+                              {totalUnits} units
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  handleSubjectToggle(subject)
+                                }}
+                                className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-medium transition-colors ${buttonClasses}`}
+                                aria-label={
+                                  isSelected
+                                    ? `Remove ${subject.name}`
+                                    : `Add ${subject.name}`
+                                }
+                                disabled={loading}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {isSelected ? (
+                                  <Minus
+                                    size={14}
+                                    weight="bold"
+                                    className="text-white"
+                                  />
+                                ) : (
+                                  <Plus size={14} weight="bold" />
+                                )}
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
 
                   {/* Pagination */}
                   {(() => {
                     const filteredSubjects = getFilteredSubjects()
-                    const totalPages = Math.ceil(filteredSubjects.length / itemsPerPage)
+                    const totalPages = Math.ceil(
+                      filteredSubjects.length / itemsPerPage
+                    )
                     const startIndex = (currentPage - 1) * itemsPerPage
-                    const endIndex = Math.min(startIndex + itemsPerPage, filteredSubjects.length)
+                    const endIndex = Math.min(
+                      startIndex + itemsPerPage,
+                      filteredSubjects.length
+                    )
 
                     if (totalPages <= 1) return null
 
@@ -1900,8 +2131,13 @@ export default function TeacherAssignmentModal({
                                     ? 'border-blue-900 bg-blue-900 text-white shadow-lg shadow-blue-900/30'
                                     : 'border-blue-100 bg-white text-blue-900 hover:border-blue-300 hover:-translate-y-0.5'
                                 }`}
-                                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                                aria-current={currentPage === pageNum ? 'page' : undefined}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                                aria-current={
+                                  currentPage === pageNum ? 'page' : undefined
+                                }
                               >
                                 {pageNum}
                               </button>
@@ -1910,7 +2146,9 @@ export default function TeacherAssignmentModal({
 
                           <button
                             onClick={() =>
-                              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                              setCurrentPage((prev) =>
+                                Math.min(totalPages, prev + 1)
+                              )
                             }
                             disabled={currentPage === totalPages}
                             className={`rounded-lg text-xs font-medium px-3 py-2 transition-all duration-200 flex items-center gap-1 border ${
@@ -2086,9 +2324,17 @@ export default function TeacherAssignmentModal({
                                 [subject.id]: [],
                               }))
                               // Reload subjects to get fresh teacherAssignments data
-                              if (selectedLevel === 'high-school' && selectedGrade) {
-                                await loadSubjectsForGrade(selectedGrade.gradeLevel)
-                              } else if (selectedLevel === 'college' && selectedCourse) {
+                              if (
+                                selectedLevel === 'high-school' &&
+                                selectedGrade
+                              ) {
+                                await loadSubjectsForGrade(
+                                  selectedGrade.gradeLevel
+                                )
+                              } else if (
+                                selectedLevel === 'college' &&
+                                selectedCourse
+                              ) {
                                 await loadSubjectsForCourse(selectedCourse.code)
                               }
                             }
@@ -2132,14 +2378,48 @@ export default function TeacherAssignmentModal({
                         const isSelected = (
                           selectedSectionsBySubject[subject.id] || []
                         ).includes(section.id)
+                        const isAssignedToOther =
+                          isSectionAssignedToOtherTeacher(
+                            subject.id,
+                            section.id
+                          )
+                        const assignedTeacherName = getAssignedTeacherName(
+                          subject.id,
+                          section.id
+                        )
+                        const assignedTeacherEmail = getAssignedTeacherEmail(
+                          subject.id,
+                          section.id
+                        )
                         return (
                           <button
                             key={`${subject.id}-${section.id}`}
-                            onClick={() =>
-                              handleSectionToggle(section.id, subject.id)
-                            }
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (isAssignedToOther) {
+                                // Open replacement modal
+                                const sectionData = sections.find(
+                                  (s) => s.id === section.id
+                                )
+                                setReplacementData({
+                                  subjectId: subject.id,
+                                  sectionId: section.id,
+                                  sectionName:
+                                    sectionData?.sectionName || section.id,
+                                  currentTeacherName:
+                                    assignedTeacherName || 'Unknown Teacher',
+                                  currentTeacherEmail:
+                                    assignedTeacherEmail || '',
+                                })
+                                setShowReplaceModal(true)
+                              } else {
+                                handleSectionToggle(section.id, subject.id)
+                              }
+                            }}
                             className={`p-4 border-2 rounded-xl transition-all duration-200 text-left animate-in fade-in slide-in-from-bottom-4 ${
-                              isSelected
+                              isAssignedToOther
+                                ? 'border-red-300 bg-red-50 hover:bg-red-100 cursor-pointer'
+                                : isSelected
                                 ? 'border-blue-500 bg-blue-50'
                                 : 'border-gray-200 hover:border-blue-300 hover:bg-blue-25'
                             }`}
@@ -2148,17 +2428,30 @@ export default function TeacherAssignmentModal({
                               animationFillMode: 'both',
                             }}
                             disabled={loading}
+                            title={
+                              isAssignedToOther
+                                ? `Click to replace ${assignedTeacherName} with ${teacher?.firstName} ${teacher?.lastName}`
+                                : undefined
+                            }
                           >
                             <div className="flex items-center gap-3">
                               <div
                                 className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                                  isSelected ? 'bg-gradient-to-br from-blue-800 to-blue-900' : 'bg-white border border-gray-200'
+                                  isAssignedToOther
+                                    ? 'bg-red-100 border border-red-300'
+                                    : isSelected
+                                    ? 'bg-gradient-to-br from-blue-800 to-blue-900'
+                                    : 'bg-white border border-gray-200'
                                 }`}
                               >
                                 <Users
                                   size={16}
                                   className={
-                                    isSelected ? 'text-white' : 'text-gray-600'
+                                    isAssignedToOther
+                                      ? 'text-red-600'
+                                      : isSelected
+                                      ? 'text-white'
+                                      : 'text-gray-600'
                                   }
                                   weight="fill"
                                 />
@@ -2171,10 +2464,37 @@ export default function TeacherAssignmentModal({
                                     fontWeight: 500,
                                   }}
                                 >
-                                  Section {section.sectionName}
+                                  {section.sectionName}
                                 </h5>
+                                {(assignedTeacherName ||
+                                  assignedTeacherEmail) && (
+                                  <div className="mt-1 space-y-0.5">
+                                    {assignedTeacherName && (
+                                      <p
+                                        className="text-[10px] text-black font-mono"
+                                        style={{
+                                          fontFamily: 'monospace',
+                                          fontWeight: 400,
+                                        }}
+                                      >
+                                        {assignedTeacherName}
+                                      </p>
+                                    )}
+                                    {assignedTeacherEmail && (
+                                      <p
+                                        className="text-[10px] text-black font-mono"
+                                        style={{
+                                          fontFamily: 'monospace',
+                                          fontWeight: 400,
+                                        }}
+                                      >
+                                        {assignedTeacherEmail}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
                                 <p
-                                  className="text-xs text-gray-600"
+                                  className="text-xs text-gray-600 mt-1"
                                   style={{
                                     fontFamily: 'Poppins',
                                     fontWeight: 300,
@@ -2185,13 +2505,18 @@ export default function TeacherAssignmentModal({
                               </div>
                               <div
                                 className={`w-5 h-5 border-2 flex items-center justify-center ${
-                                  isSelected
+                                  isAssignedToOther
+                                    ? 'border-red-300 bg-red-100'
+                                    : isSelected
                                     ? 'border-blue-500 bg-blue-500'
                                     : 'border-gray-300'
                                 }`}
                               >
-                                {isSelected && (
+                                {isSelected && !isAssignedToOther && (
                                   <Check size={12} className="text-white" />
+                                )}
+                                {isAssignedToOther && (
+                                  <X size={12} className="text-red-600" />
                                 )}
                               </div>
                             </div>
@@ -2237,6 +2562,238 @@ export default function TeacherAssignmentModal({
           </div>
         )}
       </div>
+
+      {/* Replacement Confirmation Modal */}
+      <Modal
+        isOpen={showReplaceModal}
+        onClose={() => setShowReplaceModal(false)}
+        title="Replace Teacher Assignment"
+        size="md"
+        zIndex={60}
+      >
+        <div className="p-6">
+          {replacementData && (
+            <>
+              <div className="mb-6">
+                <p
+                  className="text-sm text-gray-700 mb-4"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Are you sure you want to replace the current teacher
+                  assignment?
+                </p>
+
+                <div className="space-y-4">
+                  {/* Current Teacher */}
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <p
+                      className="text-xs text-gray-600 mb-2"
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    >
+                      Current Teacher:
+                    </p>
+                    <p
+                      className="text-sm font-medium text-black font-mono"
+                      style={{ fontFamily: 'monospace', fontWeight: 500 }}
+                    >
+                      {replacementData.currentTeacherName}
+                    </p>
+                    {replacementData.currentTeacherEmail && (
+                      <p
+                        className="text-xs text-black font-mono mt-1"
+                        style={{ fontFamily: 'monospace', fontWeight: 400 }}
+                      >
+                        {replacementData.currentTeacherEmail}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Arrow */}
+                  <div className="flex justify-center">
+                    <ArrowRight size={20} className="text-gray-400" />
+                  </div>
+
+                  {/* New Teacher */}
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <p
+                      className="text-xs text-gray-600 mb-2"
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    >
+                      New Teacher:
+                    </p>
+                    <p
+                      className="text-sm font-medium text-black font-mono"
+                      style={{ fontFamily: 'monospace', fontWeight: 500 }}
+                    >
+                      {teacher?.firstName}{' '}
+                      {teacher?.middleName && `${teacher.middleName} `}
+                      {teacher?.lastName}
+                      {teacher?.extension && ` ${teacher.extension}`}
+                    </p>
+                  </div>
+
+                  {/* Section Info */}
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                    <p
+                      className="text-xs text-gray-600"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      Section:{' '}
+                      <span className="font-medium">
+                        {replacementData.sectionName}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowReplaceModal(false)}
+                  variant="outline"
+                  className="flex-1 rounded-lg"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (!replacementData || !teacher?.id) return
+
+                    try {
+                      setAssigning(true)
+                      // Remove current teacher assignment
+                      const currentTeacherId = getAssignedTeacherForSection(
+                        replacementData.subjectId,
+                        replacementData.sectionId
+                      )
+                      if (currentTeacherId) {
+                        const removeUrl = `/api/teacher-assignments?subjectId=${encodeURIComponent(
+                          replacementData.subjectId
+                        )}&sectionId=${encodeURIComponent(
+                          replacementData.sectionId
+                        )}&registrarUid=${encodeURIComponent(
+                          registrarUid
+                        )}&teacherId=${encodeURIComponent(currentTeacherId)}`
+                        await fetch(removeUrl, { method: 'DELETE' })
+                      }
+
+                      // Assign new teacher
+                      const assignResponse = await fetch(
+                        '/api/teacher-assignments',
+                        {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            subjectId: replacementData.subjectId,
+                            sectionId: replacementData.sectionId,
+                            teacherId: teacher.id,
+                            registrarUid,
+                          }),
+                        }
+                      )
+
+                      const assignData = await assignResponse.json()
+
+                      if (assignResponse.ok) {
+                        // Update function to modify teacherAssignments
+                        const updateSubjectAssignments = (
+                          subj: Subject
+                        ): Subject => {
+                          if (subj.id === replacementData.subjectId) {
+                            const updatedAssignments = {
+                              ...(subj.teacherAssignments || {}),
+                            }
+                            // Update the section assignment to use new format (object with teacherId)
+                            // This matches the API's format when schedule is not provided
+                            updatedAssignments[replacementData.sectionId] = {
+                              teacherId: teacher.id,
+                            } as any
+                            return {
+                              ...subj,
+                              teacherAssignments: updatedAssignments,
+                            }
+                          }
+                          return subj
+                        }
+
+                        // Update both subjects and selectedSubjects for instant UI update
+                        setSubjects((prevSubjects) => {
+                          return prevSubjects.map(updateSubjectAssignments)
+                        })
+
+                        setSelectedSubjects((prevSelected) => {
+                          return prevSelected.map(updateSubjectAssignments)
+                        })
+
+                        // Add to selected sections
+                        setSelectedSectionsBySubject((prev) => {
+                          const current = prev[replacementData.subjectId] || []
+                          if (!current.includes(replacementData.sectionId)) {
+                            return {
+                              ...prev,
+                              [replacementData.subjectId]: [
+                                ...current,
+                                replacementData.sectionId,
+                              ],
+                            }
+                          }
+                          return prev
+                        })
+
+                        toast.success(
+                          `Successfully replaced ${replacementData.currentTeacherName} with ${teacher.firstName} ${teacher.lastName}`
+                        )
+
+                        setShowReplaceModal(false)
+                        setReplacementData(null)
+
+                        // Reload subjects in background to ensure data consistency
+                        if (selectedLevel === 'high-school' && selectedGrade) {
+                          loadSubjectsForGrade(selectedGrade.gradeLevel).catch(
+                            console.error
+                          )
+                        } else if (
+                          selectedLevel === 'college' &&
+                          selectedCourse
+                        ) {
+                          loadSubjectsForCourse(selectedCourse.code).catch(
+                            console.error
+                          )
+                        }
+                      } else {
+                        toast.error(
+                          assignData.error ||
+                            'Failed to replace teacher assignment'
+                        )
+                      }
+                    } catch (error) {
+                      console.error('Error replacing teacher:', error)
+                      toast.error('Failed to replace teacher assignment')
+                    } finally {
+                      setAssigning(false)
+                    }
+                  }}
+                  disabled={assigning}
+                  className="flex-1 rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white border"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  {assigning ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Replacing...
+                    </>
+                  ) : (
+                    'Confirm Replacement'
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
     </Modal>
   )
 }
@@ -2244,7 +2801,6 @@ export default function TeacherAssignmentModal({
 // Helper function to get color value
 const getColorValue = (color: string): string => {
   const colorMap: Record<string, string> = {
-    'blue-900': '#1d4ed8',
     'blue-900': '#1e40af',
     'red-700': '#b91c1c',
     'red-800': '#991b1b',

@@ -7,8 +7,10 @@ import {
   Users,
   ArrowLeft,
   ArrowRight,
+  Printer,
 } from '@phosphor-icons/react'
 import { toast } from 'react-toastify'
+import TeacherSchedulePrintModal from './teacher-schedule-print'
 
 interface TeacherClassesViewProps {
   teacherId: string
@@ -31,7 +33,10 @@ interface Subject {
     year: number
     semester: 'first-sem' | 'second-sem'
   }[] // College course selections
-  teacherAssignments?: Record<string, string[]>
+  // Mixed format for backward compatibility:
+  // - Old: Record<sectionId, string[]> (array of teacherIds)
+  // - New: Record<sectionId, { teacherId: string; schedule?: { dayOfWeek: string | string[]; startTime?: string; endTime?: string; room?: string; deliveryMode?: string } }>
+  teacherAssignments?: Record<string, any>
 }
 
 interface Section {
@@ -58,6 +63,14 @@ interface TeacherAssignment {
   teacherId: string
 }
 
+interface TeacherDetails {
+  id: string
+  firstName: string
+  middleName?: string
+  lastName: string
+  extension?: string
+}
+
 export default function TeacherClassesView({
   teacherId,
 }: TeacherClassesViewProps) {
@@ -74,9 +87,55 @@ export default function TeacherClassesView({
   const [selectedGradeFilter, setSelectedGradeFilter] = useState<string[]>([])
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
+  const [teacherDetails, setTeacherDetails] = useState<TeacherDetails | null>(
+    null
+  )
+  const [loadingTeacherDetails, setLoadingTeacherDetails] = useState(true)
+  const [showPrintScheduleModal, setShowPrintScheduleModal] = useState(false)
 
   useEffect(() => {
     loadTeacherAssignments()
+  }, [teacherId])
+
+  useEffect(() => {
+    const loadTeacherDetails = async () => {
+      try {
+        setLoadingTeacherDetails(true)
+        const response = await fetch('/api/teachers')
+        if (!response.ok) {
+          throw new Error('Failed to load teacher details')
+        }
+        const data = await response.json()
+        const teacher = data.teachers?.find((t: any) => t.id === teacherId)
+        if (teacher) {
+          setTeacherDetails({
+            id: teacher.id,
+            firstName: teacher.firstName || 'Teacher',
+            middleName: teacher.middleName,
+            lastName: teacher.lastName || '',
+            extension: teacher.extension,
+          })
+        } else {
+          setTeacherDetails({
+            id: teacherId,
+            firstName: 'Teacher',
+            lastName: '',
+          })
+        }
+      } catch (error) {
+        console.error('Error loading teacher details:', error)
+        toast.error('Failed to load teacher information')
+        setTeacherDetails({
+          id: teacherId,
+          firstName: 'Teacher',
+          lastName: '',
+        })
+      } finally {
+        setLoadingTeacherDetails(false)
+      }
+    }
+
+    loadTeacherDetails()
   }, [teacherId])
 
   useEffect(() => {
@@ -206,6 +265,47 @@ export default function TeacherClassesView({
 
   const getGradeColor = (color: string): string => {
     return getSubjectColor(color)
+  }
+
+  const getSectionSchedule = (
+    subject: Subject,
+    sectionId: string
+  ): {
+    startTime?: string
+    endTime?: string
+    dayOfWeek?: string | string[]
+  } => {
+    const teacherAssignments = subject.teacherAssignments as any
+    if (!teacherAssignments) return {}
+
+    const assignmentData = teacherAssignments[sectionId]
+    if (!assignmentData) return {}
+
+    // Old format: just teacher IDs, no schedule
+    if (Array.isArray(assignmentData)) {
+      return {}
+    }
+
+    // New format: object with teacherId and optional schedule
+    if (
+      assignmentData &&
+      typeof assignmentData === 'object' &&
+      'schedule' in assignmentData &&
+      assignmentData.schedule
+    ) {
+      const schedule = assignmentData.schedule as {
+        dayOfWeek?: string | string[]
+        startTime?: string
+        endTime?: string
+      }
+      return {
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        dayOfWeek: schedule.dayOfWeek,
+      }
+    }
+
+    return {}
   }
 
   // Group assignments by subject
@@ -588,21 +688,43 @@ export default function TeacherClassesView({
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl p-6">
-        <h1
-          className="text-2xl font-light text-white flex items-center gap-2"
-          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-        >
-          <div className="w-8 h-8 aspect-square bg-white rounded-xl flex items-center justify-center">
-            <BookOpen size={20} weight="fill" className="text-blue-900" />
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1
+              className="text-2xl font-light text-white flex items-center gap-2"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              <div className="w-8 h-8 aspect-square bg-white rounded-xl flex items-center justify-center">
+                <BookOpen size={20} weight="fill" className="text-blue-900" />
+              </div>
+              My Classes ({filteredAssignments.length})
+            </h1>
+            <p
+              className="text-xs text-blue-100 mt-1"
+              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+            >
+              View your assigned subjects and sections
+            </p>
           </div>
-          My Classes ({filteredAssignments.length})
-        </h1>
-        <p
-          className="text-xs text-blue-100 mt-1"
-          style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-        >
-          View your assigned subjects and sections
-        </p>
+          <button
+            type="button"
+            onClick={() => {
+              if (!loadingTeacherDetails) {
+                setShowPrintScheduleModal(true)
+              }
+            }}
+            disabled={loadingTeacherDetails}
+            className={`inline-flex items-center gap-2 rounded-lg border border-white/40 px-4 py-2 text-sm font-medium transition-colors ${
+              loadingTeacherDetails
+                ? 'bg-white/10 text-white/60 cursor-not-allowed'
+                : 'bg-white text-blue-900 hover:bg-blue-50'
+            }`}
+            style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+          >
+            <Printer size={16} weight="bold" />
+            Print Schedule
+          </button>
+        </div>
       </div>
       <div className="flex flex-col gap-3">
         <div className="space-y-3 bg-white/80 border border-blue-100 rounded-xl px-4 py-4 shadow-sm">
@@ -822,14 +944,14 @@ export default function TeacherClassesView({
                   </div>
                 </th>
                 <th
-                  className="px-6 py-3 text-left font-medium"
+                  className="px-6 py-3 text-left font-medium border-r border-blue-200"
                   style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                 >
                   <div className="flex items-center gap-2">
                     <span className="w-8 h-8 aspect-square rounded-lg bg-blue-900 text-white flex items-center justify-center">
-                      <GraduationCap size={14} weight="bold" />
+                      <BookOpen size={14} weight="bold" />
                     </span>
-                    Students
+                    Schedule
                   </div>
                 </th>
               </tr>
@@ -861,55 +983,118 @@ export default function TeacherClassesView({
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5 border-r border-blue-200">
-                      <div className="flex flex-wrap gap-2">
-                        {sections.map((section) => (
-                          <div
-                            key={section.id}
-                            className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50/60 px-3 py-1 text-xs text-blue-900"
-                            style={{ fontFamily: 'monospace', fontWeight: 400 }}
-                          >
-                            <span
-                              className="w-2.5 h-2.5 rounded-full"
-                              style={{
-                                backgroundColor: getGradeColor(
-                                  grades[section.gradeId]?.color || 'blue-900'
-                                ),
-                              }}
-                            ></span>
-                            {section.sectionName} • {section.rank}
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex flex-wrap gap-2">
+                    <td className="px-6 py-5 border-r border-blue-200 align-top">
+                      <div className="flex flex-col gap-2">
                         {sections.map((section) => {
                           const studentCount =
                             sectionStudentCounts[section.id] || 0
                           return (
                             <div
                               key={section.id}
-                              className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50/60 px-3 py-1 text-xs text-blue-900"
+                              className="inline-flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-2 text-[11px] text-blue-900"
                               style={{
                                 fontFamily: 'monospace',
                                 fontWeight: 400,
                               }}
                             >
-                              <GraduationCap
-                                size={12}
-                                weight="fill"
-                                className="text-blue-900"
-                              />
-                              <span>
-                                {studentCount} student
-                                {studentCount !== 1 ? 's' : ''}
-                              </span>
+                              <div className="flex flex-col leading-tight">
+                                <div className="flex items-center gap-1">
+                                  <Users
+                                    size={11}
+                                    weight="fill"
+                                    className="text-blue-900"
+                                  />
+                                  <span className="text-xs font-medium">
+                                    {section.sectionName}
+                                  </span>
+                                </div>
+                                <span className="text-[11px] text-blue-900/80 mt-0.5 flex items-center gap-1">
+                                  <GraduationCap
+                                    size={10}
+                                    weight="fill"
+                                    className="text-blue-900"
+                                  />
+                                  {studentCount} student
+                                  {studentCount !== 1 ? 's' : ''}
+                                </span>
+                              </div>
                             </div>
                           )
                         })}
                       </div>
                     </td>
+                    <td className="px-6 py-5 border-r border-blue-200 align-top">
+                      <div className="flex flex-col gap-2">
+                        {sections.map((section) => {
+                          const schedule = getSectionSchedule(
+                            subject,
+                            section.id
+                          )
+
+                          const hasTime = schedule.startTime && schedule.endTime
+                          const days = schedule.dayOfWeek
+
+                          let dayLabel: string | null = null
+                          if (days) {
+                            const dayArray: string[] = Array.isArray(days)
+                              ? days
+                              : [days]
+
+                            const abbrevMap: Record<string, string> = {
+                              Monday: 'Mon',
+                              Tuesday: 'Tue',
+                              Wednesday: 'Wed',
+                              Thursday: 'Thu',
+                              Friday: 'Fri',
+                              Saturday: 'Sat',
+                              Sunday: 'Sun',
+                            }
+
+                            dayLabel = dayArray
+                              .map((d) => abbrevMap[d] || d.slice(0, 3))
+                              .join(', ')
+                          }
+
+                          if (!hasTime && !dayLabel) {
+                            return (
+                              <div
+                                key={section.id}
+                                className="px-3 py-2 rounded-xl border border-dashed border-blue-100 bg-blue-50/40 text-[11px] text-blue-900/70"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                <p>No schedule set</p>
+                              </div>
+                            )
+                          }
+
+                          return (
+                            <div
+                              key={section.id}
+                              className="px-3 py-2 rounded-xl border border-blue-100 bg-blue-50/40 text-[11px] text-blue-900 space-y-1"
+                              style={{
+                                fontFamily: 'Poppins',
+                                fontWeight: 400,
+                              }}
+                            >
+                              {hasTime && (
+                                <p className="font-semibold">
+                                  {schedule.startTime} - {schedule.endTime}
+                                </p>
+                              )}
+                              {dayLabel && (
+                                <p className="text-[11px] text-blue-900/80">
+                                  {dayLabel}
+                                </p>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </td>
+                    {/* Students column removed; counts moved into Sections chips */}
                   </tr>
                 )
               )}
@@ -997,6 +1182,13 @@ export default function TeacherClassesView({
           )}
         </div>
       </div>
+
+      <TeacherSchedulePrintModal
+        isOpen={showPrintScheduleModal}
+        onClose={() => setShowPrintScheduleModal(false)}
+        teacher={teacherDetails}
+        registrarUid=""
+      />
     </div>
   )
 }

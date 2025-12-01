@@ -157,4 +157,31 @@ export class AuthServer {
 
     return user;
   }
+
+  /**
+   * Verify session cookie outside of a NextRequest context
+   */
+  static async getUserFromSessionCookie(
+    sessionCookie?: string | null
+  ): Promise<AuthenticatedUser | null> {
+    if (!sessionCookie) {
+      return null;
+    }
+
+    try {
+      const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
+
+      return {
+        uid: decodedToken.uid,
+        email: decodedToken.email || '',
+        emailVerified: decodedToken.email_verified || false,
+        displayName: decodedToken.name,
+        photoURL: decodedToken.picture,
+        role: decodedToken.role || 'student',
+      };
+    } catch (error) {
+      logger.error('Session verification via cookie failed', error);
+      return null;
+    }
+  }
 }

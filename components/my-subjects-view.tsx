@@ -12,8 +12,10 @@ import {
   XCircle,
   MagnifyingGlass,
   Funnel,
+  Printer,
 } from '@phosphor-icons/react'
 import { toast } from 'react-toastify'
+import StudentSchedulePrintModal from './student-schedule-print'
 
 interface SubjectData {
   id: string
@@ -26,7 +28,10 @@ interface SubjectData {
   gradeLevel: number
   createdAt: string
   updatedAt: string
-  teacherAssignments?: Record<string, string[]>
+  // Mixed format for backward compatibility:
+  // - Old: Record<sectionId, string[]> (array of teacherIds)
+  // - New: Record<sectionId, { teacherId: string; schedule?: { dayOfWeek?: string | string[]; startTime?: string; endTime?: string; room?: string; deliveryMode?: string } }>
+  teacherAssignments?: Record<string, any>
 }
 
 interface Teacher {
@@ -111,6 +116,7 @@ export default function MySubjectsView({
   const [error, setError] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSubjectSet, setSelectedSubjectSet] = useState<string>('all')
+  const [showPrintScheduleModal, setShowPrintScheduleModal] = useState(false)
 
   useEffect(() => {
     loadStudentData()
@@ -376,6 +382,75 @@ export default function MySubjectsView({
       'purple-800': '#581c87',
     }
     return colorMap[color] || '#1e40af'
+  }
+
+  // Helper to resolve the teacher assigned to this subject for the student's section
+  const getSubjectTeacherIdForStudent = (
+    subject: SubjectData
+  ): string | null => {
+    const sectionId = enrollment?.enrollmentInfo?.sectionId
+    if (!sectionId || !subject.teacherAssignments) return null
+
+    const assignmentData = (subject.teacherAssignments as any)[sectionId]
+    if (!assignmentData) return null
+
+    // Old format: array of teacherIds
+    if (Array.isArray(assignmentData)) {
+      return (assignmentData[0] as string) || null
+    }
+
+    // New format: object with teacherId and optional schedule
+    if (
+      assignmentData &&
+      typeof assignmentData === 'object' &&
+      'teacherId' in assignmentData
+    ) {
+      return (assignmentData.teacherId as string) || null
+    }
+
+    return null
+  }
+
+  const getSubjectSchedule = (
+    subject: SubjectData
+  ): {
+    startTime?: string
+    endTime?: string
+    dayOfWeek?: string | string[]
+  } => {
+    const sectionId = enrollment?.enrollmentInfo?.sectionId
+    if (!sectionId) return {}
+
+    const assignments = subject.teacherAssignments as any
+    if (!assignments) return {}
+
+    const assignmentData = assignments[sectionId]
+    if (!assignmentData) return {}
+
+    // Old format: just teacher IDs, no schedule
+    if (Array.isArray(assignmentData)) {
+      return {}
+    }
+
+    if (
+      assignmentData &&
+      typeof assignmentData === 'object' &&
+      'schedule' in assignmentData &&
+      assignmentData.schedule
+    ) {
+      const schedule = assignmentData.schedule as {
+        dayOfWeek?: string | string[]
+        startTime?: string
+        endTime?: string
+      }
+      return {
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        dayOfWeek: schedule.dayOfWeek,
+      }
+    }
+
+    return {}
   }
 
   if (loading) {
@@ -688,15 +763,25 @@ export default function MySubjectsView({
             </div>
           </div>
 
-          {/* Enrollment Status Badge */}
-          <div className="flex items-center space-x-2 rounded-xl border border-green-100 shadow-sm px-3 py-2 bg-green-50">
-            <CheckCircle size={16} className="text-green-600" weight="fill" />
-            <span
-              className="text-xs text-green-700 font-medium"
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowPrintScheduleModal(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-blue-900 bg-white px-3 py-2 text-xs font-medium text-blue-900 hover:bg-blue-50"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
-              Enrolled - {enrollment.enrollmentInfo?.schoolYear}
-            </span>
+              <Printer size={14} weight="bold" />
+              Print Schedule
+            </button>
+            <div className="flex items-center space-x-2 rounded-xl border border-green-100 shadow-sm px-3 py-2 bg-green-50">
+              <CheckCircle size={16} className="text-green-600" weight="fill" />
+              <span
+                className="text-xs text-green-700 font-medium"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Enrolled - {enrollment.enrollmentInfo?.schoolYear}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -802,6 +887,21 @@ export default function MySubjectsView({
                   </div>
                 </th>
                 <th
+                  className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider border-r border-blue-800"
+                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 aspect-square rounded-md bg-white flex items-center justify-center">
+                      <BookOpen
+                        size={12}
+                        weight="bold"
+                        className="text-blue-900"
+                      />
+                    </div>
+                    Schedule
+                  </div>
+                </th>
+                <th
                   className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
                   style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                 >
@@ -818,7 +918,7 @@ export default function MySubjectsView({
               {filteredSubjects.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={2}
+                    colSpan={3}
                     className="px-6 py-8 text-center text-gray-500 border-t border-gray-200"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
@@ -864,6 +964,63 @@ export default function MySubjectsView({
                       </div>
                     </td>
 
+                    {/* Schedule Column */}
+                    <td className="px-6 py-4 whitespace-nowrap border-r border-gray-200 align-top">
+                      {(() => {
+                        const schedule = getSubjectSchedule(subject)
+                        const hasTime = schedule.startTime && schedule.endTime
+                        const days = schedule.dayOfWeek
+
+                        let dayLabel: string | null = null
+                        if (days) {
+                          const dayArray: string[] = Array.isArray(days)
+                            ? days
+                            : [days]
+                          const abbrevMap: Record<string, string> = {
+                            Monday: 'Mon',
+                            Tuesday: 'Tue',
+                            Wednesday: 'Wed',
+                            Thursday: 'Thu',
+                            Friday: 'Fri',
+                            Saturday: 'Sat',
+                            Sunday: 'Sun',
+                          }
+                          dayLabel = dayArray
+                            .map((d) => abbrevMap[d] || d.slice(0, 3))
+                            .join(', ')
+                        }
+
+                        if (!hasTime && !dayLabel) {
+                          return (
+                            <span
+                              className="text-xs text-gray-400 italic"
+                              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                            >
+                              No schedule set
+                            </span>
+                          )
+                        }
+
+                        return (
+                          <div
+                            className="flex flex-col text-xs text-blue-900"
+                            style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                          >
+                            {hasTime && (
+                              <span className="font-semibold">
+                                {schedule.startTime} - {schedule.endTime}
+                              </span>
+                            )}
+                            {dayLabel && (
+                              <span className="text-[11px] text-blue-900/80">
+                                {dayLabel}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </td>
+
                     {/* Teacher Column */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       {(() => {
@@ -901,12 +1058,9 @@ export default function MySubjectsView({
                           )
                         }
 
-                        // Get teachers assigned to this subject for the student's section
-                        const assignedTeachers = teacherAssignments[subject.id]
-                        if (
-                          !assignedTeachers ||
-                          assignedTeachers.length === 0
-                        ) {
+                        // Resolve teacher from subject's teacherAssignments for the student's section
+                        const teacherId = getSubjectTeacherIdForStudent(subject)
+                        if (!teacherId) {
                           return (
                             <div className="flex items-center">
                               <div className="text-xs text-gray-900 font-mono">
@@ -918,8 +1072,6 @@ export default function MySubjectsView({
                           )
                         }
 
-                        // Get the first assigned teacher (assuming one main teacher per subject per section)
-                        const teacherId = assignedTeachers[0]
                         const teacher = teachers[teacherId]
 
                         if (!teacher) {
@@ -1028,6 +1180,14 @@ export default function MySubjectsView({
           </table>
         </div>
       </Card>
+
+      <StudentSchedulePrintModal
+        isOpen={showPrintScheduleModal}
+        onClose={() => setShowPrintScheduleModal(false)}
+        enrollment={enrollment}
+        subjects={enrolledSubjects}
+        teachers={teachers}
+      />
     </div>
   )
 }
