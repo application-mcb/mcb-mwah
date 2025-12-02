@@ -348,3 +348,63 @@ button {
     box-shadow: 0 0 30px rgba(30, 64, 175, 0.8);
   }
 }
+
+/* Animated Wavy Background */
+@keyframes wave1 {
+  0% {
+    transform: translateX(0) translateY(0);
+  }
+  33% {
+    transform: translateX(-30px) translateY(15px);
+  }
+  66% {
+    transform: translateX(15px) translateY(-10px);
+  }
+  100% {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+@keyframes wave2 {
+  0% {
+    transform: translateX(0) translateY(0);
+  }
+  33% {
+    transform: translateX(25px) translateY(-12px);
+  }
+  66% {
+    transform: translateX(-20px) translateY(8px);
+  }
+  100% {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+@keyframes wave3 {
+  0% {
+    transform: translateX(0) translateY(0);
+  }
+  33% {
+    transform: translateX(-18px) translateY(6px);
+  }
+  66% {
+    transform: translateX(22px) translateY(-5px);
+  }
+  100% {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+.animate-wave1 {
+  animation: wave1 15s ease-in-out infinite;
+}
+
+.animate-wave2 {
+  animation: wave2 18s ease-in-out infinite;
+  animation-delay: -3s;
+}
+
+.animate-wave3 {
+  animation: wave3 20s ease-in-out infinite;
+  animation-delay: -6s;
+}

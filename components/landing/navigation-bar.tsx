@@ -2,14 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  List,
-  X,
-  House,
-  SquaresFour,
-  CalendarBlank,
-  GraduationCap,
-} from '@phosphor-icons/react'
+import { List, X } from '@phosphor-icons/react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuth } from '@/lib/auth-context'
@@ -21,13 +14,6 @@ export const NavigationBar = () => {
   const [scrollProgress, setScrollProgress] = useState(0)
   const router = useRouter()
   const { user } = useAuth()
-
-  const navigationLinks = [
-    { id: 'hero', label: 'Home', Icon: House },
-    { id: 'features', label: 'Features', Icon: SquaresFour },
-    { id: 'events', label: 'Events', Icon: CalendarBlank },
-    { id: 'programs', label: 'Programs', Icon: GraduationCap },
-  ]
 
   useEffect(() => {
     let ticking = false
@@ -53,14 +39,6 @@ export const NavigationBar = () => {
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
-
-  const handleSmoothScroll = (id: string) => {
-    const element = document.getElementById(id)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-    setIsMobileMenuOpen(false)
-  }
 
   const handleLogin = () => {
     router.push('/login')
@@ -154,23 +132,11 @@ export const NavigationBar = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
-              {navigationLinks.map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => handleSmoothScroll(id)}
-                  className="flex items-center space-x-2 text-blue-900 hover:text-blue-800 transition-colors duration-200"
-                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                  aria-label={`Navigate to ${label}`}
-                >
-                  <Icon size={18} weight="regular" aria-hidden="true" />
-                  <span>{label}</span>
-                </button>
-              ))}
               {user ? (
                 <button
                   onClick={handleAvatarClick}
                   disabled={isNavigating}
-                  className="w-10 h-10 rounded-full overflow-hidden bg-blue-900 flex items-center justify-center border-2 border-blue-900 hover:opacity-80 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
+                  className="w-10 h-10 rounded-full overflow-hidden bg-blue-900 flex items-center justify-center border-2 border-blue-900 cursor-pointer disabled:opacity-50"
                   aria-label="Go to dashboard"
                 >
                   {user.photoURL ? (
@@ -192,18 +158,17 @@ export const NavigationBar = () => {
                 </button>
               ) : (
                 <div className="flex items-center space-x-3">
-                  <Button
+                  <button
                     onClick={handleLogin}
-                    variant="outline"
-                    className="rounded-lg border-blue-900 text-blue-900 hover:bg-blue-50"
+                    className="rounded-lg px-6 py-2.5 text-blue-900 border-0 bg-transparent"
                     style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                   >
                     Login
-                  </Button>
+                  </button>
                   <Button
                     onClick={handleLogin}
-                    className="rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white"
-                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    className="rounded-lg px-6 py-2.5 bg-blue-900 text-white border-0"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                   >
                     Get Started
                   </Button>
@@ -214,13 +179,13 @@ export const NavigationBar = () => {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg text-blue-900 hover:bg-blue-50 transition-colors"
+              className="md:hidden p-2.5 rounded-lg text-blue-900"
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
-                <X size={24} weight="bold" />
+                <X size={22} weight="regular" className="text-blue-900" />
               ) : (
-                <List size={24} weight="bold" />
+                <List size={22} weight="regular" className="text-blue-900" />
               )}
             </button>
           </div>
@@ -230,25 +195,13 @@ export const NavigationBar = () => {
         {isMobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-blue-100 animate-in slide-in-from-top duration-300">
             <div className="px-4 py-4 space-y-3">
-              {navigationLinks.map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => handleSmoothScroll(id)}
-                  className="flex items-center space-x-3 w-full text-left text-blue-900 hover:text-blue-800 py-2 transition-colors"
-                  style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                  aria-label={`Navigate to ${label}`}
-                >
-                  <Icon size={18} weight="regular" aria-hidden="true" />
-                  <span>{label}</span>
-                </button>
-              ))}
-              <div className="pt-4 space-y-2 border-t border-blue-100">
+              <div className="space-y-2">
                 {user ? (
                   <div className="flex items-center justify-center py-2">
                     <button
                       onClick={handleAvatarClick}
                       disabled={isNavigating}
-                      className="w-10 h-10 rounded-full overflow-hidden bg-blue-900 flex items-center justify-center border-2 border-blue-900 hover:opacity-80 transition-opacity duration-200 cursor-pointer disabled:opacity-50"
+                      className="w-10 h-10 rounded-full overflow-hidden bg-blue-900 flex items-center justify-center border-2 border-blue-900 cursor-pointer disabled:opacity-50"
                       aria-label="Go to dashboard"
                     >
                       {user.photoURL ? (
@@ -271,18 +224,17 @@ export const NavigationBar = () => {
                   </div>
                 ) : (
                   <>
-                    <Button
+                    <button
                       onClick={handleLogin}
-                      variant="outline"
-                      className="w-full rounded-lg border-blue-900 text-blue-900 hover:bg-blue-50"
+                      className="w-full rounded-lg px-6 py-2.5 text-blue-900 hover:text-blue-950 hover:bg-blue-50/50 transition-all duration-200 border-0 bg-transparent"
                       style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                     >
                       Login
-                    </Button>
+                    </button>
                     <Button
                       onClick={handleLogin}
-                      className="w-full rounded-lg bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white"
-                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      className="w-full rounded-lg px-6 py-2.5 bg-blue-900 hover:bg-blue-950 text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-900/25 border-0"
+                      style={{ fontFamily: 'Poppins', fontWeight: 500 }}
                     >
                       Get Started
                     </Button>
