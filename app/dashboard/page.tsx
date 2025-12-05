@@ -18,7 +18,6 @@ import EnrollmentForm from '@/components/enrollment-form'
 import DocumentsManager from '@/components/documents-manager'
 import MySubjectsView from '../../components/my-subjects-view'
 import AcademicRecords from '@/components/academic-records'
-import StudentAnalytics from '@/components/student-analytics'
 import AccountSetupProgress from '@/components/account-setup-progress'
 import EventsSidebar from '@/components/events-sidebar'
 import EventsOverview from '@/components/events-overview'
@@ -60,7 +59,6 @@ type ViewType =
   | 'enrollment'
   | 'documents'
   | 'subjects'
-  | 'performance'
   | 'records'
 
 export default function Dashboard() {
@@ -209,7 +207,63 @@ export default function Dashboard() {
           if (user) {
             setUser(user)
 
-            // Get user profile from database through server action
+            // Check if user is a teacher or registrar - skip setup for them
+            let isTeacherOrRegistrar = false
+            try {
+              const roleCheckResponse = await fetch(
+                '/api/teachers/check-role',
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    uid: user.uid,
+                    email: user.email,
+                  }),
+                }
+              )
+
+              if (roleCheckResponse.ok) {
+                const roleData = await roleCheckResponse.json()
+                if (roleData.teacher) {
+                  // User is a teacher, redirect to teacher dashboard
+                  router.push('/teacher')
+                  return
+                }
+              }
+
+              // Check if user is registrar/admin
+              const registrarCheckResponse = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  uid: user.uid,
+                  email: user.email,
+                }),
+              })
+
+              if (registrarCheckResponse.ok) {
+                const authData = await registrarCheckResponse.json()
+                if (authData.isRegistrar) {
+                  // User is registrar, redirect to registrar dashboard
+                  router.push('/registrar')
+                  return
+                }
+                if (authData.isTeacher) {
+                  // User is teacher, redirect to teacher dashboard
+                  router.push('/teacher')
+                  return
+                }
+              }
+            } catch (error) {
+              // If role check fails, continue with student flow
+              console.log('Role check failed, continuing as student:', error)
+            }
+
+            // Get user profile from database through server action (only for students)
             try {
               const profileResult = await getProfileAction({ uid: user.uid })
               const profile = profileResult.success ? profileResult.user : null
@@ -716,13 +770,6 @@ export default function Dashboard() {
         requiresEnrollment: true,
       },
       {
-        view: 'performance' as ViewType,
-        label: 'Performance',
-        description: 'Grades & stats',
-        icon: ChartBar,
-        requiresEnrollment: true,
-      },
-      {
         view: 'records' as ViewType,
         label: 'Academic Records',
         description: 'Transcripts',
@@ -1056,15 +1103,6 @@ export default function Dashboard() {
           : 'bg-red-800',
     },
     {
-      id: 'performance',
-      label: 'Performance',
-      icon: ChartBar,
-      color:
-        enrollmentData && enrollmentData.enrollmentInfo?.status === 'enrolled'
-          ? 'bg-blue-900'
-          : 'bg-red-800',
-    },
-    {
       id: 'records',
       label: 'Academic Records',
       icon: IdentificationCard,
@@ -1256,11 +1294,7 @@ export default function Dashboard() {
   }, [getStudentSubjects.length])
 
   const handleNavigationClick = (item: any) => {
-    if (
-      item.id === 'subjects' ||
-      item.id === 'performance' ||
-      item.id === 'records'
-    ) {
+    if (item.id === 'subjects' || item.id === 'records') {
       if (
         !enrollmentData ||
         enrollmentData.enrollmentInfo?.status !== 'enrolled'
@@ -2380,43 +2414,6 @@ export default function Dashboard() {
               userId={user.uid}
               onNavigateToEnrollment={() => setCurrentView('enrollment')}
             />
-          )}
-
-          {currentView === 'performance' && (
-            <>
-              {user ? (
-                <StudentAnalytics
-                  studentId={user.uid}
-                  studentName={
-                    userProfile
-                      ? `${userProfile?.firstName || ''} ${
-                          userProfile?.lastName || ''
-                        }`.trim()
-                      : undefined
-                  }
-                />
-              ) : (
-                <Card className="p-12 text-center border-none bg-white/80 backdrop-blur-sm rounded-xl border border-blue-100 shadow-lg">
-                  <ChartBar
-                    size={48}
-                    className="mx-auto text-gray-400 mb-4"
-                    weight="duotone"
-                  />
-                  <h3
-                    className="text-lg font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent mb-2"
-                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-                  >
-                    Performance data not available
-                  </h3>
-                  <p
-                    className="text-gray-600 text-justify rounded-xl border border-blue-100 shadow-sm p-3 bg-blue-50"
-                    style={{ fontFamily: 'Poppins', fontWeight: 300 }}
-                  >
-                    Sign in to view your personalized analytics.
-                  </p>
-                </Card>
-              )}
-            </>
           )}
 
           {currentView === 'records' && (

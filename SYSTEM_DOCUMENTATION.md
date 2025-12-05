@@ -455,7 +455,7 @@ Each scholarship has specific criteria:
 - **Scholarship Code**: Unique identifier (like "ACAD100", "FINAID50")
 - **Discount Value**: Percentage or amount reduction in tuition
 - **Minimum Units**: Required number of units a student must take
-- **Eligibility Rules**: GPA requirements, enrollment status, program type
+- **Eligibility Rules**: GWA requirements, enrollment status, program type
 
 ### Step 3: Apply Scholarships
 
@@ -3139,7 +3139,7 @@ Export Formats:
 
 Export Categories:
 ├── Personal Information: Names, contacts, demographics
-├── Academic Records: Grades, subjects, GPA
+├── Academic Records: Grades, subjects, GWA
 ├── Enrollment History: Past enrollments and status
 ├── Document Records: Uploaded files and verification status
 ```

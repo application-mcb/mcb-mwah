@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { ReactNode, useEffect, useMemo, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Shield,
   Clock,
@@ -50,210 +50,6 @@ type AuditLogEntry = {
   status: AuditStatus
   category: AuditCategory
 }
-
-const placeholderEntries: AuditLogEntry[] = [
-  {
-    id: '1',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Logged in to registrar dashboard',
-    timestamp: '2025-11-18T08:05:00Z',
-    context: 'Device: MacBook • IP 10.0.0.12',
-    status: 'info',
-    category: 'access',
-  },
-  {
-    id: '2',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Reviewed Grade 12 STEM enrollments',
-    timestamp: '2025-11-18T08:08:24Z',
-    context: 'View: Enrollment Pipeline',
-    status: 'info',
-    category: 'enrollment',
-  },
-  {
-    id: '3',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Approved enrollment for Aira Santos',
-    timestamp: '2025-11-18T08:11:02Z',
-    context: 'Enrollment ID: ENR-2025-1881',
-    status: 'success',
-    category: 'enrollment',
-  },
-  {
-    id: '4',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Sent reminder to Grade 11 advisers',
-    timestamp: '2025-11-18T08:15:33Z',
-    context: 'Channel: Announcements',
-    status: 'info',
-    category: 'events',
-  },
-  {
-    id: '5',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Updated course codes for BSIT',
-    timestamp: '2025-11-18T08:19:17Z',
-    context: 'Course Management • 3 records touched',
-    status: 'success',
-    category: 'course',
-  },
-  {
-    id: '6',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Generated analytics PDF for Dean',
-    timestamp: '2025-11-18T08:22:40Z',
-    context: 'Analytics & Reports • auto-shared',
-    status: 'success',
-    category: 'analytics',
-  },
-  {
-    id: '7',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Archived outdated subject sets',
-    timestamp: '2025-11-18T08:28:11Z',
-    context: 'Subject Management • 2 sets archived',
-    status: 'success',
-    category: 'subjects',
-  },
-  {
-    id: '8',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Shared registrar notes with guidance',
-    timestamp: '2025-11-18T08:30:55Z',
-    context: 'Task Manager • 1 file sent',
-    status: 'info',
-    category: 'tasks',
-  },
-  {
-    id: '9',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Verified scholarship documents',
-    timestamp: '2025-11-18T08:33:21Z',
-    context: 'Documents Tab • 4 files verified',
-    status: 'success',
-    category: 'documents',
-  },
-  {
-    id: '10',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Opened AI assistant session',
-    timestamp: '2025-11-18T08:36:44Z',
-    context: 'AI Panel • intent: “Summaries”',
-    status: 'info',
-    category: 'ai',
-  },
-  {
-    id: '11',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Reassigned pending task to registrar team',
-    timestamp: '2025-11-18T08:39:09Z',
-    context: 'Task Manager • Task ID TM-593',
-    status: 'info',
-    category: 'tasks',
-  },
-  {
-    id: '12',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Created event “Enrollment Sync-Up”',
-    timestamp: '2025-11-18T08:42:50Z',
-    context: 'Events Management • scheduled Dec 5',
-    status: 'success',
-    category: 'events',
-  },
-  {
-    id: '13',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Updated section capacity for Grade 10',
-    timestamp: '2025-11-18T08:46:18Z',
-    context: 'Sections Tool • 45 → 40 seats',
-    status: 'success',
-    category: 'sections',
-  },
-  {
-    id: '14',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Synced teacher permissions',
-    timestamp: '2025-11-18T08:50:42Z',
-    context: 'Teacher Management • 2 teachers',
-    status: 'success',
-    category: 'teachers',
-  },
-  {
-    id: '15',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Responded to student chat',
-    timestamp: '2025-11-18T08:53:01Z',
-    context: 'Chat with: Lance Soriano',
-    status: 'info',
-    category: 'chat',
-  },
-  {
-    id: '16',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Imported CSV of transferees',
-    timestamp: '2025-11-18T08:57:22Z',
-    context: 'Student Management • 18 records',
-    status: 'success',
-    category: 'students',
-  },
-  {
-    id: '17',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Reset password for faculty account',
-    timestamp: '2025-11-18T09:02:15Z',
-    context: 'Teacher Management • user: m.delacruz',
-    status: 'info',
-    category: 'access',
-  },
-  {
-    id: '18',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Flagged duplicate enrollment attempt',
-    timestamp: '2025-11-18T09:05:47Z',
-    context: 'Student: Paolo Ramos',
-    status: 'info',
-    category: 'enrollment',
-  },
-  {
-    id: '19',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Exported grade spreadsheets',
-    timestamp: '2025-11-18T09:09:38Z',
-    context: 'Grade Section Management • CSV',
-    status: 'success',
-    category: 'grades',
-  },
-  {
-    id: '20',
-    actorName: 'Oliver De Lara',
-    actorEmail: 'oliver@gmail.com',
-    action: 'Signed out of registrar dashboard',
-    timestamp: '2025-11-18T09:12:04Z',
-    context: 'Device: MacBook • IP 10.0.0.12',
-    status: 'info',
-    category: 'access',
-  },
-]
-
 const statusStyles: Record<
   AuditStatus,
   { badge: string; text: string; icon: ReactNode }
@@ -437,30 +233,57 @@ const RegistrarAuditLogs = ({
 }: RegistrarAuditLogsProps) => {
   const [entries, setEntries] = useState<AuditLogEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  const normalizeLogEntry = useCallback((entry: any): AuditLogEntry => {
+    const hasCategory = Boolean(
+      categoryStyles[entry?.category as AuditCategory]
+    )
+    const category: AuditCategory = hasCategory ? entry.category : 'enrollment'
+    const status: AuditStatus = entry?.status === 'success' ? 'success' : 'info'
+
+    return {
+      id:
+        String(entry?.id || entry?.docId || entry?.shortId) ||
+        Math.floor(100000 + Math.random() * 900000).toString(),
+      actorName: entry?.actorName || 'Unknown user',
+      actorEmail: entry?.actorEmail || '',
+      action: entry?.action || 'Unknown action',
+      timestamp:
+        entry?.createdAt || entry?.timestamp || new Date().toISOString(),
+      context: entry?.context || '',
+      status,
+      category,
+    }
+  }, [])
+
+  const loadAuditLogs = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const response = await fetch('/api/audit-logs')
+      if (!response.ok) {
+        throw new Error('Failed to load audit logs')
+      }
+      const data = await response.json()
+      if (Array.isArray(data.logs)) {
+        const normalized = data.logs.map((log: any) => normalizeLogEntry(log))
+        setEntries(normalized)
+      } else {
+        setEntries([])
+      }
+    } catch (error) {
+      console.warn('Error loading audit logs:', error)
+      setEntries([])
+      setLoadError('Unable to load audit logs right now.')
+    } finally {
+      setLoading(false)
+    }
+  }, [normalizeLogEntry])
 
   useEffect(() => {
-    const loadAuditLogs = async () => {
-      try {
-        const response = await fetch('/api/audit-logs')
-        if (!response.ok) {
-          throw new Error('Failed to load audit logs')
-        }
-        const data = await response.json()
-        if (Array.isArray(data.logs) && data.logs.length > 0) {
-          setEntries(data.logs)
-        } else {
-          setEntries(placeholderEntries)
-        }
-      } catch (error) {
-        console.warn('Error loading audit logs:', error)
-        setEntries(placeholderEntries)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadAuditLogs()
-  }, [])
+  }, [loadAuditLogs])
 
   const sortedEntries = useMemo(() => {
     return [...entries].sort(
@@ -571,8 +394,7 @@ const RegistrarAuditLogs = ({
                   System Activity Logs
                 </h1>
                 <p className="text-xs text-blue-900/70">
-                  Placeholder feed for Oliver De Lara while live data sync is in
-                  progress.
+                  Live activity feed for registrar dashboard actions.
                 </p>
               </div>
             </div>
@@ -580,6 +402,8 @@ const RegistrarAuditLogs = ({
               type="button"
               className="rounded-lg bg-blue-900 text-white px-4 py-2 flex items-center gap-2 text-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-900"
               aria-label="Sync audit feed"
+              onClick={loadAuditLogs}
+              disabled={loading}
             >
               <ArrowsClockwise size={16} weight="bold" />
               Sync Audit Feed
@@ -668,74 +492,80 @@ const RegistrarAuditLogs = ({
             </div>
           </div>
           <div className="divide-y divide-blue-50 relative">
-            {paginatedEntries.map((entry, index) => {
-              const { badge, text, icon } = statusStyles[entry.status]
-              const category = categoryStyles[entry.category]
-              const formattedId = `LOG-${entry.id.padStart(3, '0')}`
-              const timestamp = timestampFormatter.format(
-                new Date(entry.timestamp)
-              )
-              const isLast = index === sortedEntries.length - 1
-              return (
-                <article
-                  key={entry.id}
-                  className="px-6 py-5 flex flex-col gap-4 md:flex-row md:items-center md:gap-6"
-                >
-                  <div className="flex gap-4 w-full">
-                    <div className="flex flex-col items-center">
+            {paginatedEntries.length === 0 ? (
+              <div className="px-6 py-8 text-sm text-blue-900/70">
+                {loadError || 'No audit activity recorded yet.'}
+              </div>
+            ) : (
+              paginatedEntries.map((entry, index) => {
+                const { badge, text, icon } = statusStyles[entry.status]
+                const category = categoryStyles[entry.category]
+                const formattedId = `LOG-${entry.id.padStart(3, '0')}`
+                const timestamp = timestampFormatter.format(
+                  new Date(entry.timestamp)
+                )
+                const isLast = index === sortedEntries.length - 1
+                return (
+                  <article
+                    key={entry.id}
+                    className="px-6 py-5 flex flex-col gap-4 md:flex-row md:items-center md:gap-6"
+                  >
+                    <div className="flex gap-4 w-full">
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`w-12 h-12 rounded-xl border ${category.accent} bg-white flex items-center justify-center text-blue-900 shadow-sm`}
+                        >
+                          {category.icon}
+                        </div>
+                        {!isLast && (
+                          <div className="w-px flex-1 bg-gradient-to-b from-blue-100 via-blue-50 to-transparent mt-2" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-blue-900/70">
+                          <span className="px-2 py-1 rounded-lg bg-blue-50 border border-blue-100 font-mono tracking-tight text-blue-900">
+                            {formattedId}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-900/5 border border-blue-100 text-blue-900 text-[11px] uppercase tracking-wide">
+                            <span
+                              className={`w-2 h-2 rounded-full ${category.dot}`}
+                            />
+                            {category.label}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-blue-900/60 text-[11px] font-mono">
+                            <Clock size={12} weight="bold" />
+                            {timestamp}
+                          </span>
+                        </div>
+                        <p className="text-xs text-blue-900/70">
+                          {entry.actorName}{' '}
+                          <span className="text-blue-900/50">
+                            ({entry.actorEmail})
+                          </span>
+                        </p>
+                        <p className="text-base text-blue-900 font-medium">
+                          {entry.action}
+                        </p>
+                        <p className="text-[11px] text-blue-900/80 font-mono tracking-tight">
+                          {entry.context}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 md:flex-col md:items-end md:gap-2">
                       <div
-                        className={`w-12 h-12 rounded-xl border ${category.accent} bg-white flex items-center justify-center text-blue-900 shadow-sm`}
+                        className={`inline-flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium ${badge}`}
                       >
-                        {category.icon}
+                        {icon}
+                        {text}
                       </div>
-                      {!isLast && (
-                        <div className="w-px flex-1 bg-gradient-to-b from-blue-100 via-blue-50 to-transparent mt-2" />
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-blue-900/70">
-                        <span className="px-2 py-1 rounded-lg bg-blue-50 border border-blue-100 font-mono tracking-tight text-blue-900">
-                          {formattedId}
-                        </span>
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-900/5 border border-blue-100 text-blue-900 text-[11px] uppercase tracking-wide">
-                          <span
-                            className={`w-2 h-2 rounded-full ${category.dot}`}
-                          />
-                          {category.label}
-                        </span>
-                        <span className="inline-flex items-center gap-1 text-blue-900/60 text-[11px] font-mono">
-                          <Clock size={12} weight="bold" />
-                          {timestamp}
-                        </span>
-                      </div>
-                      <p className="text-xs text-blue-900/70">
-                        {entry.actorName}{' '}
-                        <span className="text-blue-900/50">
-                          ({entry.actorEmail})
-                        </span>
-                      </p>
-                      <p className="text-base text-blue-900 font-medium">
-                        {entry.action}
-                      </p>
-                      <p className="text-[11px] text-blue-900/80 font-mono tracking-tight">
-                        {entry.context}
+                      <p className="text-xs text-blue-900/60 font-mono tracking-tight">
+                        #{entry.id.padStart(4, '0')}
                       </p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 md:flex-col md:items-end md:gap-2">
-                    <div
-                      className={`inline-flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium ${badge}`}
-                    >
-                      {icon}
-                      {text}
-                    </div>
-                    <p className="text-xs text-blue-900/60 font-mono tracking-tight">
-                      #{entry.id.padStart(4, '0')}
-                    </p>
-                  </div>
-                </article>
-              )
-            })}
+                  </article>
+                )
+              })
+            )}
           </div>
           <div className="flex items-center justify-between px-6 py-4 border-t border-blue-100 text-xs text-blue-900">
             <p>

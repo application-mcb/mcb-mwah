@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { TeacherDatabase } from '@/lib/firestore-database'
+import { AuditLogDatabase } from '@/lib/audit-log-database'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { teacherId, permissions } = body
+    const {
+      teacherId,
+      permissions,
+      actorId,
+      actorName,
+      actorEmail,
+      actorRole,
+      auditContext,
+    } = body
 
     if (!teacherId) {
       return NextResponse.json(
@@ -49,6 +58,22 @@ export async function POST(request: NextRequest) {
       permissions: permissions,
     })
 
+    try {
+      await AuditLogDatabase.createLog({
+        action: 'Updated teacher permissions',
+        category: 'teachers',
+        status: 'success',
+        context: `Permissions updated for ${teacherId}`,
+        actorId: actorId || '',
+        actorName: actorName || 'Registrar',
+        actorEmail: actorEmail || '',
+        actorRole: actorRole || 'registrar',
+        metadata: { permissions, note: auditContext },
+      })
+    } catch (error) {
+      console.warn('Audit log write failed (permissions):', error)
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Permissions updated successfully',
@@ -61,4 +86,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

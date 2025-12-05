@@ -137,6 +137,58 @@ export default function CustomizeAccount() {
 
         onAuthStateChanged(auth, async (user) => {
           if (user) {
+            // Check if user is a teacher or registrar - redirect them away from setup
+            try {
+              const roleCheckResponse = await fetch('/api/teachers/check-role', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  uid: user.uid,
+                  email: user.email,
+                }),
+              })
+
+              if (roleCheckResponse.ok) {
+                const roleData = await roleCheckResponse.json()
+                if (roleData.teacher) {
+                  // User is a teacher, redirect to teacher dashboard
+                  window.location.href = '/teacher'
+                  return
+                }
+              }
+
+              // Check if user is registrar/admin
+              const authCheckResponse = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  uid: user.uid,
+                  email: user.email,
+                }),
+              })
+
+              if (authCheckResponse.ok) {
+                const authData = await authCheckResponse.json()
+                if (authData.isRegistrar) {
+                  // User is registrar, redirect to registrar dashboard
+                  window.location.href = '/registrar'
+                  return
+                }
+                if (authData.isTeacher) {
+                  // User is teacher, redirect to teacher dashboard
+                  window.location.href = '/teacher'
+                  return
+                }
+              }
+            } catch (error) {
+              // If role check fails, continue with student setup flow
+              console.log('Role check failed, continuing with student setup:', error)
+            }
+
             setUser(user)
 
             // Get user profile from database through server action

@@ -1,11 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { EnrollmentDatabase } from '@/lib/enrollment-database'
 import { GradeDatabase } from '@/lib/grade-section-database'
+import { AuditLogDatabase, CreateAuditLogInput } from '@/lib/audit-log-database'
 import { db } from '@/lib/firebase-server'
 import { getApps } from 'firebase/app'
-import { where, collection, query, getDocs } from 'firebase/firestore'
+import {
+  where,
+  collection,
+  query,
+  getDocs,
+  doc,
+  deleteDoc,
+} from 'firebase/firestore'
 
 console.log('  Enrollment API route loaded using Firebase Client SDK')
+
+const logAuditEvent = async (entry: CreateAuditLogInput) => {
+  try {
+    await AuditLogDatabase.createLog(entry)
+  } catch (error) {
+    console.warn('Audit log write failed:', error)
+  }
+}
 
 // POST /api/enrollment - Submit enrollment request
 export async function POST(request: NextRequest) {
@@ -24,6 +40,10 @@ export async function POST(request: NextRequest) {
       yearLevel,
       semester,
       level,
+      actorId,
+      actorName,
+      actorEmail,
+      actorRole,
     } = await request.json()
 
     // Validate required fields based on level
@@ -244,6 +264,35 @@ export async function POST(request: NextRequest) {
     )
     const enrollmentId = `${userId}_${docId}`
 
+    const resolvedActorName =
+      actorName ||
+      [personalInfo?.firstName, personalInfo?.lastName]
+        .filter(Boolean)
+        .join(' ') ||
+      'Student'
+
+    await logAuditEvent({
+      action: 'Submitted enrollment request',
+      category: 'enrollment',
+      status: 'info',
+      context: `AY ${ayCode}${semester ? ` • ${semester}` : ''} • Level ${
+        level || 'n/a'
+      }`,
+      actorId: actorId || userId,
+      actorName: resolvedActorName,
+      actorEmail: actorEmail || (personalInfo as any)?.email || '',
+      actorRole: actorRole || 'student',
+      metadata: {
+        gradeId,
+        department,
+        courseId,
+        courseCode,
+        level,
+        semester,
+        enrollmentId,
+      },
+    })
+
     return NextResponse.json({
       success: true,
       message: 'Enrollment submitted successfully',
@@ -289,6 +338,11 @@ export async function PUT(request: NextRequest) {
       updateEnrollmentEndPeriodCollege,
       level,
       semester,
+      actorId,
+      actorName,
+      actorEmail,
+      actorRole,
+      auditContext,
     } = await request.json()
 
     // If updating Academic Year and/or Semester
@@ -307,6 +361,27 @@ export async function PUT(request: NextRequest) {
           { status: 500 }
         )
       }
+
+      await logAuditEvent({
+        action: 'Updated enrollment settings',
+        category: 'enrollment',
+        status: 'success',
+        context: `AY ${updateAY}${
+          updateSemester ? ` • Semester ${updateSemester}` : ''
+        }`,
+        actorId: actorId || '',
+        actorName: actorName || 'Registrar',
+        actorEmail: actorEmail || '',
+        actorRole: actorRole || 'registrar',
+        metadata: {
+          updateEnrollmentStartPeriodHS,
+          updateEnrollmentEndPeriodHS,
+          updateEnrollmentStartPeriodCollege,
+          updateEnrollmentEndPeriodCollege,
+          note: auditContext,
+        },
+      })
+
       return NextResponse.json({
         success: true,
         message: 'Settings updated successfully',
@@ -326,6 +401,19 @@ export async function PUT(request: NextRequest) {
           { status: 500 }
         )
       }
+
+      await logAuditEvent({
+        action: 'Updated latest student ID',
+        category: 'enrollment',
+        status: 'success',
+        context: `Next ID set to ${updateLatestId}`,
+        actorId: actorId || '',
+        actorName: actorName || 'Registrar',
+        actorEmail: actorEmail || '',
+        actorRole: actorRole || 'registrar',
+        metadata: { updateLatestId, note: auditContext },
+      })
+
       return NextResponse.json({
         success: true,
         message: 'Latest student ID updated successfully',
@@ -354,6 +442,18 @@ export async function PUT(request: NextRequest) {
 
       console.log('  Section assigned successfully for user:', userId)
 
+      await logAuditEvent({
+        action: 'Assigned section',
+        category: 'sections',
+        status: 'success',
+        context: `Section ${sectionId} assigned to ${userId}`,
+        actorId: actorId || '',
+        actorName: actorName || 'Registrar',
+        actorEmail: actorEmail || '',
+        actorRole: actorRole || 'registrar',
+        metadata: { userId, sectionId, note: auditContext },
+      })
+
       return NextResponse.json({
         success: true,
         message: 'Section assigned successfully',
@@ -381,6 +481,18 @@ export async function PUT(request: NextRequest) {
       }
 
       console.log('  Section unassigned successfully for user:', userId)
+
+      await logAuditEvent({
+        action: 'Unassigned section',
+        category: 'sections',
+        status: 'success',
+        context: `Section ${sectionId} unassigned from ${userId}`,
+        actorId: actorId || '',
+        actorName: actorName || 'Registrar',
+        actorEmail: actorEmail || '',
+        actorRole: actorRole || 'registrar',
+        metadata: { userId, sectionId, note: auditContext },
+      })
 
       return NextResponse.json({
         success: true,
@@ -417,6 +529,26 @@ export async function PUT(request: NextRequest) {
 
     console.log('  Student enrolled successfully for user:', userId)
 
+    await logAuditEvent({
+      action: 'Processed enrollment',
+      category: 'enrollment',
+      status: 'success',
+      context: `User ${userId} enrolled • ${selectedSubjects.length} subjects`,
+      actorId: actorId || userId,
+      actorName: actorName || 'Registrar',
+      actorEmail: actorEmail || '',
+      actorRole: actorRole || 'registrar',
+      metadata: {
+        orNumber,
+        scholarship,
+        studentId,
+        studentType,
+        level,
+        semester,
+        note: auditContext,
+      },
+    })
+
     return NextResponse.json({
       success: true,
       message: 'Student enrolled successfully',
@@ -436,7 +568,16 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/enrollment - Delete student enrollment permanently
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId, level, semester } = await request.json()
+    const {
+      userId,
+      level,
+      semester,
+      actorId,
+      actorName,
+      actorEmail,
+      actorRole,
+      auditContext,
+    } = await request.json()
 
     // Validate required fields
     if (!userId) {
@@ -446,19 +587,106 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Process enrollment deletion using the database class
-    const result = await EnrollmentDatabase.deleteEnrollment(
+    // Primary delete via database helper (covers new-format IDs)
+    const primaryResult = await EnrollmentDatabase.deleteEnrollment(
       userId,
       level,
       semester
     )
 
-    if (!result.success) {
+    // Fallback: aggressively remove any enrollment docs for this user/AY/semester
+    const systemConfig = await EnrollmentDatabase.getSystemConfig()
+    const ayCode = systemConfig.ayCode
+    const normalizedSemester = semester ? semester.toLowerCase() : undefined
+
+    let fallbackDeleted = false
+
+    // Delete matching top-level enrollment docs (handles legacy IDs)
+    try {
+      const enrollmentsRef = collection(db, 'enrollments')
+      const constraints = [
+        where('userId', '==', userId),
+        where('ayCode', '==', ayCode),
+      ]
+      const enrollmentSnap = await getDocs(
+        query(enrollmentsRef, ...constraints)
+      )
+
+      for (const docSnap of enrollmentSnap.docs) {
+        const data = docSnap.data()
+        const info = data?.enrollmentData?.enrollmentInfo || {}
+        const infoSemester =
+          typeof info.semester === 'string'
+            ? info.semester.toLowerCase()
+            : undefined
+
+        const semesterMatches =
+          !normalizedSemester || infoSemester === normalizedSemester
+
+        if (semesterMatches) {
+          await deleteDoc(docSnap.ref)
+          fallbackDeleted = true
+        }
+      }
+    } catch (error) {
+      console.warn('Fallback top-level delete failed:', error)
+    }
+
+    // Delete matching subcollection enrollment docs
+    try {
+      const subColRef = collection(db, 'students', userId, 'enrollment')
+      const subSnap = await getDocs(subColRef)
+
+      for (const docSnap of subSnap.docs) {
+        const data = docSnap.data()
+        const info = data?.enrollmentInfo || {}
+        const infoAY = info.schoolYear
+        const infoSemester =
+          typeof info.semester === 'string'
+            ? info.semester.toLowerCase()
+            : undefined
+
+        const ayMatches = infoAY === ayCode
+        const semesterMatches =
+          !normalizedSemester || infoSemester === normalizedSemester
+
+        if (ayMatches && semesterMatches) {
+          await deleteDoc(docSnap.ref)
+          fallbackDeleted = true
+        }
+      }
+    } catch (error) {
+      console.warn('Fallback subcollection delete failed:', error)
+    }
+
+    // Also clear studentGrades for this AY to avoid stale status
+    try {
+      const gradesRef = doc(db, 'students', userId, 'studentGrades', ayCode)
+      await deleteDoc(gradesRef)
+    } catch (error) {
+      console.warn('Failed to delete studentGrades during unenroll:', error)
+    }
+
+    if (!primaryResult.success && !fallbackDeleted) {
       return NextResponse.json(
-        { error: result.error || 'Failed to delete enrollment' },
+        { error: primaryResult.error || 'Failed to delete enrollment' },
         { status: 500 }
       )
     }
+
+    await logAuditEvent({
+      action: 'Deleted enrollment',
+      category: 'enrollment',
+      status: 'success',
+      context: `User ${userId} • AY ${ayCode}${
+        semester ? ` • ${semester}` : ''
+      }`,
+      actorId: actorId || '',
+      actorName: actorName || 'Registrar',
+      actorEmail: actorEmail || '',
+      actorRole: actorRole || 'registrar',
+      metadata: { level, semester, fallbackDeleted, note: auditContext },
+    })
 
     return NextResponse.json({
       success: true,

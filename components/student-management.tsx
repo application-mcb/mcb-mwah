@@ -814,6 +814,9 @@ export default function StudentManagement({
           body: JSON.stringify({
             userId: enrollment.userId,
             sectionId: sectionId,
+            actorId: registrarUid,
+            actorName: registrarName,
+            actorRole: 'registrar',
           }),
         })
 
@@ -854,6 +857,9 @@ export default function StudentManagement({
             userId: enrollment.userId,
             sectionId: currentSectionId,
             unassignSection: true,
+            actorId: registrarUid,
+            actorName: registrarName,
+            actorRole: 'registrar',
           }),
         })
 
@@ -919,6 +925,9 @@ export default function StudentManagement({
           userId: viewingEnrollment.userId,
           level: viewingEnrollment.enrollmentInfo?.level,
           semester: viewingEnrollment.enrollmentInfo?.semester,
+          actorId: registrarUid,
+          actorName: registrarName,
+          actorRole: 'registrar',
         }),
       })
 
@@ -931,6 +940,28 @@ export default function StudentManagement({
             autoClose: 6000,
           }
         )
+        // Optimistically drop the unenrolled student from local state to reflect immediately
+        setEnrollments((prev) =>
+          prev.filter((enrollment) => {
+            const sameUser = enrollment.userId === viewingEnrollment.userId
+            const sameAY =
+              enrollment.enrollmentInfo?.schoolYear ===
+              viewingEnrollment.enrollmentInfo?.schoolYear
+            const normalizeSem = (value?: string | null) =>
+              (value || '').toLowerCase()
+            const sameSemester =
+              normalizeSem(enrollment.enrollmentInfo?.semester) ===
+              normalizeSem(viewingEnrollment.enrollmentInfo?.semester)
+
+            // Match on user + AY + (optional) semester; if id matches, also remove
+            const sameId =
+              viewingEnrollment.id && enrollment.id === viewingEnrollment.id
+
+            return !(sameId || (sameUser && sameAY && sameSemester))
+          })
+        )
+        // Refresh list so the unenrolled student disappears immediately
+        await fetchEnrolledStudents()
         setShowUnenrollModal(false)
         // Close the modal
         closeViewModal()

@@ -1,0 +1,359 @@
+[
+  {
+    "id": "overview",
+    "title": "Dashboard overview (quick intro)",
+    "tags": ["overview", "dashboard", "getting-started"],
+    "color": "#1E3A8A",
+    "summary": "Simple daily read of your dashboard with clear steps.",
+    "pages": [
+      {
+        "heading": "What is the Overview?",
+        "content": [
+          "This is your home screen that gathers the most important school updates in one simple place, so you can quickly see what needs attention without hunting through different sections or pressing extra buttons that might feel confusing or tiring for you.",
+          "You do not need technical skills to use it; just read the cards, follow the simple prompts, and click the items that need attention today, knowing everything is organized in a gentle, easy-to-follow order for you.",
+          "It keeps changes visible right away, so if student counts, tasks, or announcements shift, you notice them without refreshing or opening other pages, which saves time and reduces the chance of missing an urgent item."
+        ]
+      },
+      {
+        "heading": "What you see",
+        "content": [
+          "Top cards show pending and regular students, plus counts by level, so you instantly know how many junior, senior, and college students you have without opening any other screens or remembering complicated menus or filters that might slow you down.",
+          "The bar chart shows where students are grouped; tall bars mean many students are there, and shorter bars mean fewer. This helps you see where classes may need extra sections, teachers, or support before issues become harder to fix.",
+          "Announcements and events list due or upcoming items so you remember deadlines and important dates each day, without digging through emails or paper notes. Just glance here to know what needs action and open any item to edit details.",
+          "Tasks and unread chats show what needs attention first; finish overdue tasks, then answer messages so students get help quickly. Clearing these regularly keeps everyone informed and prevents surprises that can be stressful later on."
+        ]
+      },
+      {
+        "heading": "How to use it daily",
+        "content": [
+          "Step 1: Look at pending versus regular counts; if the numbers jump up or down suddenly, check why before moving forward, so no student gets missed and you avoid repeating work or causing delays later in the day.",
+          "Step 2: Review announcements and events for today and this week; open any item that needs an update or confirmation now, so reminders stay accurate and families or teachers always know what will happen next.",
+          "Step 3: Open Task Manager to clear overdue items first, then answer unread chats, so the most urgent needs are handled early and students get clear answers without waiting or worrying about missing information.",
+          "Step 4: If the chart shows a spike in one level or strand, plan extra sections, teachers, or materials for that group, so classes stay balanced and students do not suffer from crowded schedules or missing support."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "enrollment-form",
+    "title": "Enrollment form (step-by-step help)",
+    "tags": ["enrollment", "form", "students"],
+    "color": "#0EA5E9",
+    "summary": "A simple guide to finish the enrollment form without confusion.",
+    "pages": [
+      {
+        "heading": "What this page is for",
+        "content": [
+          "This is the main form students use to enroll. It leads you through every requirement one small, gentle step at a time, so you never feel rushed, overwhelmed, or forced to remember complicated details all at once.",
+          "It keeps every important detail—level, grade or course, schedule term, and personal info—in one place, so nothing gets missed and you do not have to jump between screens or remember where something is saved.",
+          "It also shows document status and special prompts for re-enroll or irregular cases, so you can address missing items immediately instead of discovering gaps after you submit."
+        ]
+      },
+      {
+        "heading": "Purpose of this page",
+        "content": [
+          "Make sure the student’s level, grade or course, and semester are correct before they join classes, so schedules, teachers, and billing all match what the student truly needs and no time is lost fixing mistakes later.",
+          "Capture clear personal details and compliance so records stay accurate, the registrar can approve quickly, and students avoid delays with ID creation, subject loading, or official school communications during the term.",
+          "Handle re-enrollment or irregular cases with clear prompts so special situations are recorded properly, making sure the student’s history, gaps, or changes are clear and the school can support them without confusion."
+        ]
+      },
+      {
+        "heading": "Things you can do here",
+        "content": [
+          "Agree to compliance, then pick High School or College so the form shows only the right options, keeping you focused and avoiding mistakes from long lists that do not apply to the student you are processing today.",
+          "Choose the grade for High School, or pick the course and year or semester for College or SHS, so the student is placed correctly and does not end up in the wrong subjects or section later.",
+          "Open personal information and fill names, contact numbers, birthdate, and other basics, so records are complete and the registrar does not need to chase missing details that slow approvals and IDs.",
+          "Check documents status and notes; fix missing items before submitting, so the student’s application is clean, and you avoid back-and-forth emails or in-person follow-ups that tire everyone out.",
+          "Review the summary and submit; use re-enroll or irregular prompts when the student has a special case, ensuring their history is recorded and approvals move faster without confusion or repeated questions."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "enroll-student-howto",
+    "title": "How to enroll a student",
+    "tags": ["enrollment", "steps", "registrar"],
+    "color": "#2563EB",
+    "summary": "Plain steps to enroll a student from start to finish.",
+    "pages": [
+      {
+        "heading": "What is the purpose",
+        "content": [
+          "Make sure every student is enrolled from the correct place in Student Enrollment, with the right level, grade or course, and term, so schedules, billing, and records all match, preventing painful back-and-forth or late corrections that slow everyone down.",
+          "Keep payments and discounts accurate: enter OR number, select scholarship details, and let the system handle the auto-assigned student ID so you do not accidentally break numbering or lose payment tracking.",
+          "Ensure both regular and irregular students start correctly: Quick Enroll for regulars, Manual Enrollment for irregulars, so the right flow is used and approvals are smoother."
+        ]
+      },
+      {
+        "heading": "Instructions",
+        "content": [
+          "Go to the Student Enrollment tab, open the student record, and review their information and uploaded documents first. If the student is irregular, use Manual Enrollment. If they are regular, use Quick Enroll. Then confirm level, grade/course, term, and personal details before submitting.",
+          "Enter the OR number and any scholarship details; student ID is automatic, so do not edit it. Pick the scholarship type or amount so billing and discounts are correct, and make sure the OR number is filled to avoid missing payment records later.",
+          "Check documents and notes, fix anything missing, and re-check the summary. Submit only after details, payments, and discounts look correct, so approvals do not bounce back."
+        ]
+      },
+      {
+        "heading": "What's next",
+        "content": [
+          "After you submit, check if any fixes are required. If something is missing, update the record and re-submit. Once approved, the student can be scheduled; remind them to review subjects, confirm fees or payments, and watch for any follow-up messages.",
+          "If billing or discounts change, update scholarship or OR details and resubmit so payments remain accurate. Keep a note in the record so future checks are faster.",
+          "If the student is irregular, confirm their assigned subjects remain correct after any later grade updates; adjust through Manual Enrollment if a pre-req gets added from past records."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "manual-enrollment-irregular",
+    "title": "Manual enrollment for irregular students",
+    "tags": ["enrollment", "irregular", "manual"],
+    "color": "#7C3AED",
+    "summary": "Guide for enrolling irregular students and handling missing pre-requisites.",
+    "pages": [
+      {
+        "heading": "What is the purpose",
+        "content": [
+          "Help irregular students get the right subjects even if they have gaps. You check their allowed subjects, confirm pre-requisites, and keep records clean so they do not get blocked later by missing past grades from another school or program.",
+          "Prevent schedule problems: only assign subjects with passed pre-requisites, so the student does not land in classes they are not ready for, which could force drops or delays later.",
+          "Ensure past grades are captured: if something is missing, you add it in the Grades tab so approvals and subject eligibility stay correct."
+        ]
+      },
+      {
+        "heading": "Instructions",
+        "content": [
+          "Use Manual Enrollment under Student Enrollment. Review the subjects list and assign only classes whose pre-requisites are already passed. If a needed pre-requisite is missing, open Grades tab (RegistrarGradesTab view modal) and add the previous grades from their old transcript.",
+          "After adding missing pre-req grades, return to Manual Enrollment and re-check the subject list. Do not approve until every chosen subject shows its required pre-req is satisfied.",
+          "If the student’s transcript is incomplete, flag it and add a note. Only add subjects that are safe to take now, and leave others pending until grades are confirmed."
+        ]
+      },
+      {
+        "heading": "What's next",
+        "content": [
+          "After adding the missing pre-requisite grades, return to Manual Enrollment and finish assigning subjects. Double-check no subject is missing its pre-req, then submit. Tell the student their schedule may adjust if more past grades arrive or a conflict appears.",
+          "If later grades arrive, update the Grades tab and revisit Manual Enrollment to add newly unlocked subjects. Re-submit to keep records consistent.",
+          "Advise the student to watch messages and schedule updates. If a pre-req is still missing, they should wait for confirmation before joining that class."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "quick-enroll-regular",
+    "title": "Quick Enroll (automatic subjects for regular students)",
+    "tags": ["enrollment", "quick-enroll", "regular"],
+    "color": "#0EA5E9",
+    "summary": "Use Quick Enroll to auto-assign subjects based on the student’s course.",
+    "pages": [
+      {
+        "heading": "What is the purpose",
+        "content": [
+          "Quick Enroll automatically assigns the right subjects for regular students based on their course and term, so you do not have to pick each subject by hand. It saves time, keeps schedules accurate, and avoids missed classes or wrong placements."
+        ]
+      },
+      {
+        "heading": "Instructions",
+        "content": [
+          "Open Quick Enroll (Student Enrollment > Quick Enroll). Confirm the course, year/term, and student details. The system auto-loads subjects for that course and term—review them, then save. If something looks off, verify the course/term before you proceed."
+        ]
+      },
+      {
+        "heading": "What's next",
+        "content": [
+          "After saving, check for conflicts or special cases. If the student needs changes (irregular or missing pre-reqs), switch to Manual Enrollment instead. Otherwise, confirm fees or scholarships, submit, and remind the student to review their subjects and schedule."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "student-management",
+    "title": "Student Management (search and view records)",
+    "tags": ["students", "search", "records"],
+    "color": "#22C55E",
+    "summary": "Find students, view their info, and take action from one place.",
+    "pages": [
+      {
+        "heading": "What is the purpose",
+        "content": [
+          "Give you a simple place to look up any student by name or ID, see their basic profile, and avoid jumping across multiple screens just to confirm who they are and where they currently belong in the school.",
+          "Show key details—contact info, grade or course, status, and enrollment history—so you can answer questions quickly and avoid delays when families or teachers ask for updates about a student’s current standing.",
+          "Reduce mistakes by keeping the student’s information in one view, letting you confirm if their records are current before you move on to enrollment, grading, or communications tasks elsewhere in the system."
+        ]
+      },
+      {
+        "heading": "Instructions",
+        "content": [
+          "Open Student Management, use search to find the student by name or ID, and click their entry to open the record. This shows contact details, grade or course, and current status without needing to open separate tabs or reports.",
+          "Review their history and notes. If something is missing or outdated, update the relevant fields or flag the issue so it can be fixed before you proceed to enrollment, grading, or communications that depend on accurate data.",
+          "If you need more detail, follow links to related tabs (like enrollment or grades) from the student’s record. Always return here to confirm that updates were saved and that the student’s current status now looks correct."
+        ]
+      },
+      {
+        "heading": "What's next",
+        "content": [
+          "After reviewing, decide if you must enroll, re-enroll, or adjust subjects. If yes, go to Student Enrollment and use Quick Enroll or Manual Enrollment as needed, knowing the student info you just checked is correct.",
+          "If grades or past credits are missing, go to the Grades tab and add what is needed before assigning new subjects, so pre-requisites and eligibility stay correct and you do not have to redo schedules later.",
+          "If contact details or notes were updated, inform the student or family if needed, and leave a clear note so future staff see the latest information without asking the same questions again."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "assign-section",
+    "title": "How to assign a section",
+    "tags": ["students", "sections", "placement"],
+    "color": "#F59E0B",
+    "summary": "Assign students to sections directly from Student Management.",
+    "pages": [
+      {
+        "heading": "What is the purpose",
+        "content": [
+          "Place each student in the correct section from the Student Management page, so classes stay balanced and you do not need to open separate tools just to see where seats are available or how many students are already inside."
+        ]
+      },
+      {
+        "heading": "Instructions",
+        "content": [
+          "Open Student Management, search for the student, and open their record. In the sections list, pick the section you want. Each section name shows how many students are already enrolled, helping you pick a section that still has space.",
+          "If a section looks full, choose another with fewer students. Confirm the selection and save, so the student is properly placed without overloading a class or needing later moves."
+        ]
+      },
+      {
+        "heading": "What's next",
+        "content": [
+          "After assigning, check the student’s schedule to ensure there are no conflicts. If conflicts appear, move them to another section with space.",
+          "If the student changes level or course later, return to Student Management to update their section so records stay accurate and teachers know their final roster."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "teacher-management",
+    "title": "Teacher Management (schedules and subjects)",
+    "tags": ["teachers", "schedule", "subjects"],
+    "color": "#EF4444",
+    "summary": "Assign schedules and subjects, and see what a teacher is handling.",
+    "pages": [
+      {
+        "heading": "What is the purpose",
+        "content": [
+          "Give you one place to see a teacher’s schedule and subjects, so you do not hop across different screens just to know where they are assigned today and for the rest of the term.",
+          "Help you assign or adjust schedules without guessing, keeping classes covered and avoiding empty rooms or overlapping times that confuse teachers and students.",
+          "Keep subject assignments organized, so each teacher’s load is clear and you can quickly confirm if they are overbooked or still have room for another class."
+        ]
+      },
+      {
+        "heading": "Instructions",
+        "content": [
+          "Open Teacher Management, search for the teacher, and open their record. Review their current schedule and subjects so you know what is already covered before making changes.",
+          "To assign a schedule, pick the time and day, then attach the correct subject and section. Confirm there are no overlaps with their existing schedule before saving.",
+          "To assign subjects, select the subject and section they will handle. If a conflict appears, adjust times or move the subject to a different teacher to keep the calendar clean."
+        ]
+      },
+      {
+        "heading": "What's next",
+        "content": [
+          "After assigning, double-check the teacher’s full schedule for overlaps. If a clash exists, move one of the classes to a free slot or another teacher.",
+          "If subjects change mid-term, return here to update assignments so students and teachers see the right classes on their schedules.",
+          "Inform the teacher about new assignments or changes, and leave a note so other staff know the latest setup without asking the same questions again."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "subject-list",
+    "title": "Subject List (view subjects and enrollments)",
+    "tags": ["subjects", "enrollment", "info"],
+    "color": "#10B981",
+    "summary": "View each subject, see who is enrolled this semester, and related details.",
+    "pages": [
+      {
+        "heading": "What is the purpose",
+        "content": [
+          "Give you one place to see every subject and its basic details, so you do not have to open multiple screens just to confirm codes, titles, or the current term coverage.",
+          "Show who is enrolled in a subject this semester, helping you understand class size and whether sections are filling up too fast or still have room for more students.",
+          "Let you check subject info before making decisions on enrollment moves, teacher assignments, or section balancing, reducing mistakes and rework later."
+        ]
+      },
+      {
+        "heading": "Instructions",
+        "content": [
+          "Open Subject List and pick the subject you want to review. Check its name, code, term/semester, and any key notes, so you know you are looking at the correct class.",
+          "Look at the enrolled students count and list to see who is in that subject this semester. Use this to spot overfilled classes or confirm that specific students are properly enrolled.",
+          "If you need to act—like moving a student, adding capacity, or coordinating with a teacher—use the subject info you see here before switching to Student Enrollment or Teacher Management."
+        ]
+      },
+      {
+        "heading": "What's next",
+        "content": [
+          "If a class is too full, consider moving students to another section or asking for an additional section. Do this through Student Enrollment or the section assignment flow.",
+          "If a student is missing from a subject they should have, enroll them through Student Enrollment (Quick Enroll or Manual Enrollment) and confirm they now appear in the subject list.",
+          "If teacher coverage needs adjustment, go to Teacher Management to reassign the subject or schedule. Return here to verify the subject and enrollment list look correct afterward."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "subject-sets",
+    "title": "Subject Sets (group similar subjects)",
+    "tags": ["subjects", "sets", "curriculum"],
+    "color": "#8B5CF6",
+    "summary": "Create and manage collections of similar subjects (e.g., GE lists) for easy reuse.",
+    "pages": [
+      {
+        "heading": "What is the purpose",
+        "content": [
+          "Gather related subjects into one set—like General Education or language bundles—so you can assign them together without hunting for each item every time you build or adjust a program or term plan.",
+          "Keep subject organization tidy; sets make it clear which subjects belong together, reducing mistakes when you load courses, build schedules, or copy requirements for new batches or strands.",
+          "Save time for future terms by reusing sets instead of rebuilding lists, so you can focus on enrollment and scheduling rather than repetitive selection work."
+        ]
+      },
+      {
+        "heading": "Instructions",
+        "content": [
+          "Open Subject Sets, create a new set, and give it a clear name (for example, GE-First Year). Add the subjects that belong together so you can pick them as one group later.",
+          "Review the subjects in the set to confirm codes and titles are correct. Remove any that do not belong, and add missing ones now so the set is accurate before you use it elsewhere.",
+          "When assigning requirements or building a term, choose the set instead of adding subjects one by one. This keeps the list consistent and reduces the chance of forgetting a required subject."
+        ]
+      },
+      {
+        "heading": "What's next",
+        "content": [
+          "If the curriculum changes, update the set by adding new subjects and removing retired ones, so future enrollments and schedules stay correct.",
+          "After updating a set, revisit programs or plans that use it to ensure they reflect the latest subjects. Adjust where needed so students see the right requirements.",
+          "Let teachers and staff know when a set changes, especially if it affects their classes. A quick note prevents confusion and helps everyone follow the updated list."
+        ]
+      }
+    ]
+  },
+  {
+    "id": "subject-assignment",
+    "title": "Subject Assignment (defaults for Quick Enroll)",
+    "tags": ["subjects", "assignment", "defaults"],
+    "color": "#14B8A6",
+    "summary": "Set the default subjects that auto-appear during Quick Enroll.",
+    "pages": [
+      {
+        "heading": "What is the purpose",
+        "content": [
+          "Define the subjects that should auto-load in Quick Enroll for each course or year, so regular students get the correct classes instantly without manual picking each time.",
+          "Keep defaults consistent across terms, reducing mistakes and saving time for registrars who handle many enrollments daily.",
+          "Ensure subject lists align with the curriculum, so students start with the right requirements and avoid missing key classes."
+        ]
+      },
+      {
+        "heading": "Instructions",
+        "content": [
+          "Open Subject Assignment and select the course/year you want to set up. Add the subjects that should appear by default in Quick Enroll for that course and term.",
+          "Review each subject entry—code, title, and term. Remove anything that does not belong and add missing required subjects so the default list is complete.",
+          "Save your changes. During Quick Enroll, these defaults will auto-load. If something looks wrong later, return here to adjust the list and keep it accurate."
+        ]
+      },
+      {
+        "heading": "What's next",
+        "content": [
+          "If the curriculum changes, update the default assignments so future Quick Enroll sessions stay correct.",
+          "After updating, try a test Quick Enroll to confirm the right subjects appear automatically.",
+          "Let staff know when defaults change, so they expect the updated subjects during enrollment and can spot anything unusual quickly."
+        ]
+      }
+    ]
+  }
+]

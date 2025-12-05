@@ -284,18 +284,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   }
 
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
-      <CardHeader className="text-center pb-6 sm:pb-8 px-4 sm:px-6">
-        <CardTitle className="text-2xl sm:text-3xl font-light text-gray-900 mb-2">
-          Welcome Back
+    <div className="mx-auto w-full rounded-2xl border border-blue-900/10 bg-white/95 p-6 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+      <CardHeader className="p text-center sm:px-6 sm:pb-8">
+        <CardTitle className="mb-2 text-2xl font-medium text-blue-900 sm:text-3xl">
+          Welcome back
         </CardTitle>
-        <CardDescription className="text-gray-500 text-sm sm:text-base">
-          Sign in to your account
+        <CardDescription className="text-sm text-blue-900/70 sm:text-base">
+          Sign in to continue to Marian Connect
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col justify-center flex-1 px-4 sm:px-6">
+      <CardContent className="flex flex-1 flex-col justify-center px-4 sm:px-6">
         {/* Login Method Tabs */}
-        <div className="flex space-x-1 mb-8 bg-gray-100 p-1 rounded-xl shadow-inner">
+        <div className="mb-9 flex space-x-1 rounded-2xl bg-blue-900/5 p-1 shadow-inner">
           <button
             type="button"
             onClick={() => {
@@ -303,17 +303,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               setEmailSent(false)
               setError('')
             }}
-            className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-[1.02] ${
+            className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
               loginMethod === 'password'
-                ? 'bg-white text-gray-900 shadow-md scale-105'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ? 'scale-[1.02] bg-blue-900 text-white shadow-lg'
+                : 'text-blue-900/80 hover:bg-white hover:text-blue-900'
             }`}
           >
             <div className="flex items-center justify-center gap-2">
               <Lock
                 size={16}
                 className={`transition-colors duration-200 ${
-                  loginMethod === 'password' ? 'text-blue-900' : ''
+                  loginMethod === 'password' ? 'text-white' : 'text-blue-900'
                 }`}
               />
               Password
@@ -326,17 +326,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               setEmailSent(false)
               setError('')
             }}
-            className={`flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-all duration-300 transform hover:scale-[1.02] ${
+            className={`flex-1 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
               loginMethod === 'magic-link'
-                ? 'bg-white text-gray-900 shadow-md scale-105'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ? 'scale-[1.02] bg-blue-900 text-white shadow-lg'
+                : 'text-blue-900/80 hover:bg-white hover:text-blue-900'
             }`}
           >
             <div className="flex items-center justify-center gap-2">
               <MagicWand
                 size={16}
                 className={`transition-colors duration-200 ${
-                  loginMethod === 'magic-link' ? 'text-blue-900' : ''
+                  loginMethod === 'magic-link' ? 'text-white' : 'text-blue-900'
                 }`}
               />
               Magic Link
@@ -345,16 +345,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         </div>
 
         {emailSent ? (
-          <div className="text-center space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+          <div className="space-y-6 text-center animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
             <div className="text-green-600 animate-in fade-in-0 zoom-in-95 duration-300 delay-100">
               <Check
                 size={48}
                 className="mx-auto mb-4 animate-in fade-in-0 zoom-in-75 duration-300 delay-200"
               />
-              <h3 className="text-xl font-medium text-gray-900 mb-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-300">
+              <h3 className="mb-2 text-xl font-medium text-blue-900 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-300">
                 Check your email!
               </h3>
-              <p className="text-sm text-gray-600 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-400">
+              <p className="text-sm text-blue-900/70 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-400">
                 We sent you a magic link to sign in.
               </p>
             </div>
@@ -365,7 +365,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 setError('')
               }}
               variant="outline"
-              className="w-full h-12 text-base font-medium animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-500 hover:scale-[1.02] transition-transform"
+              className="h-12 w-full text-base font-medium transition-transform duration-200 animate-in fade-in-0 slide-in-from-bottom-2 delay-500 hover:scale-[1.02]"
             >
               Try Different Email
             </Button>
@@ -380,7 +380,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 <div className="space-y-2">
                   <Label
                     htmlFor="email"
-                    className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                    className="flex items-center gap-2 text-sm font-medium text-blue-900"
                   >
                     <Envelope size={16} />
                     Email
@@ -396,7 +396,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                         message: 'Invalid email address',
                       },
                     })}
-                    className="w-full h-12 text-base transition-all duration-200 focus:scale-[1.01] hover:shadow-md"
+                    className="h-12 w-full rounded-xl border border-blue-900/15 bg-white text-blue-900 transition-all duration-200 placeholder:text-blue-900/50 hover:border-blue-900/30 focus:scale-[1.01] focus:border-blue-900 focus:ring-2 focus:ring-blue-900/20"
                     aria-describedby={errors.email ? 'email-error' : undefined}
                   />
                   {errors.email && (
@@ -413,7 +413,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 <div className="space-y-2">
                   <Label
                     htmlFor="password"
-                    className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                    className="flex items-center gap-2 text-sm font-medium text-blue-900"
                   >
                     <Lock size={16} />
                     Password
@@ -430,7 +430,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                           message: 'Password must be at least 6 characters',
                         },
                       })}
-                      className="w-full h-12 text-base pr-12 transition-all duration-200 focus:scale-[1.01] hover:shadow-md"
+                      className="h-12 w-full rounded-xl border border-blue-900/15 bg-white pr-12 text-blue-900 transition-all duration-200 placeholder:text-blue-900/50 hover:border-blue-900/30 focus:scale-[1.01] focus:border-blue-900 focus:ring-2 focus:ring-blue-900/20"
                       aria-describedby={
                         errors.password ? 'password-error' : undefined
                       }
@@ -438,7 +438,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 transform text-blue-900/60 transition-colors duration-200 hover:text-blue-900"
                     >
                       {showPassword ? (
                         <EyeSlash size={20} />
@@ -463,7 +463,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                     onClick={handleOpenResetModal}
                     aria-label="Forgot password"
                     tabIndex={0}
-                    className="text-sm text-blue-900 underline rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 transition-colors disabled:opacity-60"
+                    className="text-sm text-blue-900 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 transition-colors disabled:opacity-60"
                     disabled={isResettingPassword}
                   >
                     Forgot password?
@@ -472,7 +472,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
                 <Button
                   type="submit"
-                  className="w-full h-12 text-base font-medium hover:scale-[1.02] transition-transform duration-200"
+                  className="h-12 w-full rounded-xl bg-blue-900 text-base font-medium text-white transition-transform duration-200 hover:scale-[1.01] hover:bg-blue-950"
                   loading={isLoading}
                 >
                   Sign In
@@ -488,7 +488,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 <div className="space-y-2">
                   <Label
                     htmlFor="email"
-                    className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                    className="flex items-center gap-2 text-sm font-medium text-blue-900"
                   >
                     <Envelope size={16} />
                     Email
@@ -504,7 +504,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                         message: 'Invalid email address',
                       },
                     })}
-                    className="w-full h-12 text-base transition-all duration-200 focus:scale-[1.01] hover:shadow-md"
+                    className="h-12 w-full rounded-xl border border-blue-900/15 bg-white text-blue-900 transition-all duration-200 placeholder:text-blue-900/50 hover:border-blue-900/30 focus:scale-[1.01] focus:border-blue-900 focus:ring-2 focus:ring-blue-900/20"
                     aria-describedby={errors.email ? 'email-error' : undefined}
                   />
                   {errors.email && (
@@ -520,7 +520,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
                 <Button
                   type="submit"
-                  className="w-full h-12 text-base font-medium hover:scale-[1.02] transition-transform duration-200"
+                  className="h-12 w-full rounded-xl bg-blue-900 text-base font-medium text-white transition-transform duration-200 hover:scale-[1.01] hover:bg-blue-950"
                   loading={isLoading}
                 >
                   Send Magic Link
@@ -530,7 +530,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
             {/* Error Display */}
             {error && (
-              <p className="text-sm text-red-600 text-center" role="alert">
+              <p className="text-center text-sm text-red-600" role="alert">
                 {error}
               </p>
             )}
@@ -539,17 +539,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             <div className="mt-6">
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-300" />
+                  <span className="w-full border-t border-blue-900/15" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or</span>
+                  <span className="bg-white px-2 text-blue-900/70">Or</span>
                 </div>
               </div>
 
               <Button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="w-full mt-4 bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-lg"
+                className="mt-4 w-full rounded-xl border border-blue-900/15 bg-white text-blue-900 transition-all duration-200 hover:border-blue-900/30 hover:bg-white shadow-md"
                 loading={isLoading}
                 variant="outline"
               >
@@ -560,12 +560,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
             {/* Registration Link */}
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-blue-900/80">
                 Don't have an account?{' '}
                 <button
                   type="button"
                   onClick={onSwitchToRegistration}
-                  className="text-blue-900 hover:text-blue-900 font-medium underline"
+                  className="font-medium text-blue-900 underline underline-offset-2 transition-colors hover:text-blue-950"
                 >
                   Sign up
                 </button>
@@ -576,17 +576,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({
       </CardContent>
       {showResetModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-blue-900/70 px-4"
           role="dialog"
           aria-modal="true"
           aria-label="Reset password"
         >
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-6 shadow-[0_25px_80px_rgba(0,0,0,0.35)]">
             <div className="mb-4">
-              <h3 className="text-xl font-medium text-gray-900">
+              <h3 className="text-xl font-medium text-blue-900">
                 Reset password
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-blue-900/80">
                 Enter the email associated with your account to receive a reset
                 link.
               </p>
@@ -594,7 +594,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             <div className="space-y-2">
               <Label
                 htmlFor="reset-email"
-                className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                className="flex items-center gap-2 text-sm font-medium text-blue-900"
               >
                 <Envelope size={16} />
                 Email
@@ -605,7 +605,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 value={resetEmail}
                 onChange={(event) => setResetEmail(event.target.value)}
                 placeholder="name@email.com"
-                className="w-full h-12 text-base"
+                className="h-12 w-full rounded-xl border border-blue-900/15 text-blue-900 placeholder:text-blue-900/50 focus:border-blue-900 focus:ring-2 focus:ring-blue-900/20"
                 autoFocus
               />
             </div>
@@ -613,7 +613,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 rounded-lg"
+                className="flex-1 rounded-xl border border-blue-900/15 text-blue-900 hover:border-blue-900/30"
                 onClick={handleCloseResetModal}
                 disabled={isResettingPassword}
               >
@@ -621,7 +621,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               </Button>
               <Button
                 type="button"
-                className="flex-1 rounded-lg"
+                className="flex-1 rounded-xl bg-blue-900 hover:bg-blue-950"
                 onClick={handlePasswordReset}
                 loading={isResettingPassword}
               >
@@ -631,6 +631,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </div>
         </div>
       )}
-    </Card>
+    </div>
   )
 }

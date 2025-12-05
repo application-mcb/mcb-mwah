@@ -46,11 +46,11 @@ Your commitment to academic integrity ensures a fair and respectful learning env
     content: `Successful enrollment requires meeting all academic prerequisites and standards:
 
 • All course prerequisites must be completed with satisfactory grades
-• Minimum GPA requirements must be maintained for continued enrollment
+• Minimum GWA requirements must be maintained for continued enrollment
 • Required general education courses must be completed in sequence
 • Major-specific requirements must be fulfilled as outlined in your program
 • Transfer credits will be evaluated and approved by academic advisors
-• Academic probation policies apply if GPA falls below minimum standards
+• Academic probation policies apply if GWA falls below minimum standards
 
 Failure to meet these requirements may result in course withdrawal or program dismissal. Regular academic advising is essential for compliance.`,
   },

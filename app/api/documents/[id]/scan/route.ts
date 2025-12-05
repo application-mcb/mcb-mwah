@@ -183,16 +183,26 @@ async function validateDocument(
 }> {
   try {
     // Ensure studentData has the expected structure with safe defaults
-    if (!studentData || typeof studentData !== 'object' || studentData === null) {
+    if (
+      !studentData ||
+      typeof studentData !== 'object' ||
+      studentData === null
+    ) {
       studentData = {
         personalInfo: {},
         enrollmentInfo: {},
       }
     } else {
       // Ensure nested objects exist - use safe property access
-      const safePersonalInfo = (studentData && 'personalInfo' in studentData) ? (studentData.personalInfo || {}) : {}
-      const safeEnrollmentInfo = (studentData && 'enrollmentInfo' in studentData) ? (studentData.enrollmentInfo || {}) : {}
-      
+      const safePersonalInfo =
+        studentData && 'personalInfo' in studentData
+          ? studentData.personalInfo || {}
+          : {}
+      const safeEnrollmentInfo =
+        studentData && 'enrollmentInfo' in studentData
+          ? studentData.enrollmentInfo || {}
+          : {}
+
       studentData = {
         ...studentData, // Keep any other properties first
         personalInfo: safePersonalInfo,
@@ -246,37 +256,36 @@ async function validateDocument(
     // Build student information context with safe property access
     const personalInfo = studentData.personalInfo || {}
     const enrollmentInfo = studentData.enrollmentInfo || {}
-    
+
     const studentInfo = `
 Student Information:
 - Name: ${personalInfo.firstName || ''} ${personalInfo.middleName || ''} ${
       personalInfo.lastName || ''
     } ${personalInfo.nameExtension || ''}
-- Birth Date: ${personalInfo.birthMonth || ''}/${
-      personalInfo.birthDay || ''
-    }/${personalInfo.birthYear || ''}
+- Birth Date: ${personalInfo.birthMonth || ''}/${personalInfo.birthDay || ''}/${
+      personalInfo.birthYear || ''
+    }
 - Place of Birth: ${personalInfo.placeOfBirth || ''}
 - Email: ${personalInfo.email || ''}
 - Student ID: ${enrollmentInfo.studentId || ''}
 - Grade Level: ${enrollmentInfo.gradeLevel || ''}
-- Course: ${enrollmentInfo.courseCode || ''} ${
-      enrollmentInfo.courseName || ''
-    }
+- Course: ${enrollmentInfo.courseCode || ''} ${enrollmentInfo.courseName || ''}
 - School Year: ${enrollmentInfo.schoolYear || ''}
 `
 
     // Check if we have meaningful student data to compare
-    const hasStudentData = 
-      (personalInfo.firstName || personalInfo.lastName) ||
-      (enrollmentInfo.studentId) ||
-      (personalInfo.birthYear)
+    const hasStudentData =
+      personalInfo.firstName ||
+      personalInfo.lastName ||
+      enrollmentInfo.studentId ||
+      personalInfo.birthYear
 
     // Map document types to expected content
     const documentTypeExpectations: Record<string, string> = {
       birthCertificate:
         "A birth certificate should contain: full name, birth date, place of birth, parents' names, registration number, and official seals/stamps. It should NOT contain random text, animal information, or unrelated content.",
       transcript:
-        'A transcript should contain: student name, course/subject names, grades, credits, GPA, school name, dates, and academic terms. It should NOT contain random text, animal information, or unrelated content.',
+        'A transcript should contain: student name, course/subject names, grades, credits, GWA, school name, dates, and academic terms. It should NOT contain random text, animal information, or unrelated content.',
       diploma:
         'A diploma should contain: student name, degree/certificate name, school name, graduation date, signatures, and official seals. It should NOT contain random text, animal information, or unrelated content.',
       reportCard:
@@ -301,18 +310,40 @@ If the text is completely irrelevant (e.g., about animals, random nonsense, unre
 Extracted Document Text:
 ${extractedText}
 
-${hasStudentData ? `Student Information (for comparison):
-${studentInfo}` : 'Note: Student information is not available for comparison. Focus on validating document type relevance only.'}
+${
+  hasStudentData
+    ? `Student Information (for comparison):
+${studentInfo}`
+    : 'Note: Student information is not available for comparison. Focus on validating document type relevance only.'
+}
 
 Please analyze this document and provide:
-1. A summary of the document's relevance and accuracy (2-3 sentences). FIRST check if the text is relevant to a ${documentType}, ${hasStudentData ? 'then compare with student info if available.' : 'focusing on document type relevance since student data is not available.'}
+1. A summary of the document's relevance and accuracy (2-3 sentences). FIRST check if the text is relevant to a ${documentType}, ${
+      hasStudentData
+        ? 'then compare with student info if available.'
+        : 'focusing on document type relevance since student data is not available.'
+    }
 2. Validation status: 
-   - "valid" (text is relevant to ${documentType}${hasStudentData ? ' AND all information matches student data' : ''})
-   - "warning" (text is relevant but ${hasStudentData ? 'has some mismatches, or' : ''} text seems partially relevant)
-   - "invalid" (text is NOT relevant to ${documentType}${hasStudentData ? ', OR has significant mismatches' : ''})
+   - "valid" (text is relevant to ${documentType}${
+      hasStudentData ? ' AND all information matches student data' : ''
+    })
+   - "warning" (text is relevant but ${
+     hasStudentData ? 'has some mismatches, or' : ''
+   } text seems partially relevant)
+   - "invalid" (text is NOT relevant to ${documentType}${
+      hasStudentData ? ', OR has significant mismatches' : ''
+    })
 3. Detailed field-by-field comparison with:
-   - Matches: ${hasStudentData ? 'fields that match between document and student info' : 'key information found in the document'}
-   - Mismatches: ${hasStudentData ? 'fields that don\'t match (with expected vs found values)' : 'inconsistencies or issues found in the document'}
+   - Matches: ${
+     hasStudentData
+       ? 'fields that match between document and student info'
+       : 'key information found in the document'
+   }
+   - Mismatches: ${
+     hasStudentData
+       ? "fields that don't match (with expected vs found values)"
+       : 'inconsistencies or issues found in the document'
+   }
    - Missing fields: expected information not found in document
    - Extra fields: unexpected information found in document
 4. Confidence score (0-1) for the validation. Use LOW scores (<0.3) if text is irrelevant to document type.
@@ -510,7 +541,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       } catch (fetchError) {
         console.error('Error fetching enrollment data:', fetchError)
       }
-      
+
       // Fallback to user data if still not available
       if (!studentData) {
         studentData = {
@@ -519,7 +550,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
       }
     }
-    
+
     // Ensure studentData is always an object with the expected structure
     if (!studentData || typeof studentData !== 'object') {
       studentData = {
@@ -592,13 +623,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     try {
       // Double-check studentData structure before validation
       if (!studentData || typeof studentData !== 'object') {
-        console.warn('studentData is invalid before validation, using empty object')
+        console.warn(
+          'studentData is invalid before validation, using empty object'
+        )
         studentData = {
           personalInfo: {},
           enrollmentInfo: {},
         }
       }
-      
+
       validationResult = await validateDocument(
         extractedText,
         documentType,
@@ -611,7 +644,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         status: validationError?.status,
         stack: validationError?.stack?.substring(0, 200),
         studentDataType: typeof studentData,
-        studentDataKeys: studentData ? Object.keys(studentData) : 'null/undefined',
+        studentDataKeys: studentData
+          ? Object.keys(studentData)
+          : 'null/undefined',
       })
 
       if (isGeminiServiceUnavailable(validationError)) {

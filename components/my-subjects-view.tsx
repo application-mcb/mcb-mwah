@@ -374,14 +374,45 @@ export default function MySubjectsView({
   const getSubjectColor = (color: string): string => {
     const colorMap: { [key: string]: string } = {
       'blue-900': '#1e40af',
+      'blue-800': '#1e3a8a',
       'red-800': '#991b1b',
+      'red-700': '#b91c1c',
       'emerald-800': '#064e3b',
+      'emerald-700': '#047857',
       'yellow-800': '#92400e',
+      'yellow-700': '#a16207',
       'orange-800': '#9a3412',
+      'orange-700': '#c2410c',
       'violet-800': '#5b21b6',
+      'violet-700': '#7c3aed',
       'purple-800': '#581c87',
+      'purple-700': '#8b5cf6',
+      'indigo-800': '#312e81',
+      'indigo-700': '#4338ca',
     }
     return colorMap[color] || '#1e40af'
+  }
+
+  const getSubjectGradientClasses = (color: string): string => {
+    const gradientMap: { [key: string]: string } = {
+      'blue-900': 'bg-gradient-to-br from-blue-800 to-blue-900',
+      'blue-800': 'bg-gradient-to-br from-blue-700 to-blue-800',
+      'red-800': 'bg-gradient-to-br from-red-700 to-red-800',
+      'red-700': 'bg-gradient-to-br from-red-600 to-red-700',
+      'emerald-800': 'bg-gradient-to-br from-emerald-700 to-emerald-800',
+      'emerald-700': 'bg-gradient-to-br from-emerald-600 to-emerald-700',
+      'yellow-800': 'bg-gradient-to-br from-yellow-700 to-yellow-800',
+      'yellow-700': 'bg-gradient-to-br from-yellow-600 to-yellow-700',
+      'orange-800': 'bg-gradient-to-br from-orange-700 to-orange-800',
+      'orange-700': 'bg-gradient-to-br from-orange-600 to-orange-700',
+      'violet-800': 'bg-gradient-to-br from-violet-700 to-violet-800',
+      'violet-700': 'bg-gradient-to-br from-violet-600 to-violet-700',
+      'purple-800': 'bg-gradient-to-br from-purple-700 to-purple-800',
+      'purple-700': 'bg-gradient-to-br from-purple-600 to-purple-700',
+      'indigo-800': 'bg-gradient-to-br from-indigo-700 to-indigo-800',
+      'indigo-700': 'bg-gradient-to-br from-indigo-600 to-indigo-700',
+    }
+    return gradientMap[color] || 'bg-gradient-to-br from-blue-800 to-blue-900'
   }
 
   // Helper to resolve the teacher assigned to this subject for the student's section
@@ -741,21 +772,21 @@ export default function MySubjectsView({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border border-blue-100 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+      <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-xl border border-blue-100 shadow-lg">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-800 to-blue-900 flex items-center justify-center aspect-square shadow-md">
               <BookOpen size={24} className="text-white" weight="fill" />
             </div>
             <div>
               <h1
-                className="text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
+                className="text-xl sm:text-2xl font-medium bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent"
                 style={{ fontFamily: 'Poppins', fontWeight: 400 }}
               >
                 My Subjects ({enrolledSubjects.length})
               </h1>
               <p
-                className="text-sm text-gray-600"
+                className="text-xs sm:text-sm text-gray-600"
                 style={{ fontFamily: 'Poppins', fontWeight: 300 }}
               >
                 View your enrolled subjects and assigned teachers
@@ -763,25 +794,16 @@ export default function MySubjectsView({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto sm:justify-end">
             <button
               type="button"
               onClick={() => setShowPrintScheduleModal(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-blue-900 bg-white px-3 py-2 text-xs font-medium text-blue-900 hover:bg-blue-50"
+              className="inline-flex justify-center items-center gap-2 rounded-xl border border-blue-900 bg-white px-3 py-2 text-xs font-medium text-blue-900 hover:bg-blue-50 w-full sm:w-auto"
               style={{ fontFamily: 'Poppins', fontWeight: 400 }}
             >
               <Printer size={14} weight="bold" />
               Print Schedule
             </button>
-            <div className="flex items-center space-x-2 rounded-xl border border-green-100 shadow-sm px-3 py-2 bg-green-50">
-              <CheckCircle size={16} className="text-green-600" weight="fill" />
-              <span
-                className="text-xs text-green-700 font-medium"
-                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
-              >
-                Enrolled - {enrollment.enrollmentInfo?.schoolYear}
-              </span>
-            </div>
           </div>
         </div>
       </div>
@@ -790,10 +812,6 @@ export default function MySubjectsView({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
         <div className="flex items-center gap-4 flex-1">
           <div className="relative flex-1 max-w-md">
-            <MagnifyingGlass
-              size={20}
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            />
             <input
               type="text"
               placeholder="Search subjects..."
@@ -865,8 +883,103 @@ export default function MySubjectsView({
         )}
       </div>
 
-      {/* Subjects Table */}
-      <Card className="overflow-hidden pt-0 pb-0 border border-gray-200 shadow-lg rounded-xl">
+      {/* Mobile Card View */}
+      <div className="space-y-3 md:hidden">
+        {filteredSubjects.map((subject) => {
+          const schedule = getSubjectSchedule(subject)
+          const hasTime = schedule.startTime && schedule.endTime
+          const days = schedule.dayOfWeek
+
+          let dayLabel: string | null = null
+          if (days) {
+            const dayArray: string[] = Array.isArray(days) ? days : [days]
+            const abbrevMap: Record<string, string> = {
+              Monday: 'Mon',
+              Tuesday: 'Tue',
+              Wednesday: 'Wed',
+              Thursday: 'Thu',
+              Friday: 'Fri',
+              Saturday: 'Sat',
+              Sunday: 'Sun',
+            }
+            dayLabel = dayArray
+              .map((d) => abbrevMap[d] || d.slice(0, 3))
+              .join(', ')
+          }
+
+          const teacherId = getSubjectTeacherIdForStudent(subject)
+          const teacher = teacherId ? teachers[teacherId] : undefined
+          const firstName = teacher?.firstName || ''
+          const middleInitial = teacher?.middleName
+            ? `${teacher.middleName.charAt(0)}. `
+            : ''
+          const lastName = teacher?.lastName || ''
+          const extension = teacher?.extension ? ` ${teacher.extension}` : ''
+          const teacherName =
+            teacher &&
+            `${firstName} ${middleInitial}${lastName}${extension}`.trim()
+
+          return (
+            <Card
+              key={subject.id}
+              className={`border-none shadow-lg rounded-xl text-white ${getSubjectGradientClasses(
+                subject.color
+              )}`}
+            >
+              <div className="p-4 flex gap-3">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center">
+                    <BookOpen
+                      size={20}
+                      weight="fill"
+                      style={{ color: getSubjectColor(subject.color) }}
+                    />
+                  </div>
+                </div>
+                <div className="flex-1 space-y-2">
+                  <div>
+                    <p
+                      className="text-xs font-medium"
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                    >
+                      {subject.code} {subject.name}
+                    </p>
+                  </div>
+
+                  <div className="text-[11px] space-y-1">
+                    <p
+                      className="opacity-90"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      <span className="font-medium">Teacher:</span>{' '}
+                      {teacherName || 'Not assigned yet'}
+                    </p>
+                    <p
+                      className="opacity-90"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      <span className="font-medium">Time:</span>{' '}
+                      {hasTime
+                        ? `${schedule.startTime} - ${schedule.endTime}`
+                        : 'No time set'}
+                    </p>
+                    <p
+                      className="opacity-90"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      <span className="font-medium">Day:</span>{' '}
+                      {dayLabel || 'No day set'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Subjects Table (tablet / desktop) */}
+      <Card className="overflow-hidden pt-0 pb-0 border border-gray-200 shadow-lg rounded-xl hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-br from-blue-800 to-blue-900 rounded-lg border-b border-blue-900">

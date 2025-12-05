@@ -12,8 +12,11 @@ export async function confirmQuickEnrollUtil({
   setQuickEnrollOrNumber,
   setQuickEnrollScholarship,
   setQuickEnrollStudentId,
+  actorId,
+  actorName,
+  actorEmail,
 }: any) {
-  if (!quickEnrollData) return
+  if (!quickEnrollData) return { success: false }
 
   const existingId =
     studentProfiles[quickEnrollData.enrollment.userId]?.studentId ||
@@ -22,15 +25,15 @@ export async function confirmQuickEnrollUtil({
 
   if (!quickEnrollOrNumber.trim()) {
     toast.error('OR Number is required.', { autoClose: 5000 })
-    return
+    return { success: false }
   }
   if (!quickEnrollScholarship.trim()) {
     toast.error('Scholarship is required.', { autoClose: 5000 })
-    return
+    return { success: false }
   }
   if (!finalStudentId || !String(finalStudentId).trim()) {
     toast.error('Student ID is required.', { autoClose: 5000 })
-    return
+    return { success: false }
   }
 
   setEnrollingStudent(true)
@@ -44,9 +47,14 @@ export async function confirmQuickEnrollUtil({
         orNumber: quickEnrollOrNumber,
         scholarship: quickEnrollScholarship,
         studentId: finalStudentId,
-        studentType: quickEnrollData.enrollment.enrollmentInfo?.studentType || 'regular',
+        studentType:
+          quickEnrollData.enrollment.enrollmentInfo?.studentType || 'regular',
         level: quickEnrollData.enrollment.enrollmentInfo?.level,
         semester: quickEnrollData.enrollment.enrollmentInfo?.semester,
+        actorId,
+        actorName,
+        actorEmail,
+        actorRole: 'registrar',
       }),
     })
     const data = await response.json()
@@ -56,7 +64,13 @@ export async function confirmQuickEnrollUtil({
           await fetch('/api/enrollment', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ updateLatestId: finalStudentId }),
+            body: JSON.stringify({
+              updateLatestId: finalStudentId,
+              actorId,
+              actorName,
+              actorEmail,
+              actorRole: 'registrar',
+            }),
           })
         } catch {}
       }
@@ -69,15 +83,18 @@ export async function confirmQuickEnrollUtil({
       setQuickEnrollOrNumber('')
       setQuickEnrollScholarship('')
       setQuickEnrollStudentId('')
+      return { success: true }
     } else {
       toast.error(data.error || 'Failed to quick enroll student.', {
         autoClose: 8000,
       })
+      return { success: false }
     }
   } catch (error) {
     toast.error('Network error occurred while quick enrolling student.', {
       autoClose: 7000,
     })
+    return { success: false }
   } finally {
     setEnrollingStudent(false)
   }
@@ -95,7 +112,10 @@ export async function handleConfirmEnrollUtil({
   closeViewModal,
 }: any) {
   if (!viewingEnrollment || selectedSubjects.length === 0) {
-    toast.warning('Please select at least one subject before enrolling the student.', { autoClose: 5000 })
+    toast.warning(
+      'Please select at least one subject before enrolling the student.',
+      { autoClose: 5000 }
+    )
     return
   }
 
@@ -147,9 +167,12 @@ export async function handleConfirmEnrollUtil({
       })
     }
   } catch (error) {
-    toast.error('Network error occurred while enrolling student. Please check your connection and try again.', {
-      autoClose: 7000,
-    })
+    toast.error(
+      'Network error occurred while enrolling student. Please check your connection and try again.',
+      {
+        autoClose: 7000,
+      }
+    )
   } finally {
     setEnrollingStudent(false)
   }
@@ -162,7 +185,10 @@ export async function enrollSubjectsOnlyUtil({
   closeViewModal,
 }: any) {
   if (!viewingEnrollment || selectedSubjects.length === 0) {
-    toast.warning('Please select at least one subject before enrolling the student.', { autoClose: 5000 })
+    toast.warning(
+      'Please select at least one subject before enrolling the student.',
+      { autoClose: 5000 }
+    )
     return
   }
   setEnrollingStudent(true)
@@ -186,18 +212,31 @@ export async function enrollSubjectsOnlyUtil({
       )
       closeViewModal()
     } else {
-      toast.error(data.error || 'Failed to enroll student. Please try again.', { autoClose: 8000 })
+      toast.error(data.error || 'Failed to enroll student. Please try again.', {
+        autoClose: 8000,
+      })
     }
   } catch (error) {
-    toast.error('Network error occurred while enrolling student. Please check your connection and try again.', { autoClose: 7000 })
+    toast.error(
+      'Network error occurred while enrolling student. Please check your connection and try again.',
+      { autoClose: 7000 }
+    )
   } finally {
     setEnrollingStudent(false)
   }
 }
 
-export async function revokeEnrollmentUtil({ viewingEnrollment, setShowRevokeModal, setRevokingEnrollment, closeViewModal }: any) {
+export async function revokeEnrollmentUtil({
+  viewingEnrollment,
+  setShowRevokeModal,
+  setRevokingEnrollment,
+  closeViewModal,
+}: any) {
   if (!viewingEnrollment) {
-    toast.error('Unable to find enrollment information. Please refresh and try again.', { autoClose: 5000 })
+    toast.error(
+      'Unable to find enrollment information. Please refresh and try again.',
+      { autoClose: 5000 }
+    )
     return
   }
   setRevokingEnrollment(true)
@@ -220,18 +259,32 @@ export async function revokeEnrollmentUtil({ viewingEnrollment, setShowRevokeMod
       setShowRevokeModal(false)
       closeViewModal()
     } else {
-      toast.error(data.error || 'Failed to revoke enrollment. Please try again.', { autoClose: 8000 })
+      toast.error(
+        data.error || 'Failed to revoke enrollment. Please try again.',
+        { autoClose: 8000 }
+      )
     }
   } catch (error) {
-    toast.error('Network error occurred while revoking enrollment. Please check your connection and try again.', { autoClose: 7000 })
+    toast.error(
+      'Network error occurred while revoking enrollment. Please check your connection and try again.',
+      { autoClose: 7000 }
+    )
   } finally {
     setRevokingEnrollment(false)
   }
 }
 
-export async function deleteEnrollmentUtil({ enrollmentToDelete, setShowDeleteModal, setEnrollmentToDelete, setDeletingEnrollment }: any) {
+export async function deleteEnrollmentUtil({
+  enrollmentToDelete,
+  setShowDeleteModal,
+  setEnrollmentToDelete,
+  setDeletingEnrollment,
+}: any) {
   if (!enrollmentToDelete) {
-    toast.error('Unable to find enrollment information. Please refresh and try again.', { autoClose: 5000 })
+    toast.error(
+      'Unable to find enrollment information. Please refresh and try again.',
+      { autoClose: 5000 }
+    )
     return
   }
   setDeletingEnrollment(true)
@@ -254,14 +307,17 @@ export async function deleteEnrollmentUtil({ enrollmentToDelete, setShowDeleteMo
       setShowDeleteModal(false)
       setEnrollmentToDelete(null)
     } else {
-      toast.error(data.error || 'Failed to delete enrollment. Please try again.', { autoClose: 8000 })
+      toast.error(
+        data.error || 'Failed to delete enrollment. Please try again.',
+        { autoClose: 8000 }
+      )
     }
   } catch (error) {
-    toast.error('Network error occurred while deleting enrollment. Please check your connection and try again.', { autoClose: 7000 })
+    toast.error(
+      'Network error occurred while deleting enrollment. Please check your connection and try again.',
+      { autoClose: 7000 }
+    )
   } finally {
     setDeletingEnrollment(false)
   }
 }
-
-
-

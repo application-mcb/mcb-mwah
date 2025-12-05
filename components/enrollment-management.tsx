@@ -622,7 +622,11 @@ export default function EnrollmentManagement({
   ])
 
   useEffect(() => {
-    if (!manualEnrollment || !manualEnrollment.userId || !showManualEnrollModal) {
+    if (
+      !manualEnrollment ||
+      !manualEnrollment.userId ||
+      !showManualEnrollModal
+    ) {
       setManualTakenSubjects({})
       setManualTakenLoading(false)
       return
@@ -683,7 +687,9 @@ export default function EnrollmentManagement({
         }
       }
 
-      await Promise.all(Array.from(ayCodes).map((code) => fetchGradesForAy(code)))
+      await Promise.all(
+        Array.from(ayCodes).map((code) => fetchGradesForAy(code))
+      )
 
       if (isCancelled) {
         setManualTakenLoading(false)
@@ -1173,7 +1179,8 @@ export default function EnrollmentManagement({
       )
       enrollmentCache.setPartial({ enrollments: updated as any })
     }
-    return confirmQuickEnrollUtil({
+
+    const result = await confirmQuickEnrollUtil({
       quickEnrollData,
       studentProfiles,
       quickEnrollOrNumber,
@@ -1185,7 +1192,14 @@ export default function EnrollmentManagement({
       setQuickEnrollOrNumber,
       setQuickEnrollScholarship,
       setQuickEnrollStudentId,
+      actorId: registrarUid,
+      actorName: registrarName,
+      actorEmail: '',
     })
+
+    if (result?.success) {
+      await fetchEnrolledStudents()
+    }
   }
 
   const cancelQuickEnroll = () =>

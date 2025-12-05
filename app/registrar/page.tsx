@@ -31,35 +31,29 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import {
-  User,
   Users,
   ChartBar,
   Gear,
   SignOut,
   House,
-  IdentificationCard,
   GraduationCap,
-  Calendar,
   Bell,
   MemberOfIcon,
   Shield,
   BookOpen,
-  UserList,
-  Robot,
-  Brain,
-  Cpu,
-  Lightbulb,
   ChatCircleDots,
-  Sparkle,
   CaretLeft,
   CaretRight,
-  MagnifyingGlass,
   List,
   Users as UsersIcon,
   PaperPlaneTilt,
   ListChecks,
+  BookmarkSimple,
+  FunnelSimple,
+  X,
   ArrowBendLeftUp,
 } from '@phosphor-icons/react'
+import resourcesData from '@/data/registrar-resources.json' assert { type: 'json' }
 
 interface RegistrarData {
   uid: string
@@ -86,13 +80,16 @@ type ViewType =
   | 'analytics'
   | 'audit-logs'
 
-interface ChatMessage {
+type ResourceItem = {
   id: string
-  content: string
-  isUser: boolean
-  timestamp: Date
-  isTyping?: boolean
-  displayContent?: string
+  title: string
+  tags: string[]
+  color: string
+  summary: string
+  pages: {
+    heading: string
+    content: string[]
+  }[]
 }
 
 export default function RegistrarPage() {
@@ -100,16 +97,12 @@ export default function RegistrarPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [currentView, setCurrentView] = useState<ViewType>('overview')
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
-  const [chatInput, setChatInput] = useState('')
-  const [isAiTyping, setIsAiTyping] = useState(false)
-  const [typingMessageId, setTypingMessageId] = useState<string | null>(null)
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false)
   const [isRightCollapsed, setIsRightCollapsed] = useState(false)
   const [isArrangeView, setIsArrangeView] = useState(false)
   const [sidebarView, setSidebarView] = useState<
-    'ai' | 'chat' | 'tasks' | 'events'
-  >('ai')
+    'chat' | 'tasks' | 'events' | 'resources'
+  >('resources')
   const [contacts, setContacts] = useState<ContactData[]>([])
   const [selectedContact, setSelectedContact] = useState<ContactData | null>(
     null
@@ -117,6 +110,17 @@ export default function RegistrarPage() {
   const [contactsLoading, setContactsLoading] = useState(false)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [searchQuery, setSearchQuery] = useState('')
+  const [resourceSearch, setResourceSearch] = useState('')
+  const [activeResourceTag, setActiveResourceTag] = useState<string | null>(
+    null
+  )
+  const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(
+    null
+  )
+  const [isResourceModalOpen, setIsResourceModalOpen] = useState(false)
+  const [resourcePage, setResourcePage] = useState(0)
+  const [showResourceFilterDropdown, setShowResourceFilterDropdown] =
+    useState(false)
   const [showProfileModal, setShowProfileModal] = useState(false)
   const [sidebarCounts, setSidebarCounts] = useState<{
     enrollments: { pending: number; regular: number; irregular: number }
@@ -127,8 +131,6 @@ export default function RegistrarPage() {
     events: { due: number; upcoming: number; expired: number }
   } | null>(null)
   const previousContacts = useRef<ContactData[]>([])
-  const chatInputRef = useRef<HTMLInputElement>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const { user, loading: authLoading, signOut } = useAuth()
 
@@ -244,11 +246,6 @@ export default function RegistrarPage() {
     }
   }, [registrar])
 
-  // Auto-scroll to bottom when new messages are added or during typewriter effect
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chatMessages, isAiTyping, typingMessageId])
-
   useEffect(() => {
     if (sidebarView === 'chat' && user?.uid) {
       const fetchContacts = async () => {
@@ -322,23 +319,6 @@ export default function RegistrarPage() {
       setSelectedContact(contact)
     }
   }
-
-  // Trigger typewriter effect for welcome message on component mount
-  useEffect(() => {
-    const welcomeMessage: ChatMessage = {
-      id: 'welcome',
-      content:
-        "Hello! I'm your assistant. I can help you with enrollment statistics, student searches, teacher information, and more. You can ask in English or Filipino!",
-      isUser: false,
-      timestamp: new Date(),
-      displayContent: '',
-      isTyping: true,
-    }
-
-    setChatMessages([welcomeMessage])
-    setTypingMessageId(welcomeMessage.id)
-    typeWriterEffect(welcomeMessage.id, welcomeMessage.content, 45) // Faster typing for welcome message
-  }, [])
 
   // Mouse movement effect for background glow
   useEffect(() => {
@@ -446,156 +426,6 @@ export default function RegistrarPage() {
     }
   }
 
-  const sendMessageToAI = async (message: string) => {
-    if (!message.trim()) return
-
-    // Add user message to chat
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      content: message.trim(),
-      isUser: true,
-      timestamp: new Date(),
-    }
-
-    setChatMessages((prev) => [...prev, userMessage])
-    setChatInput('')
-    setIsAiTyping(true)
-
-    try {
-      // Get last AI message for context (to handle follow-up responses)
-      const lastAIMessage =
-        chatMessages.filter((msg) => !msg.isUser).slice(-1)[0]?.content || null
-
-      // Get context based on current view
-      const context = `Current view: ${currentView}. User role: Registrar. User: ${registrar?.firstName} ${registrar?.lastName}`
-
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: message.trim(),
-          context,
-          lastAIMessage,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        // Regular chatbot response
-        const aiMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          content: data.response,
-          isUser: false,
-          timestamp: new Date(),
-        }
-        setChatMessages((prev) => [...prev, aiMessage])
-        setTypingMessageId(aiMessage.id)
-
-        // Start typewriter effect
-        typeWriterEffect(aiMessage.id, data.response)
-      } else {
-        // Add error message
-        const errorMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          content:
-            data.error || 'Sorry, I encountered an error. Please try again.',
-          isUser: false,
-          timestamp: new Date(),
-        }
-        setChatMessages((prev) => [...prev, errorMessage])
-        setTypingMessageId(errorMessage.id)
-
-        // Start typewriter effect for error message
-        typeWriterEffect(errorMessage.id, errorMessage.content)
-      }
-    } catch (error) {
-      console.error('Failed to send message to chatbot:', error)
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        content: "Sorry, I'm having trouble connecting. Please try again.",
-        isUser: false,
-        timestamp: new Date(),
-      }
-      setChatMessages((prev) => [...prev, errorMessage])
-      setTypingMessageId(errorMessage.id)
-
-      // Start typewriter effect for connection error message
-      typeWriterEffect(
-        errorMessage.id,
-        "Sorry, I'm having trouble connecting. Please try again."
-      )
-    } finally {
-      setIsAiTyping(false)
-    }
-  }
-
-  const handleSendMessage = () => {
-    sendMessageToAI(chatInput)
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
-    }
-  }
-
-  const handleQuickPrompt = (prompt: string) => {
-    sendMessageToAI(prompt)
-  }
-
-  const typeWriterEffect = (
-    messageId: string,
-    fullContent: string,
-    delay: number = 1
-  ) => {
-    let currentIndex = 0
-
-    // Update the message to show it's being typed
-    setChatMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId
-          ? { ...msg, isTyping: true, displayContent: '' }
-          : msg
-      )
-    )
-
-    const typeNextCharacter = () => {
-      if (currentIndex < fullContent.length) {
-        const nextChar = fullContent.charAt(currentIndex)
-
-        setChatMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === messageId
-              ? {
-                  ...msg,
-                  displayContent: (msg.displayContent || '') + nextChar,
-                }
-              : msg
-          )
-        )
-
-        currentIndex++
-        setTimeout(typeNextCharacter, delay)
-      } else {
-        // Typing complete
-        setChatMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === messageId
-              ? { ...msg, isTyping: false, displayContent: undefined }
-              : msg
-          )
-        )
-        setTypingMessageId(null)
-      }
-    }
-
-    // Start typing after a brief pause
-    setTimeout(typeNextCharacter, 300)
-  }
   const getFullName = () => {
     if (!registrar) return 'Registrar'
     const { firstName, lastName } = registrar
@@ -647,6 +477,43 @@ export default function RegistrarPage() {
   }, [leftSidebarLayout.marginClass, rightSidebarLayout.marginClass])
 
   const isArrangeViewActive = isArrangeView && !isLeftCollapsed
+
+  const resourceItems = useMemo<ResourceItem[]>(() => {
+    return resourcesData as ResourceItem[]
+  }, [])
+
+  const resourceTags = useMemo(() => {
+    return Array.from(
+      new Set(resourceItems.flatMap((item) => item.tags))
+    ).sort()
+  }, [resourceItems])
+
+  const filteredResources = useMemo(() => {
+    return resourceItems.filter((item) => {
+      const matchesTag = activeResourceTag
+        ? item.tags.includes(activeResourceTag)
+        : true
+      const query = resourceSearch.trim().toLowerCase()
+      const matchesSearch =
+        query.length === 0 ||
+        item.title.toLowerCase().includes(query) ||
+        item.summary.toLowerCase().includes(query) ||
+        item.tags.some((tag) => tag.toLowerCase().includes(query))
+      return matchesTag && matchesSearch
+    })
+  }, [activeResourceTag, resourceItems, resourceSearch])
+
+  const handleSelectResource = (resource: ResourceItem) => {
+    setSelectedResource(resource)
+    setIsResourceModalOpen(true)
+    setResourcePage(0)
+  }
+
+  const handleCloseResourceModal = () => {
+    setIsResourceModalOpen(false)
+    setSelectedResource(null)
+    setResourcePage(0)
+  }
 
   const navigationItems = useMemo(() => {
     const allItems = [
@@ -1320,34 +1187,16 @@ export default function RegistrarPage() {
             {isRightCollapsed ? (
               <>
                 <div className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-xl">
-                  {sidebarView === 'ai' ? (
-                    <Robot size={20} weight="fill" />
-                  ) : sidebarView === 'chat' ? (
+                  {sidebarView === 'chat' ? (
                     <ChatCircleDots size={20} weight="fill" />
                   ) : sidebarView === 'tasks' ? (
                     <ListChecks size={20} weight="fill" />
+                  ) : sidebarView === 'resources' ? (
+                    <BookmarkSimple size={20} weight="fill" />
                   ) : (
                     <Bell size={20} weight="fill" />
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSidebarView('ai')
-                    handleToggleRightSidebar()
-                  }}
-                  onKeyDown={(event) =>
-                    handleToggleKeyDown(event, () => {
-                      setSidebarView('ai')
-                      handleToggleRightSidebar()
-                    })
-                  }
-                  aria-label="AI Chat"
-                  className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-xl transition-all duration-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white"
-                  tabIndex={0}
-                >
-                  <Robot size={20} weight="fill" />
-                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -1387,6 +1236,24 @@ export default function RegistrarPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    setSidebarView('resources')
+                    handleToggleRightSidebar()
+                  }}
+                  onKeyDown={(event) =>
+                    handleToggleKeyDown(event, () => {
+                      setSidebarView('resources')
+                      handleToggleRightSidebar()
+                    })
+                  }
+                  aria-label="Resources"
+                  className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-xl transition-all duration-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white"
+                  tabIndex={0}
+                >
+                  <BookmarkSimple size={20} weight="fill" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     setSidebarView('events')
                     handleToggleRightSidebar()
                   }}
@@ -1419,34 +1286,18 @@ export default function RegistrarPage() {
               <>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white text-blue-900 flex items-center justify-center rounded-lg">
-                    {sidebarView === 'ai' ? (
-                      <Robot size={20} weight="fill" />
-                    ) : sidebarView === 'chat' ? (
+                    {sidebarView === 'chat' ? (
                       <ChatCircleDots size={20} weight="fill" />
                     ) : sidebarView === 'tasks' ? (
                       <ListChecks size={20} weight="fill" />
+                    ) : sidebarView === 'resources' ? (
+                      <BookmarkSimple size={20} weight="fill" />
                     ) : (
                       <Bell size={20} weight="fill" />
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSidebarView('ai')}
-                    onKeyDown={(event) =>
-                      handleToggleKeyDown(event, () => setSidebarView('ai'))
-                    }
-                    aria-label="AI Chat"
-                    className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white ${
-                      sidebarView === 'ai'
-                        ? 'border-white/40 text-white hover:bg-white/20 bg-white/20'
-                        : 'border-white/20 text-white/60 hover:bg-white/10'
-                    }`}
-                    tabIndex={0}
-                  >
-                    <Robot size={18} weight="fill" />
-                  </button>
                   <button
                     type="button"
                     onClick={() => setSidebarView('chat')}
@@ -1478,6 +1329,24 @@ export default function RegistrarPage() {
                     tabIndex={0}
                   >
                     <ListChecks size={18} weight="fill" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarView('resources')}
+                    onKeyDown={(event) =>
+                      handleToggleKeyDown(event, () =>
+                        setSidebarView('resources')
+                      )
+                    }
+                    aria-label="Resources"
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white ${
+                      sidebarView === 'resources'
+                        ? 'border-white/40 text-white hover:bg-white/20 bg-white/20'
+                        : 'border-white/20 text-white/60 hover:bg-white/10'
+                    }`}
+                    tabIndex={0}
+                  >
+                    <BookmarkSimple size={18} weight="fill" />
                   </button>
                   <button
                     type="button"
@@ -1516,7 +1385,8 @@ export default function RegistrarPage() {
             <div className="flex-1 flex flex-col items-center justify-center py-6 px-3">
               {(sidebarView === 'chat' ||
                 sidebarView === 'tasks' ||
-                sidebarView === 'events') && (
+                sidebarView === 'events' ||
+                sidebarView === 'resources') && (
                 <button
                   type="button"
                   onClick={handleToggleRightSidebar}
@@ -1526,6 +1396,8 @@ export default function RegistrarPage() {
                       ? 'Expand chat'
                       : sidebarView === 'tasks'
                       ? 'Expand tasks'
+                      : sidebarView === 'resources'
+                      ? 'Expand resources'
                       : 'Expand events'
                   }
                   tabIndex={0}
@@ -1534,6 +1406,8 @@ export default function RegistrarPage() {
                     <ChatCircleDots size={24} weight="fill" />
                   ) : sidebarView === 'tasks' ? (
                     <ListChecks size={24} weight="fill" />
+                  ) : sidebarView === 'resources' ? (
+                    <BookmarkSimple size={24} weight="fill" />
                   ) : (
                     <Bell size={24} weight="fill" />
                   )}
@@ -1552,6 +1426,194 @@ export default function RegistrarPage() {
                 hideHeader={true}
               />
             )
+          ) : sidebarView === 'resources' ? (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 space-y-3 relative">
+                <input
+                  type="text"
+                  value={resourceSearch}
+                  onChange={(e) => setResourceSearch(e.target.value)}
+                  placeholder="Search resources..."
+                  className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm"
+                  style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                  aria-label="Search resources"
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <div
+                    className="text-xs text-blue-900/70"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    {activeResourceTag
+                      ? `Filter: ${activeResourceTag}`
+                      : 'Filter: All resources'}
+                  </div>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowResourceFilterDropdown((prev) => !prev)
+                      }
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-2 ${
+                        activeResourceTag
+                          ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white shadow-md'
+                          : 'bg-white text-blue-900 border border-blue-200 hover:border-blue-400'
+                      }`}
+                      style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      aria-expanded={showResourceFilterDropdown}
+                    >
+                      <FunnelSimple size={14} weight="bold" />
+                      Filter
+                      {activeResourceTag && (
+                        <span className="w-2 h-2 bg-white rounded-full"></span>
+                      )}
+                    </button>
+
+                    {showResourceFilterDropdown && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-20"
+                          onClick={() => setShowResourceFilterDropdown(false)}
+                        ></div>
+                        <div className="absolute right-0 mt-2 w-72 bg-white border border-blue-100 shadow-lg rounded-xl z-30 p-4 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4
+                              className="text-sm font-medium text-blue-900"
+                              style={{
+                                fontFamily: 'Poppins',
+                                fontWeight: 500,
+                              }}
+                            >
+                              Filter by tag
+                            </h4>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowResourceFilterDropdown(false)
+                              }
+                              className="text-blue-900/60 hover:text-blue-900"
+                              aria-label="Close filters"
+                            >
+                              <X size={14} weight="bold" />
+                            </button>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveResourceTag(null)
+                                setShowResourceFilterDropdown(false)
+                              }}
+                              className={`px-3 py-1.5 rounded-full text-xs border transition-all duration-200 ${
+                                activeResourceTag === null
+                                  ? 'bg-blue-900 text-white border-blue-900'
+                                  : 'bg-white text-blue-900 border-blue-200 hover:border-blue-400'
+                              }`}
+                              style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                            >
+                              All
+                            </button>
+                            {resourceTags.map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => {
+                                  setActiveResourceTag(tag)
+                                  setShowResourceFilterDropdown(false)
+                                }}
+                                className={`px-3 py-1.5 rounded-full text-xs border transition-all duration-200 ${
+                                  activeResourceTag === tag
+                                    ? 'bg-blue-900 text-white border-blue-900'
+                                    : 'bg-white text-blue-900 border-blue-200 hover:border-blue-400'
+                                }`}
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                                aria-pressed={activeResourceTag === tag}
+                              >
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-5 space-y-3">
+                {filteredResources.length === 0 ? (
+                  <div className="text-center py-10 bg-white border border-blue-100 rounded-xl">
+                    <p
+                      className="text-sm text-blue-900"
+                      style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                    >
+                      No resources match your search.
+                    </p>
+                  </div>
+                ) : (
+                  filteredResources.map((resource) => (
+                    <button
+                      key={resource.id}
+                      type="button"
+                      onClick={() => handleSelectResource(resource)}
+                      className="w-full text-left rounded-xl border border-blue-100 bg-white shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-900"
+                    >
+                      <div className="flex items-start gap-3 p-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="w-3 h-3 aspect-square rounded-full"
+                                style={{ backgroundColor: resource.color }}
+                                aria-hidden="true"
+                              ></span>
+                              <h3
+                                className="text-sm font-medium text-blue-900"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 500,
+                                }}
+                              >
+                                {resource.title}
+                              </h3>
+                            </div>
+                            <BookmarkSimple
+                              size={16}
+                              weight="fill"
+                              className="text-blue-900"
+                              aria-hidden="true"
+                            />
+                          </div>
+                          <p
+                            className="text-xs text-blue-900/80"
+                            style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                          >
+                            {resource.summary}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {resource.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-100"
+                                style={{
+                                  fontFamily: 'Poppins',
+                                  fontWeight: 400,
+                                }}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
           ) : sidebarView === 'chat' ? (
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Search Bar */}
@@ -1825,192 +1887,7 @@ export default function RegistrarPage() {
                 )}
               </div>
             </div>
-          ) : (
-            <div className="flex-1 flex flex-col p-5 min-h-0">
-              <div className="flex-1 space-y-4 mb-4 overflow-y-auto pr-1">
-                {chatMessages
-                  .filter((message) => !message.isTyping)
-                  .map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex items-start gap-3 ${
-                        message.isUser ? 'justify-end' : ''
-                      }`}
-                    >
-                      {!message.isUser && (
-                        <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
-                          <Brain
-                            size={16}
-                            className="text-white"
-                            weight="fill"
-                          />
-                        </div>
-                      )}
-                      <div
-                        className={`flex-1 rounded-xl p-3 shadow-sm border ${
-                          message.isUser
-                            ? 'bg-gradient-to-br from-blue-800 to-blue-900 text-white border-blue-800'
-                            : 'bg-white text-gray-800 border-blue-100'
-                        } max-w-[85%] min-w-0 break-words transition-colors duration-200`}
-                      >
-                        <p className="text-xs leading-relaxed font-mono">
-                          {message.content}
-                        </p>
-                        <p
-                          className={`text-[10px] mt-2 font-mono ${
-                            message.isUser
-                              ? 'text-blue-200'
-                              : 'text-blue-900/60'
-                          }`}
-                        >
-                          {message.timestamp.toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                      </div>
-                      {message.isUser && (
-                        <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
-                          <span className="text-white text-xs font-medium">
-                            {getInitials()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-
-                {isAiTyping && !typingMessageId && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
-                      <Brain size={16} className="text-white" weight="fill" />
-                    </div>
-                    <div className="flex-1 bg-white border border-blue-100 rounded-xl p-3 shadow-sm">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-blue-200 rounded-full animate-bounce"></div>
-                        <div
-                          className="w-2 h-2 bg-blue-200 rounded-full animate-bounce"
-                          style={{ animationDelay: '0.1s' }}
-                        ></div>
-                        <div
-                          className="w-2 h-2 bg-blue-200 rounded-full animate-bounce"
-                          style={{ animationDelay: '0.2s' }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {typingMessageId && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-900 flex items-center justify-center flex-shrink-0 border-2 border-white shadow">
-                      <Brain size={16} className="text-white" weight="fill" />
-                    </div>
-                    <div className="flex-1 bg-white border border-blue-100 rounded-xl p-3 shadow-sm min-h-[3rem]">
-                      <p className="text-xs text-gray-800 leading-relaxed font-mono">
-                        {(() => {
-                          const typingMessage = chatMessages.find(
-                            (msg) => msg.id === typingMessageId
-                          )
-                          return typingMessage?.displayContent || ''
-                        })()}
-                        <span className="animate-pulse">|</span>
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <div ref={messagesEndRef} />
-              </div>
-
-              <div className="border-t border-blue-100 pt-4 mb-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950 rounded-lg flex items-center justify-center gap-2"
-                    onClick={() =>
-                      handleQuickPrompt(
-                        'How many students are enrolled this year?'
-                      )
-                    }
-                    disabled={isAiTyping}
-                  >
-                    <ChartBar size={14} weight="fill" />
-                    Enrollment stats
-                  </Button>
-                  <Button
-                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950 rounded-lg flex items-center justify-center gap-2"
-                    onClick={() =>
-                      handleQuickPrompt(
-                        'Show me all enrolled students with their details'
-                      )
-                    }
-                    disabled={isAiTyping}
-                  >
-                    <UserList size={14} weight="fill" />
-                    Student reports
-                  </Button>
-                  <Button
-                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950 rounded-lg flex items-center justify-center gap-2"
-                    onClick={() =>
-                      handleQuickPrompt(
-                        'Is there a student named Nasche enrolled?'
-                      )
-                    }
-                    disabled={isAiTyping}
-                  >
-                    <MagnifyingGlass size={14} weight="fill" />
-                    Find student
-                  </Button>
-                  <Button
-                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950 rounded-lg flex items-center justify-center gap-2"
-                    onClick={() =>
-                      handleQuickPrompt(
-                        'What subjects are available for each grade level?'
-                      )
-                    }
-                    disabled={isAiTyping}
-                  >
-                    <BookOpen size={14} weight="fill" />
-                    Course availability
-                  </Button>
-                  <Button
-                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white text-xs font-medium hover:from-blue-900 hover:to-blue-950 rounded-lg flex items-center justify-center gap-2"
-                    onClick={() =>
-                      handleQuickPrompt(
-                        'Show me all teachers and their assignments'
-                      )
-                    }
-                    disabled={isAiTyping}
-                  >
-                    <GraduationCap size={14} weight="fill" />
-                    Teacher info
-                  </Button>
-                </div>
-              </div>
-
-              <div className="border-t border-blue-100 pt-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={chatInputRef}
-                    type="text"
-                    placeholder="Ask the assistant..."
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    disabled={isAiTyping}
-                    className="flex-1 px-3 py-2 border border-blue-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-900 disabled:bg-blue-50 disabled:cursor-not-allowed"
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={!chatInput.trim() || isAiTyping}
-                    className="bg-gradient-to-br from-blue-800 to-blue-900 text-white px-4 py-2 rounded-lg hover:from-blue-900 hover:to-blue-950 disabled:bg-gray-300 disabled:text-gray-500 flex items-center gap-2"
-                  >
-                    <PaperPlaneTilt size={14} weight="fill" />
-                    Send
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+          ) : null}
         </aside>
       )}
 
@@ -2022,6 +1899,146 @@ export default function RegistrarPage() {
           registrar={registrar}
           onUpdate={handleProfileUpdate}
         />
+      )}
+
+      {isResourceModalOpen && selectedResource && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center px-4 sm:px-6">
+          <div
+            className="absolute inset-0 bg-blue-900/40 backdrop-blur-sm"
+            onClick={handleCloseResourceModal}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-blue-100 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-blue-100 bg-gradient-to-r from-blue-900 to-blue-800 text-white">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-2 h-10 rounded-full"
+                  style={{ backgroundColor: selectedResource.color }}
+                />
+                <div>
+                  <p
+                    className="text-xs uppercase tracking-wide opacity-80"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    Resource
+                  </p>
+                  <h3
+                    className="text-lg font-medium"
+                    style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                  >
+                    {selectedResource.title}
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseResourceModal}
+                className="px-3 py-1.5 rounded-lg border border-white/30 text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white text-sm"
+                style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+              >
+                Close
+              </button>
+            </div>
+            <div className="px-6 pt-4 pb-6 space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {selectedResource.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-100"
+                    style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <p
+                className="text-sm text-blue-900/80"
+                style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+              >
+                {selectedResource.summary}
+              </p>
+              {selectedResource.pages && selectedResource.pages.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-blue-900/70 font-medium">
+                        Page {resourcePage + 1} of{' '}
+                        {selectedResource.pages.length}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setResourcePage((prev) => Math.max(prev - 1, 0))
+                        }
+                        disabled={resourcePage === 0}
+                        className={`px-3 py-1.5 rounded-lg border text-xs transition-all duration-200 ${
+                          resourcePage === 0
+                            ? 'bg-gray-100 text-gray-400 border-gray-100 cursor-not-allowed'
+                            : 'bg-white text-blue-900 border-blue-200 hover:border-blue-400'
+                        }`}
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setResourcePage((prev) =>
+                            Math.min(
+                              prev + 1,
+                              selectedResource.pages.length - 1
+                            )
+                          )
+                        }
+                        disabled={
+                          resourcePage === selectedResource.pages.length - 1
+                        }
+                        className={`px-3 py-1.5 rounded-lg border text-xs transition-all duration-200 ${
+                          resourcePage === selectedResource.pages.length - 1
+                            ? 'bg-gray-100 text-gray-400 border-gray-100 cursor-not-allowed'
+                            : 'bg-white text-blue-900 border-blue-200 hover:border-blue-400'
+                        }`}
+                        style={{ fontFamily: 'Poppins', fontWeight: 400 }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <h4
+                      className="text-sm font-medium text-blue-900"
+                      style={{ fontFamily: 'Poppins', fontWeight: 500 }}
+                    >
+                      {selectedResource.pages[resourcePage]?.heading}
+                    </h4>
+                    <div className="space-y-2">
+                      {selectedResource.pages[resourcePage]?.content.map(
+                        (detail, index) => (
+                          <div
+                            key={`${selectedResource.id}-page-${resourcePage}-detail-${index}`}
+                            className="flex items-start gap-3"
+                          >
+                            <span className="w-6 h-6 aspect-square rounded-full bg-blue-900 text-white flex items-center justify-center text-xs font-medium">
+                              {index + 1}
+                            </span>
+                            <p
+                              className="text-sm text-blue-900"
+                              style={{ fontFamily: 'Poppins', fontWeight: 300 }}
+                            >
+                              {detail}
+                            </p>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       <style jsx>{`
