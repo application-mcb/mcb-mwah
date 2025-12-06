@@ -258,9 +258,7 @@ export default function TeacherPage() {
         label: 'Student Grades',
         description: 'Grade management',
         icon: ClipboardText,
-        counts: sidebarCounts?.grades
-          ? [{ label: 'entries', value: sidebarCounts.grades.entries }]
-          : null,
+        counts: null,
       },
       {
         view: 'analytics' as ViewType,
