@@ -1677,21 +1677,6 @@ export default function TeacherGradesView({
                                   <Pencil size={14} className="mr-2" />
                                   Update
                                 </Button>
-                                <Button
-                                  onClick={() => {
-                                    // Print functionality to be implemented
-                                  }}
-                                  size="sm"
-                                  variant="outline"
-                                  className="rounded-lg"
-                                  style={{
-                                    fontFamily: 'Poppins',
-                                    fontWeight: 500,
-                                  }}
-                                >
-                                  <Printer size={14} className="mr-2" />
-                                  Print
-                                </Button>
                               </div>
                             </td>
                           </tr>
