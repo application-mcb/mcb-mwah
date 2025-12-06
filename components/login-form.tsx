@@ -285,7 +285,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   return (
     <div className="mx-auto w-full rounded-2xl border border-blue-900/10 bg-white/95 p-6 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-      <CardHeader className="p text-center sm:px-6 sm:pb-8">
+      <CardHeader className="p-6 text-center sm:px-6 sm:pb-8">
         <CardTitle className="mb-2 text-2xl font-medium text-blue-900 sm:text-3xl">
           Welcome back
         </CardTitle>

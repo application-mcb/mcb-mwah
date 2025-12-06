@@ -866,7 +866,7 @@ export default function RegistrarOverview({
                   return (
                     <tr key={enrollment.userId} className="hover:bg-gray-50">
                       <td
-                        className="px-3 py-2 whitespace-nowrap text-xs"
+                        className="px-3 py-2 whitespace-nowrap text-xs uppercase"
                         style={{ fontFamily: 'monospace', fontWeight: 400 }}
                       >
                         {fullName || 'N/A'}

@@ -210,7 +210,7 @@ const CourseMasterList = ({
                       {student.id}
                     </td>
                     <td
-                      className="border border-gray-200 px-4 py-3 text-sm text-gray-900"
+                      className="border border-gray-200 px-4 py-3 text-sm text-gray-900 uppercase"
                       style={{ fontFamily: 'Poppins', fontWeight: 400 }}
                     >
                       {student.name}

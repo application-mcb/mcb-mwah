@@ -91,7 +91,7 @@ export const ContinueWithUser: React.FC = () => {
   const hasProfilePicture = user.photoURL && user.photoURL.trim() !== ''
 
   return (
-    <Card className="w-full max-w-lg mx-auto shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
+    <Card className="w-full p-6 rounded-xl max-w-lg mx-auto shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
       <CardHeader className="text-center pb-6 sm:pb-8 px-4 sm:px-6">
         <CardTitle className="text-2xl sm:text-3xl font-light text-gray-900 mb-2">
           Welcome Back

@@ -135,7 +135,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   }
 
   return (
-    <div className="w-full max-w-md mx-auto shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
+    <div className="w-full max-w-md p-6 rounded-xl mx-auto shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
       <CardHeader className="text-center pb-6 sm:pb-8 px-4 sm:px-6">
         <CardTitle className="text-2xl sm:text-3xl font-light text-gray-900">
           Create Account

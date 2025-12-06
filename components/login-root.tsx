@@ -148,8 +148,14 @@ export const LoginRoot = () => {
         </div>
 
         <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-12 lg:py-16">
-          <div className="absolute inset-0 rounded-none lg:rounded-l-[2rem]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(59,130,246,0.09),transparent_38%),radial-gradient(circle_at_90%_10%,rgba(30,64,175,0.1),transparent_48%)]" />
+          <div
+            className="pointer-events-none absolute inset-0 rounded-none lg:rounded-l-[2rem]"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_20%,rgba(59,130,246,0.09),transparent_38%),radial-gradient(circle_at_90%_10%,rgba(30,64,175,0.1),transparent_48%)]"
+            aria-hidden="true"
+          />
 
           <div className="w-full max-w-lg">
             {loading ? (
