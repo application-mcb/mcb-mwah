@@ -120,7 +120,6 @@ export default function CustomizeAccount() {
       try {
         const provincesData = await getProvinces()
         setProvinces(provincesData)
-        toast.success('Location data loaded')
       } catch (error) {
         console.error('Error loading provinces:', error)
         toast.error('Failed to load location data')
@@ -139,16 +138,19 @@ export default function CustomizeAccount() {
           if (user) {
             // Check if user is a teacher or registrar - redirect them away from setup
             try {
-              const roleCheckResponse = await fetch('/api/teachers/check-role', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  uid: user.uid,
-                  email: user.email,
-                }),
-              })
+              const roleCheckResponse = await fetch(
+                '/api/teachers/check-role',
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    uid: user.uid,
+                    email: user.email,
+                  }),
+                }
+              )
 
               if (roleCheckResponse.ok) {
                 const roleData = await roleCheckResponse.json()
@@ -186,7 +188,10 @@ export default function CustomizeAccount() {
               }
             } catch (error) {
               // If role check fails, continue with student setup flow
-              console.log('Role check failed, continuing with student setup:', error)
+              console.log(
+                'Role check failed, continuing with student setup:',
+                error
+              )
             }
 
             setUser(user)
@@ -266,11 +271,7 @@ export default function CustomizeAccount() {
   }, [])
 
   useEffect(() => {
-    if (
-      !userProfile ||
-      provinces.length === 0 ||
-      primaryLocationSynced.current
-    )
+    if (!userProfile || provinces.length === 0 || primaryLocationSynced.current)
       return
 
     const syncPrimaryLocation = async () => {
@@ -678,7 +679,7 @@ export default function CustomizeAccount() {
       {/* Decorative Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.08)_1px,transparent_1px)] bg-[size:60px_60px]"></div>
       <div className="max-w-4xl mx-auto relative z-10">
-        <Card className="shadow-2xl border border-blue-100 bg-white/80 backdrop-blur-sm rounded-xl">
+        <Card className="shadow-2xl p-6 border border-blue-100 bg-white/80 backdrop-blur-sm rounded-xl">
           <CardHeader className="text-center pb-8">
             <CardTitle className="text-3xl font-light bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent">
               Setup Your Account
