@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack --skip-lint",
-    "build:vercel": "next build --turbopack --skip-lint",
+    "build": "next build --turbopack",
+    "build:vercel": "next build --turbopack",
     "start": "next start",
     "lint": "eslint"
   },
