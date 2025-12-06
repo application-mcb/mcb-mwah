@@ -1,6 +1,6 @@
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { AuthServer } from '@/lib/auth-server'
+import { getSessionCookieValue } from '@/lib/get-session-cookie'
 import LandingRoot from '@/components/landing-root'
 
 const getDashboardPath = (role?: string) => {
@@ -19,10 +19,13 @@ const getDashboardPath = (role?: string) => {
   return '/dashboard'
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function LandingPage() {
-  const sessionCookie = cookies().get('session')?.value
-  const authenticatedUser =
-    await AuthServer.getUserFromSessionCookie(sessionCookie)
+  const sessionCookie = await getSessionCookieValue()
+  const authenticatedUser = await AuthServer.getUserFromSessionCookie(
+    sessionCookie
+  )
 
   if (authenticatedUser) {
     redirect(getDashboardPath(authenticatedUser.role))
